@@ -117,6 +117,11 @@ namespace SimpleContainer
 			ConfigureDependency(typeof (T), dependencyName).ImplementationType = typeof (TDependencyValue);
 		}
 
+		public void BindDependencies<T>(object dependencies)
+		{
+			throw new NotSupportedException();
+		}
+
 		public void BindDependencyValue(Type type, Type dependencyType, object value)
 		{
 			ConfigureDependency(type, dependencyType).UseValue(value);

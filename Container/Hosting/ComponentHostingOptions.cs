@@ -6,6 +6,5 @@ namespace SimpleContainer.Hosting
 	{
 		public bool IsBackground { get; set; }
 		public Action OnStop;
-		public Action OnPrepareStop;
 	}
 }
