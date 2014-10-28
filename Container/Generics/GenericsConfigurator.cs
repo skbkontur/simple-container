@@ -14,15 +14,15 @@ namespace SimpleContainer.Generics
 			this.assemblyFilter = assemblyFilter;
 		}
 
-		public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder configurator)
+		public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder builder)
 		{
 			var processor = new GenericsConfigurationProcessor(assemblyFilter);
-			configurator.ScanTypesWith((_, type) =>
+			builder.ScanTypesWith((_, type) =>
 			{
 				if (!type.Assembly.FullName.Contains("FunctionalTests"))
 					processor.FirstRun(type);
 			});
-			configurator.ScanTypesWith(delegate(ContainerConfigurationBuilder containerConfigurator, Type type)
+			builder.ScanTypesWith(delegate(ContainerConfigurationBuilder containerConfigurator, Type type)
 			{
 				if (!type.Assembly.FullName.Contains("FunctionalTests"))
 					processor.SecondRun(containerConfigurator, type);

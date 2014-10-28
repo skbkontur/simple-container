@@ -9,6 +9,6 @@ namespace SimpleContainer.Configuration
 	public interface IHandleProfile<TProfile>: IHandleProfile
 		where TProfile: IProfile
 	{
-		void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder configurator);
+		void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder builder);
 	}
 }

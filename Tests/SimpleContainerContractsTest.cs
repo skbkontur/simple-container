@@ -1,4 +1,8 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using NUnit.Framework;
 
 namespace SimpleContainer.Tests
@@ -450,6 +454,123 @@ namespace SimpleContainer.Tests
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.first.intf, Is.InstanceOf<Y>());
 				Assert.That(wrap.second.intf, Is.InstanceOf<Z>());
+			}
+		}
+
+		public class ContractsCanBeUnioned : SimpleContainerContractsTest
+		{
+			public class AllWrapsHost
+			{
+				public readonly ServiceWrap[] wraps;
+
+				public AllWrapsHost(IEnumerable<ServiceWrap> wraps)
+				{
+					this.wraps = wraps.ToArray();
+				}
+			}
+
+			public class ServiceWrap
+			{
+				public readonly IService service;
+
+				public ServiceWrap(IService service)
+				{
+					this.service = service;
+				}
+			}
+
+			public interface IService
+			{
+			}
+
+			public class Service1 : IService
+			{
+			}
+
+			public class Service2 : IService
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.RequireContract<AllWrapsHost>("wraps", "service1Contract");
+					builder.RequireContract<AllWrapsHost>("wraps", "service2Contract");
+
+					builder.ConfigureContract("service1Contract").Bind<IService, Service1>();
+					builder.ConfigureContract("service2Contract").Bind<IService, Service2>();
+				});
+				var wrap = container.Get<AllWrapsHost>();
+				Assert.That(wrap.wraps.Length, Is.EqualTo(2));
+				Assert.That(wrap.wraps[0].service, Is.InstanceOf<Service1>());
+				Assert.That(wrap.wraps[1].service, Is.InstanceOf<Service2>());
+			}
+		}
+
+		public class ContractIsNotConfigured : SimpleContainerContractsTest
+		{
+			public class Service
+			{
+				public Service(Dependency dependency)
+				{
+				}
+			}
+
+			public class Dependency
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.RequireContract<Service>("dependency", "some-contract"));
+				var e = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+				Assert.That(e.Message, Is.EqualTo("contract [some-contract] is not configured\r\nService!"));
+			}
+		}
+
+		public class UnionContractsWithNonContractDependentServices : SimpleContainerContractsTest
+		{
+			public class ServiceWrap
+			{
+				public readonly Service[] wraps;
+
+				public ServiceWrap(IEnumerable<Service> wraps)
+				{
+					this.wraps = wraps.ToArray();
+				}
+			}
+
+			public class Service
+			{
+			}
+
+			public class OtherService
+			{
+				public readonly int parameter;
+
+				public OtherService(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.RequireContract<ServiceWrap>("wraps", "service1Contract");
+					builder.RequireContract<ServiceWrap>("wraps", "service2Contract");
+
+					builder.ConfigureContract("service1Contract").BindDependency<OtherService>("parameter", 1);
+					builder.ConfigureContract("service2Contract").BindDependency<OtherService>("parameter", 2);
+				});
+				var wrap = container.Get<ServiceWrap>();
+				Assert.That(wrap.wraps.Length, Is.EqualTo(1));
+				Assert.That(wrap.wraps[0], Is.SameAs(container.Get<Service>()));
 			}
 		}
 	}

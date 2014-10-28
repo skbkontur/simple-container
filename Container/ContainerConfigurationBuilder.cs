@@ -13,10 +13,14 @@ namespace SimpleContainer
 		private bool canCreateChildContainers;
 		private readonly List<Action> resetActions = new List<Action>();
 		private string hostName;
-		private readonly IDictionary<string, ContainerConfigurationBuilder> contractConfigurators = new Dictionary<string, ContainerConfigurationBuilder>();
-		private readonly List<Action<ContainerConfigurationBuilder, Type>> scanners = new List<Action<ContainerConfigurationBuilder, Type>>();
 
-		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>() where TImplementation: TInterface
+		private readonly IDictionary<string, ContainerConfigurationBuilder> contractConfigurators =
+			new Dictionary<string, ContainerConfigurationBuilder>();
+
+		private readonly List<Action<ContainerConfigurationBuilder, Type>> scanners =
+			new List<Action<ContainerConfigurationBuilder, Type>>();
+
+		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>() where TImplementation : TInterface
 		{
 			return Bind(typeof (TInterface), typeof (TImplementation));
 		}
@@ -30,7 +34,8 @@ namespace SimpleContainer
 		public ContainerConfigurationBuilder Bind(Type interfaceType, Type implementationType)
 		{
 			if (!interfaceType.IsAssignableFrom(implementationType))
-				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(), implementationType.FormatName()));
+				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
+					implementationType.FormatName()));
 			GetOrCreate<InterfaceConfiguration>(interfaceType).AddImplementation(implementationType);
 			return this;
 		}
@@ -39,13 +44,13 @@ namespace SimpleContainer
 		{
 			return Bind(typeof (T), value);
 		}
-		
+
 		public ContainerConfigurationBuilder Bind(Type interfaceType, object value)
 		{
 			if (value != null && interfaceType.IsInstanceOfType(value) == false)
 				throw new SimpleContainerException(string.Format("value {0} can't be casted to required type [{1}]",
-																 SimpleContainerHelpers.DumpValue(value),
-																 interfaceType.FormatName()));
+					SimpleContainerHelpers.DumpValue(value),
+					interfaceType.FormatName()));
 			GetOrCreate<InterfaceConfiguration>(interfaceType).Implementation = value;
 			return this;
 		}
@@ -66,6 +71,16 @@ namespace SimpleContainer
 			ConfigureDependency(type, dependencyName).UseValue(value);
 		}
 
+		public void RequireContract(Type type, string dependencyName, string contract)
+		{
+			ConfigureDependency(type, dependencyName).AddContract(contract);
+		}
+
+		public void RequireContract<T>(string dependencyName, string contract)
+		{
+			RequireContract(typeof (T), dependencyName, contract);
+		}
+
 		public void BindDependency<T, TDependency>(TDependency value)
 		{
 			BindDependency<T, TDependency>((object) value);
@@ -74,14 +89,15 @@ namespace SimpleContainer
 		public void BindDependency<T, TDependency>(object value)
 		{
 			if (value != null && value is TDependency == false)
-				throw new SimpleContainerException(string.Format("dependency {0} for service [{1}] can't be casted to required type [{2}]",
-																 SimpleContainerHelpers.DumpValue(value),
-																 typeof (T).FormatName(),
-																 typeof (TDependency).FormatName()));
+				throw new SimpleContainerException(
+					string.Format("dependency {0} for service [{1}] can't be casted to required type [{2}]",
+						SimpleContainerHelpers.DumpValue(value),
+						typeof (T).FormatName(),
+						typeof (TDependency).FormatName()));
 			ConfigureDependency(typeof (T), typeof (TDependency)).UseValue(value);
 		}
 
-		public void BindDependency<T, TDependency, TDependencyValue>() where TDependencyValue: TDependency
+		public void BindDependency<T, TDependency, TDependencyValue>() where TDependencyValue : TDependency
 		{
 			ConfigureDependency(typeof (T), typeof (TDependency)).ImplementationType = typeof (TDependencyValue);
 		}
@@ -118,16 +134,26 @@ namespace SimpleContainer
 					scanner(this, type);
 		}
 
+		public ContainerConfigurationBuilder ConfigureContract(string contract)
+		{
+			if (contractConfigurators.ContainsKey(contract))
+				throw new InvalidOperationException(string.Format("contract {0} already defined", contract));
+			var result = new ContainerConfigurationBuilder();
+			contractConfigurators[contract] = result;
+			return result;
+		}
+
 		public ContainerConfigurationBuilder InContext(Type type, params string[] dependencies)
 		{
 			var targetType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
 			var result = new ContainerConfigurationBuilder();
 			foreach (var dependency in dependencies)
 			{
-				var contextKey = targetType.Name + "." + dependency;
-				if (contractConfigurators.ContainsKey(contextKey))
-					throw new InvalidOperationException(string.Format("context key {0} already defined", contextKey));
-				contractConfigurators[contextKey] = result;
+				var contract = targetType.Name + "." + dependency;
+				RequireContract(type, dependency, contract);
+				if (contractConfigurators.ContainsKey(contract))
+					throw new InvalidOperationException(string.Format("context key {0} already defined", contract));
+				contractConfigurators[contract] = result;
 			}
 			return result;
 		}
@@ -169,13 +195,13 @@ namespace SimpleContainer
 		public IContainerConfiguration Build()
 		{
 			return new ContainerConfiguration(configurations, canCreateChildContainers,
-											  delegate
-											  {
-												  foreach (var resetAction in resetActions)
-													  resetAction();
-											  },
-											  contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()),
-											  hostName);
+				delegate
+				{
+					foreach (var resetAction in resetActions)
+						resetAction();
+				},
+				contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()),
+				hostName);
 		}
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)
@@ -193,7 +219,7 @@ namespace SimpleContainer
 			return GetOrCreate<ImplementationConfiguration>(pluggable).GetOrCreateByKey(key);
 		}
 
-		private T GetOrCreate<T>(Type type) where T: class, new()
+		private T GetOrCreate<T>(Type type) where T : class, new()
 		{
 			object result;
 			if (!configurations.TryGetValue(type, out result))
@@ -205,17 +231,18 @@ namespace SimpleContainer
 			catch (InvalidCastException e)
 			{
 				throw new InvalidOperationException(string.Format("type {0}, existent {1}, required {2}",
-																  type.FormatName(), result.GetType().FormatName(), typeof (T).FormatName()), e);
+					type.FormatName(), result.GetType().FormatName(), typeof (T).FormatName()), e);
 			}
 		}
 
-		private class ContainerConfiguration: IContainerConfiguration
+		private class ContainerConfiguration : IContainerConfiguration
 		{
 			private readonly IDictionary<Type, object> configurations;
 			private readonly IDictionary<string, IContainerConfiguration> contractsConfigurators;
 
-			public ContainerConfiguration(IDictionary<Type, object> configurations, bool canCreateChildContainers, Action resetAction,
-										  IDictionary<string, IContainerConfiguration> contractsConfigurators, string hostName)
+			public ContainerConfiguration(IDictionary<Type, object> configurations, bool canCreateChildContainers,
+				Action resetAction,
+				IDictionary<string, IContainerConfiguration> contractsConfigurators, string hostName)
 			{
 				this.configurations = configurations;
 				this.contractsConfigurators = contractsConfigurators;
@@ -227,7 +254,7 @@ namespace SimpleContainer
 			public bool CanCreateChildContainers { get; private set; }
 			public Action ResetAction { get; private set; }
 
-			public T GetOrNull<T>(Type type) where T: class
+			public T GetOrNull<T>(Type type) where T : class
 			{
 				return configurations.GetOrDefault(type) as T;
 			}

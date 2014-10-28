@@ -137,9 +137,9 @@ namespace SimpleContainer.Configuration
 
 			#region IHandleProfile<IProfile> Members
 
-			public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder configurator)
+			public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder builder)
 			{
-				handler.Handle(applicationSettings, configurator);
+				handler.Handle(applicationSettings, builder);
 			}
 
 			#endregion
@@ -156,9 +156,9 @@ namespace SimpleContainer.Configuration
 
 			#region IHandleProfile<IProfile> Members
 
-			public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder configurator)
+			public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder builder)
 			{
-				configurators.ForEach(profileConfigurator => profileConfigurator.Handle(applicationSettings, configurator));
+				configurators.ForEach(profileConfigurator => profileConfigurator.Handle(applicationSettings, builder));
 			}
 
 			#endregion

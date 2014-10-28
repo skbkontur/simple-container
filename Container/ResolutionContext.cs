@@ -11,7 +11,7 @@ namespace SimpleContainer
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public string ContextKey { get; private set; }
+		public string Contract { get; private set; }
 		public object arguments;
 
 		private IContainerConfiguration contextConfiguration;
@@ -38,8 +38,8 @@ namespace SimpleContainer
 			{
 				depth = depth++,
 				name = name,
-				contractName = ContextKey,
-				contractDeclared = ContextKey != null && previous != null && previous.contractName == null,
+				contractName = Contract,
+				contractDeclared = Contract != null && previous != null && previous.contractName == null,
 				service = service
 			};
 			current.Push(item);
@@ -57,31 +57,24 @@ namespace SimpleContainer
 			depth--;
 		}
 
-		public bool ActivateContext(Type type, string parameterName)
+		public void ActivateContract(string contract)
 		{
-			var targetType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-			var contextKey = targetType.Name + "." + parameterName;
-			return ActivateContext(contextKey);
-		}
-
-		public bool ActivateContext(string contextKey)
-		{
-			if (string.IsNullOrEmpty(contextKey))
-				return false;
-			var newContextConfiguration = configuration.GetByKeyOrNull(contextKey);
+			if (string.IsNullOrEmpty(contract))
+				return;
+			var newContextConfiguration = configuration.GetByKeyOrNull(contract);
 			if (newContextConfiguration == null)
-				return false;
-			if (ContextKey != null)
-				throw new SimpleContainerException(string.Format("nested contexts are not supported, outer context [{0}], inner context [{1}]\r\n{2}",
-																 ContextKey, contextKey, Format()));
-			ContextKey = contextKey;
+				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contract, Format()));
+			if (Contract != null)
+				throw new SimpleContainerException(
+					string.Format("nested contexts are not supported, outer context [{0}], inner context [{1}]\r\n{2}",
+						Contract, contract, Format()));
+			Contract = contract;
 			contextConfiguration = newContextConfiguration;
-			return true;
 		}
 
 		public void DeactivateContext()
 		{
-			ContextKey = null;
+			Contract = null;
 			contextConfiguration = null;
 		}
 

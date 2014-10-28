@@ -82,10 +82,10 @@ namespace SimpleContainer
 			return instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate).WaitForResolve().AsEnumerable();
 		}
 
-		public object Create(Type type, string contextKey, object arguments)
+		public object Create(Type type, string contract, object arguments)
 		{
 			var resolutionContext = new ResolutionContext(configuration, arguments);
-			resolutionContext.ActivateContext(contextKey);
+			resolutionContext.ActivateContract(contract);
 			var result = Resolve(new ResolutionRequest { type = type, createNew = true }, resolutionContext);
 			return result.SingleInstance();
 		}
@@ -141,7 +141,7 @@ namespace SimpleContainer
 		private ContainerService Resolve(ResolutionRequest request, ResolutionContext context)
 		{
 			ContainerService result;
-			var cacheKey = new CacheKey(request.type, context.ContextKey);
+			var cacheKey = new CacheKey(request.type, context.Contract);
 			if (request.createNew || request.type.IsDefined<DontReuseAttribute>())
 			{
 				result = createContainerServiceDelegate(cacheKey);
@@ -393,7 +393,7 @@ namespace SimpleContainer
 								  service.context.Format());
 				actualArguments[i] = dependencyValue;
 			}
-			if (service.context.ContextKey == null || service.contractUsed)
+			if (service.context.Contract == null || service.contractUsed)
 			{
 				service.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));
 				return;
@@ -454,17 +454,28 @@ namespace SimpleContainer
 																	 implementation.type.Assembly.GetName().Name, resolutionContext.Format()));
 				return ResolvedService(resourceStream);
 			}
-			var contextActivated = resolutionContext.ActivateContext(implementation.type, formalParameter.Name);
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
 			var childRequest = new ResolutionRequest
-							   {
-								   type = isEnumerable ? enumerableItem : implementationType,
-								   name = formalParameter.Name
-							   };
-			var result = Resolve(childRequest, resolutionContext);
-			if (contextActivated)
-				resolutionContext.DeactivateContext();
+			{
+				type = isEnumerable ? enumerableItem : implementationType,
+				name = formalParameter.Name
+			};
+			ContainerService result;
+			if (dependencyConfiguration != null && dependencyConfiguration.Contracts != null)
+			{
+				result = new ContainerService {type = childRequest.type};
+				var contractServices = new List<object>();
+				foreach (var contract in dependencyConfiguration.Contracts)
+				{
+					resolutionContext.ActivateContract(contract);
+					contractServices.AddRange(Resolve(childRequest, resolutionContext).instances);
+					resolutionContext.DeactivateContext();
+				}
+				result.instances.AddRange(contractServices.Distinct());
+			}
+			else
+				result = Resolve(childRequest, resolutionContext);
 			if (isEnumerable)
 				return ResolvedService(result.AsEnumerable(), result.contractUsed);
 			if (result.instances.Count == 0 && formalParameter.HasDefaultValue)

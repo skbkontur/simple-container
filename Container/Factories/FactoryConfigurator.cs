@@ -5,10 +5,10 @@ namespace SimpleContainer.Factories
 {
 	public class FactoryConfigurator : IHandleProfile<BasicProfile>
 	{
-		public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder configurator)
+		public void Handle(NameValueCollection applicationSettings, ContainerConfigurationBuilder builder)
 		{
 			var processor = new FactoryConfigurationProcessor();
-			configurator.ScanTypesWith(processor.FirstRun);
+			builder.ScanTypesWith(processor.FirstRun);
 		}
 	}
 }

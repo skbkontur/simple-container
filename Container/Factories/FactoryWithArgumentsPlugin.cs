@@ -22,8 +22,8 @@ namespace SimpleContainer.Factories
 			if (typeArguments[0] != typeof (object))
 				return false;
 			var type = typeArguments[1];
-			var contextKey = containerService.context.ContextKey;
-			Func<object, object> factory = arguments => serviceFactory.Create(type, contextKey, arguments);
+			var contract = containerService.context.Contract;
+			Func<object, object> factory = arguments => serviceFactory.Create(type, contract, arguments);
 			containerService.instances.Add(GetCaster(type).CastToTyped(factory));
 			containerService.contractUsed = true;
 			return true;

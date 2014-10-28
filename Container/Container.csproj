@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Hosting\Application.cs" />
     <Compile Include="Configuration\BasicProfile.cs" />
     <Compile Include="Configuration\ConfiguratorBuilder.cs" />
     <Compile Include="Configuration\ConfiguratorDescriber.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
+    <Compile Include="Hosting\ComponentHostingOptions.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="IContainerConfiguration.cs" />
     <Compile Include="ImplementationConfiguration.cs" />
@@ -85,9 +87,12 @@
     <Compile Include="Infection\InjectAttribute.cs" />
     <Compile Include="InterfaceConfiguration.cs" />
     <Compile Include="IObjectAccessor.cs" />
+    <Compile Include="Hosting\IPollable.cs" />
     <Compile Include="IResolveDependency.cs" />
+    <Compile Include="Hosting\IRunnable.cs" />
     <Compile Include="IServiceFactory.cs" />
     <Compile Include="ISimpleLogWriter.cs" />
+    <Compile Include="Hosting\IComponent.cs" />
     <Compile Include="MergedConfiguration.cs" />
     <Compile Include="ObjectAccessors.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
