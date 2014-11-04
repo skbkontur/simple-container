@@ -9,7 +9,6 @@ namespace SimpleContainer
 	public class ContainerConfigurationBuilder
 	{
 		private readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
-
 		private bool canCreateChildContainers;
 		private readonly List<Action> resetActions = new List<Action>();
 		private string hostName;
@@ -61,32 +60,37 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public void BindDependency<T>(string dependencyName, object value)
+		public ContainerConfigurationBuilder BindDependency<T>(string dependencyName, object value)
 		{
 			ConfigureDependency(typeof (T), dependencyName).UseValue(value);
+			return this;
 		}
 
-		public void BindDependency(Type type, string dependencyName, object value)
+		public ContainerConfigurationBuilder BindDependency(Type type, string dependencyName, object value)
 		{
 			ConfigureDependency(type, dependencyName).UseValue(value);
+			return this;
 		}
 
-		public void RequireContract(Type type, string dependencyName, string contract)
+		public ContainerConfigurationBuilder AddContract(Type type, string dependencyName, string contract)
 		{
 			ConfigureDependency(type, dependencyName).AddContract(contract);
+			return this;
 		}
 
-		public void RequireContract<T>(string dependencyName, string contract)
+		public ContainerConfigurationBuilder AddContract<T>(string dependencyName, string contract)
 		{
-			RequireContract(typeof (T), dependencyName, contract);
+			AddContract(typeof (T), dependencyName, contract);
+			return this;
 		}
 
-		public void BindDependency<T, TDependency>(TDependency value)
+		public ContainerConfigurationBuilder BindDependency<T, TDependency>(TDependency value)
 		{
 			BindDependency<T, TDependency>((object) value);
+			return this;
 		}
 
-		public void BindDependency<T, TDependency>(object value)
+		public ContainerConfigurationBuilder BindDependency<T, TDependency>(object value)
 		{
 			if (value != null && value is TDependency == false)
 				throw new SimpleContainerException(
@@ -95,16 +99,20 @@ namespace SimpleContainer
 						typeof (T).FormatName(),
 						typeof (TDependency).FormatName()));
 			ConfigureDependency(typeof (T), typeof (TDependency)).UseValue(value);
+			return this;
 		}
 
-		public void BindDependency<T, TDependency, TDependencyValue>() where TDependencyValue : TDependency
+		public ContainerConfigurationBuilder BindDependency<T, TDependency, TDependencyValue>()
+			where TDependencyValue : TDependency
 		{
 			ConfigureDependency(typeof (T), typeof (TDependency)).ImplementationType = typeof (TDependencyValue);
+			return this;
 		}
 
-		public void BindDependency(Type type, Type dependencyType, Func<IContainer, object> creator)
+		public ContainerConfigurationBuilder BindDependency(Type type, Type dependencyType, Func<IContainer, object> creator)
 		{
 			ConfigureDependency(type, dependencyType).Factory = creator;
+			return this;
 		}
 
 		public void BindDependencyFactory<T>(string dependencyName, Func<IContainer, object> creator)
@@ -112,31 +120,35 @@ namespace SimpleContainer
 			ConfigureDependency(typeof (T), dependencyName).Factory = creator;
 		}
 
-		public void BindDependencyImplementation<T, TDependencyValue>(string dependencyName)
+		public ContainerConfigurationBuilder BindDependencyImplementation<T, TDependencyValue>(string dependencyName)
 		{
 			ConfigureDependency(typeof (T), dependencyName).ImplementationType = typeof (TDependencyValue);
+			return this;
 		}
 
-		public void BindDependencies<T>(object dependencies)
+		public ContainerConfigurationBuilder BindDependencies<T>(object dependencies)
 		{
 			throw new NotSupportedException();
 		}
 
-		public void BindDependencyValue(Type type, Type dependencyType, object value)
+		public ContainerConfigurationBuilder BindDependencyValue(Type type, Type dependencyType, object value)
 		{
 			ConfigureDependency(type, dependencyType).UseValue(value);
+			return this;
 		}
 
-		public void ScanTypesWith(Action<ContainerConfigurationBuilder, Type> scanner)
+		public ContainerConfigurationBuilder ScanTypesWith(Action<ContainerConfigurationBuilder, Type> scanner)
 		{
 			scanners.Add(scanner);
+			return this;
 		}
 
-		public void ApplyScanners(Type[] types)
+		public ContainerConfigurationBuilder ApplyScanners(Type[] types)
 		{
 			foreach (var scanner in scanners)
 				foreach (var type in types)
 					scanner(this, type);
+			return this;
 		}
 
 		public ContainerConfigurationBuilder ConfigureContract(string contract)
@@ -155,7 +167,7 @@ namespace SimpleContainer
 			foreach (var dependency in dependencies)
 			{
 				var contract = targetType.Name + "." + dependency;
-				RequireContract(type, dependency, contract);
+				AddContract(type, dependency, contract);
 				if (contractConfigurators.ContainsKey(contract))
 					throw new InvalidOperationException(string.Format("context key {0} already defined", contract));
 				contractConfigurators[contract] = result;

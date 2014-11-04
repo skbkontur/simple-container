@@ -74,6 +74,8 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\ComponentHostingOptions.cs" />
+    <Compile Include="Hosting\DependsOnComponentAttribute.cs" />
+    <Compile Include="Hosting\IShutdownCoordinator.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="IContainerConfiguration.cs" />
     <Compile Include="ImplementationConfiguration.cs" />
@@ -87,7 +89,6 @@
     <Compile Include="Infection\InjectAttribute.cs" />
     <Compile Include="InterfaceConfiguration.cs" />
     <Compile Include="IObjectAccessor.cs" />
-    <Compile Include="Hosting\IPollable.cs" />
     <Compile Include="IResolveDependency.cs" />
     <Compile Include="Hosting\IRunnable.cs" />
     <Compile Include="IServiceFactory.cs" />

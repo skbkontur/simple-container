@@ -496,8 +496,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.RequireContract<AllWrapsHost>("wraps", "service1Contract");
-					builder.RequireContract<AllWrapsHost>("wraps", "service2Contract");
+					builder.AddContract<AllWrapsHost>("wraps", "service1Contract");
+					builder.AddContract<AllWrapsHost>("wraps", "service2Contract");
 
 					builder.ConfigureContract("service1Contract").Bind<IService, Service1>();
 					builder.ConfigureContract("service2Contract").Bind<IService, Service2>();
@@ -525,7 +525,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(b => b.RequireContract<Service>("dependency", "some-contract"));
+				var container = Container(b => b.AddContract<Service>("dependency", "some-contract"));
 				var e = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
 				Assert.That(e.Message, Is.EqualTo("contract [some-contract] is not configured\r\nService!"));
 			}
@@ -562,8 +562,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.RequireContract<ServiceWrap>("wraps", "service1Contract");
-					builder.RequireContract<ServiceWrap>("wraps", "service2Contract");
+					builder.AddContract<ServiceWrap>("wraps", "service1Contract");
+					builder.AddContract<ServiceWrap>("wraps", "service2Contract");
 
 					builder.ConfigureContract("service1Contract").BindDependency<OtherService>("parameter", 1);
 					builder.ConfigureContract("service2Contract").BindDependency<OtherService>("parameter", 2);
