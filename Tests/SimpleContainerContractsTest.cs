@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
@@ -295,7 +296,7 @@ namespace SimpleContainer.Tests
 					builder.InContext<InnerService>("service").Bind<Service, Service>();
 				});
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				const string expectedMessage = "nested contexts are not supported, outer context [OuterService.innerService], inner context [InnerService.service]\r\n" +
+				const string expectedMessage = "nested contexts are not supported, outer contract [OuterService.innerService], inner contract [InnerService.service]\r\n" +
 											   "Wrap!\r\n\tOuterService!\r\n\t\tInnerService[OuterService.innerService]->[OuterService.innerService]!";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
@@ -571,6 +572,46 @@ namespace SimpleContainer.Tests
 				var wrap = container.Get<ServiceWrap>();
 				Assert.That(wrap.wraps.Length, Is.EqualTo(1));
 				Assert.That(wrap.wraps[0], Is.SameAs(container.Get<Service>()));
+			}
+		}
+
+		public class ContractCanBeSpecifiedViaInfection : SimpleContainerContractsTest
+		{
+			public class Wrap
+			{
+				public readonly IService serviceA;
+				public readonly IService serviceB;
+
+				public Wrap([RequireContract("A")] IService serviceA, [RequireContract("B")] IService serviceB)
+				{
+					this.serviceA = serviceA;
+					this.serviceB = serviceB;
+				}
+			}
+
+			public interface IService
+			{
+			}
+
+			public class ServiceA : IService
+			{
+			}
+
+			public class ServiceB : IService
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.ConfigureContract("A").Bind<IService, ServiceA>();
+					builder.ConfigureContract("B").Bind<IService, ServiceB>();
+				});
+				var wrap = container.Get<Wrap>();
+				Assert.That(wrap.serviceA, Is.InstanceOf<ServiceA>());
+				Assert.That(wrap.serviceB, Is.InstanceOf<ServiceB>());
 			}
 		}
 	}

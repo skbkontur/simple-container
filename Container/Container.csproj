@@ -39,7 +39,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Hosting\Application.cs" />
     <Compile Include="Configuration\BasicProfile.cs" />
     <Compile Include="Configuration\ConfiguratorBuilder.cs" />
     <Compile Include="Configuration\ConfiguratorDescriber.cs" />
@@ -54,6 +53,7 @@
     <Compile Include="Configuration\ProductionProfile.cs" />
     <Compile Include="Configuration\ProfileConfiguratorFactory.cs" />
     <Compile Include="ContainerConfigurationBuilder.cs" />
+    <Compile Include="ContainerHost.cs" />
     <Compile Include="ContainerService.cs" />
     <Compile Include="DependenciesInjector.cs" />
     <Compile Include="Factories\FactoryConfigurationProcessor.cs" />
@@ -74,7 +74,6 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\ComponentHostingOptions.cs" />
-    <Compile Include="Hosting\DependsOnComponentAttribute.cs" />
     <Compile Include="Hosting\IShutdownCoordinator.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="IContainerConfiguration.cs" />
@@ -87,6 +86,7 @@
     <Compile Include="Infection\HostingAttribute.cs" />
     <Compile Include="Infection\IgnoreImplementationAttribute.cs" />
     <Compile Include="Infection\InjectAttribute.cs" />
+    <Compile Include="Infection\RequireContractAttribute.cs" />
     <Compile Include="InterfaceConfiguration.cs" />
     <Compile Include="IObjectAccessor.cs" />
     <Compile Include="IResolveDependency.cs" />

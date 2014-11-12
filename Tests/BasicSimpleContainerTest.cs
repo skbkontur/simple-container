@@ -661,12 +661,12 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontUsePluggable : BasicSimpleContainerTest
+		public class DontUse : BasicSimpleContainerTest
 		{
 			[Test]
 			public void Test()
 			{
-				var container = Container(c => c.DontUsePluggable(typeof (Impl1)));
+				var container = Container(c => c.DontUse(typeof (Impl1)));
 				Assert.That(container.Get<IInterface>(), Is.SameAs(container.Get<Impl2>()));
 			}
 
@@ -683,12 +683,12 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontUsePluggableIsTakenIntoAccountWhenDetectingImplementations : BasicSimpleContainerTest
+		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : BasicSimpleContainerTest
 		{
 			[Test]
 			public void Test()
 			{
-				var container = Container(c => c.DontUsePluggable(typeof (B)));
+				var container = Container(c => c.DontUse(typeof (B)));
 				Assert.That(container.GetImplementationsOf<IIntf>(), Is.EquivalentTo(new[] {typeof (A)}));
 			}
 

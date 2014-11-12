@@ -2,10 +2,49 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Infection;
 using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
+	public class ServiceConfigurationBuilder<TService>
+	{
+		public ServiceConfigurationBuilder<TService> DontUse()
+		{
+			return this;
+		}
+
+		public ServiceConfigurationBuilder<TService> Contract<TContract>()
+		{
+			return this;
+		}
+		
+		public ServiceConfigurationBuilder<TService> Contract(string contractName)
+		{
+			return this;
+		}
+
+		public ServiceConfigurationBuilder<TService> Dependencies(object values)
+		{
+			return this;
+		}
+
+		public ServiceConfigurationBuilder<TService> Bind<TImplementation>()
+		{
+			return this;
+		}
+		
+		public ServiceConfigurationBuilder<TService> Bind(Type type)
+		{
+			return this;
+		}
+
+		public ServiceConfigurationBuilder<TService> AddContract(string dependencyName, string contract)
+		{
+			return this;
+		}
+	}
+
 	public class ContainerConfigurationBuilder
 	{
 		private readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
@@ -151,6 +190,12 @@ namespace SimpleContainer
 			return this;
 		}
 
+		public ContainerConfigurationBuilder ConfigureContract<T>()
+			where T : RequireContractAttribute, new()
+		{
+			return ConfigureContract(new T().ContractName);
+		}
+
 		public ContainerConfigurationBuilder ConfigureContract(string contract)
 		{
 			if (contractConfigurators.ContainsKey(contract))
@@ -192,15 +237,15 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerConfigurationBuilder DontUsePluggable(Type pluggableType)
+		public ContainerConfigurationBuilder DontUse(Type pluggableType)
 		{
 			GetOrCreate<ImplementationConfiguration>(pluggableType).DontUseIt = true;
 			return this;
 		}
 
-		public ContainerConfigurationBuilder DontUsePluggable<T>()
+		public ContainerConfigurationBuilder DontUse<T>()
 		{
-			return DontUsePluggable(typeof (T));
+			return DontUse(typeof (T));
 		}
 
 		public ContainerConfigurationBuilder EnableChildContainerCreation()

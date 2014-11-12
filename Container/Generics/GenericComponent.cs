@@ -56,7 +56,7 @@ namespace SimpleContainer.Generics
 		private void CloseInternal(Type closedOwner, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
 		{
 			var closedInterfaces = closedOwner.GetInterfaces().ToArray();
-			builder.DontUsePluggable(Owner);
+			builder.DontUse(Owner);
 			foreach (var closedInterface in closedInterfaces)
 			{
 				builder.UseAutosearch(closedInterface, true);

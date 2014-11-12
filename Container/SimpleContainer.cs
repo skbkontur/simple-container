@@ -11,19 +11,105 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
+	public class HostingEnvironment
+	{
+		private readonly IEnumerable<Assembly> assemblies;
+
+		public HostingEnvironment(IEnumerable<Assembly> assemblies)
+		{
+			this.assemblies = assemblies;
+		}
+
+		public ContainerHostFactory CreateHostFactory(Assembly primaryAssembly)
+		{
+			//internal-конфига (FactoryConfigurator, GenericConfigurator) должна реюзаться, т.к.
+			//ее создание очень затратно - надо заенумить вообще все типы во всех сборках.
+
+			//естественно, реюзается дерево зависимостей
+
+			//сами экземпляры конфигураторов тоже реюзаются
+
+			//от одного вызова GetHost к другому меняется только приоритет одних конфигураторов перед другими
+			//на основе их принадлежности PrimaryAssembly
+		}
+	}
+
+	public class ContainerHostFactory
+	{
+		public ContainerHost CreateHost()
+		{
+			//
+		}
+	}
+
+	public class Application
+	{
+		public string HostName { get; private set; }
+
+		public void Run()
+		{
+			//сюда должен попадать основной поток - метод Main в обычной консольной прилаге
+			//здесь возможны два режима работы
+			//	просто вызвать единственную реализацию IRunnable
+			//	если кто-то выставил IsBackground, то текущий поток должен втухнуть на IShutdownCoordinator.Task.WaitOne();
+
+			//короче, нужна абстракция, инкапсулирующая в себя работу с IComponent-ами.
+			//именно эта абстракция должна торчать в ебучем BootstrapPoller-е.
+
+			//по сути эта абстракция должна инкапсулировать SimpleContainer и уметь в правильный момент запускать IComponent-ы
+			//она должна имплементить IDisposable
+			//эта абстракция дожна знать целевой тип - нужно запустить резолв этого типа, чтобы поймать все IComponent-ы, которые
+			//вылетят за время его создания. Тупо зарезолвить всех, кто имплементит IComponent не сканает, т.к. они в разных контрактах
+			//могут создаваться
+
+			//и все равно не понятно, как блять разводить реализации из разных PrimaryAssembly
+			//без сохранения информации о ссылках это вооще невозможно.
+			//шарить деревья потомков не получится ?
+			//пусть именно эта абстракция называется ContainerHost
+		}
+	}
+
+	//HostingEnvironment
+
+	//ContainerHost
+
+	//Application
+
+	//public class ContainerHost
+	//{
+	//	public IContainer GetContainer()
+	//	{
+	//		//возвращаемые контейнеры отличаются только содержимым instanceCache-а
+
+	//		//где в этой модели точка входа ??
+
+	//		//какой интерфейс должен быть у точки входа ?
+
+	//		//как он завязан на IShutdownCoordinator ?
+
+	//		//и в какой, блять, все таки момент должны зваться ебаные IComponent-ы ?
+	//	}
+	//}
+
 	//todo отпилить этап анализа зависимостей => meta, contractUsage + factories
 	//todo перевести на явную стек машину
 	//todo заинлайнить GenericConfigurator
 	//todo обработка запросов на явные generic-и
 	//todo логировать значения simple-типов, заюзанные через конфигурирование
-	public class SimpleContainer: IContainer, IResolveDependency, IServiceFactory
+	public class SimpleContainer : IContainer, IResolveDependency, IServiceFactory
 	{
 		private IContainerConfiguration configuration;
-		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache = new ConcurrentDictionary<CacheKey, ContainerService>();
-		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods = new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
+
+		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
+			new ConcurrentDictionary<CacheKey, ContainerService>();
+
+		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
+			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
+
 		private readonly IDictionary<Type, List<Type>> inheritors;
 		private readonly Type[] types;
 		private Action<object> buildUp;
+		internal event Action<ContainerService> OnResolve;
 
 		public SimpleContainer(IEnumerable<Type> types, params Action<ContainerConfigurationBuilder>[] configure)
 		{
@@ -33,11 +119,11 @@ namespace SimpleContainer
 			dependenciesInjector = new DependenciesInjector(this);
 			buildUp = dependenciesInjector.BuildUp;
 			createInstanceDelegate = delegate(CacheKey key)
-									 {
-										 var context = new ResolutionContext(configuration);
-										 return Resolve(new ResolutionRequest { type = key.type }, context);
-									 };
-			createContainerServiceDelegate = k => new ContainerService { type = k.type };
+			{
+				var context = new ResolutionContext(configuration);
+				return Resolve(new ResolutionRequest {type = key.type}, context);
+			};
+			createContainerServiceDelegate = k => new ContainerService {type = k.type};
 			factoryPlugins.Add(new SimpleFactoryPlugin(this));
 			factoryPlugins.Add(new FactoryWithArgumentsPlugin(this));
 		}
@@ -62,7 +148,10 @@ namespace SimpleContainer
 
 		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
 		private readonly Func<CacheKey, ContainerService> createContainerServiceDelegate;
-		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate = ReflectionHelpers.EmitCallOf;
+
+		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
+			ReflectionHelpers.EmitCallOf;
+
 		private DependenciesInjector dependenciesInjector;
 
 		public object Get(Type serviceType)
@@ -72,21 +161,22 @@ namespace SimpleContainer
 				return GetAll(enumerableItem);
 			var key = new CacheKey(serviceType, null);
 			var result = serviceType.IsDefined<DontReuseAttribute>()
-							 ? createInstanceDelegate(key)
-							 : instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve();
+				? createInstanceDelegate(key)
+				: instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve();
 			return result.SingleInstance();
 		}
 
 		public IEnumerable<object> GetAll(Type serviceType)
 		{
-			return instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate).WaitForResolve().AsEnumerable();
+			return
+				instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate).WaitForResolve().AsEnumerable();
 		}
 
 		public object Create(Type type, string contract, object arguments)
 		{
 			var resolutionContext = new ResolutionContext(configuration, arguments);
 			resolutionContext.ActivateContract(contract);
-			var result = Resolve(new ResolutionRequest { type = type, createNew = true }, resolutionContext);
+			var result = Resolve(new ResolutionRequest {type = type, createNew = true}, resolutionContext);
 			return result.SingleInstance();
 		}
 
@@ -94,14 +184,14 @@ namespace SimpleContainer
 		{
 			List<Type> result;
 			return inheritors.TryGetValue(interfaceType, out result)
-					   ? result.Where(delegate(Type type)
-									  {
-										  var implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
-										  return implementationConfiguration == null || !implementationConfiguration.DontUseIt;
-									  })
-							   .Where(ImplementationAcceptedByHostFilter)
-							   .ToArray()
-					   : Type.EmptyTypes;
+				? result.Where(delegate(Type type)
+				{
+					var implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
+					return implementationConfiguration == null || !implementationConfiguration.DontUseIt;
+				})
+					.Where(ImplementationAcceptedByHostFilter)
+					.ToArray()
+				: Type.EmptyTypes;
 		}
 
 		public void BuildUp(object target)
@@ -125,9 +215,11 @@ namespace SimpleContainer
 		public IDisposable OverrideConfiguration(params Action<ContainerConfigurationBuilder>[] actions)
 		{
 			if (!configuration.CanCreateChildContainers)
-				throw new SimpleContainerException("can't create child container; enable it using EnableChildContainerCreation method");
+				throw new SimpleContainerException(
+					"can't create child container; enable it using EnableChildContainerCreation method");
 			var oldConfiguration = configuration;
-			configuration = new MergedConfiguration(configuration, SimpleContainerHelpers.CreateContainerConfiguration(null, actions));
+			configuration = new MergedConfiguration(configuration,
+				SimpleContainerHelpers.CreateContainerConfiguration(null, actions));
 			buildUp = dependenciesInjector.BuildUpWithoutCache;
 			return new ActionDisposable(() => configuration = oldConfiguration);
 		}
@@ -191,7 +283,7 @@ namespace SimpleContainer
 				}
 				if (interfaceConfiguration.Factory != null)
 				{
-					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext { Container = this }));
+					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext {Container = this}));
 					return;
 				}
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
@@ -221,9 +313,9 @@ namespace SimpleContainer
 		{
 			HostingAttribute hostingAttribute;
 			return configuration.HostName == null ||
-				   !type.TryGetCustomAttribute(out hostingAttribute) ||
-				   hostingAttribute.Names.Contains("*") ||
-				   hostingAttribute.Names.Contains(configuration.HostName);
+			       !type.TryGetCustomAttribute(out hostingAttribute) ||
+			       hostingAttribute.Names.Contains("*") ||
+			       hostingAttribute.Names.Contains(configuration.HostName);
 		}
 
 		private void InstantiateImplementation(ContainerService service, Type implementationType)
@@ -231,10 +323,10 @@ namespace SimpleContainer
 			if (service.type != implementationType)
 			{
 				var implementationRequest = new ResolutionRequest
-											{
-												type = implementationType,
-												createNew = service.type.IsDefined<DontReuseAttribute>()
-											};
+				{
+					type = implementationType,
+					createNew = service.type.IsDefined<DontReuseAttribute>()
+				};
 				var implementationService = Resolve(implementationRequest, service.context);
 				service.instances.AddRange(implementationService.instances);
 				return;
@@ -253,11 +345,11 @@ namespace SimpleContainer
 					return;
 				}
 				service.context.Report("host mismatch, declared {0} != current {1}",
-									   implementationType.GetCustomAttribute<HostingAttribute>().Names.JoinStrings(","),
-									   configuration.HostName);
+					implementationType.GetCustomAttribute<HostingAttribute>().Names.JoinStrings(","),
+					configuration.HostName);
 				return;
 			}
-			var factory = Resolve(new ResolutionRequest { type = factoryMethod.DeclaringType }, service.context);
+			var factory = Resolve(new ResolutionRequest {type = factoryMethod.DeclaringType}, service.context);
 			if (factory.instances.Count == 1)
 				service.instances.Add(InvokeConstructor(factoryMethod, factory.instances[0], new object[0], service.context));
 		}
@@ -280,8 +372,8 @@ namespace SimpleContainer
 			if (!type.IsAbstract)
 			{
 				var result = dependenciesInjector.GetDependencies(type)
-												 .Select(UnwrapEnumerable)
-												 .ToArray();
+					.Select(UnwrapEnumerable)
+					.ToArray();
 				if (result.Any())
 					return result;
 			}
@@ -291,11 +383,11 @@ namespace SimpleContainer
 				return Enumerable.Empty<Type>();
 			implementation.SetConfiguration(configuration);
 			return constructor.GetParameters()
-							  .Where(p => implementation.GetDependencyConfiguration(p) == null)
-							  .Select(x => x.ParameterType)
-							  .Select(UnwrapEnumerable)
-							  .Where(p => configuration.GetOrNull<object>(p) == null)
-							  .Where(IsDependency);
+				.Where(p => implementation.GetDependencyConfiguration(p) == null)
+				.Select(x => x.ParameterType)
+				.Select(UnwrapEnumerable)
+				.Where(p => configuration.GetOrNull<object>(p) == null)
+				.Where(IsDependency);
 		}
 
 		private static bool IsDependency(Type type)
@@ -327,25 +419,27 @@ namespace SimpleContainer
 			public bool TryGetConstructor(out ConstructorInfo constructor)
 			{
 				return publicConstructors.SafeTrySingle(out constructor) ||
-					   publicConstructors.SafeTrySingle(x => x.IsDefined<ContainerConstructorAttribute>(), out constructor);
+				       publicConstructors.SafeTrySingle(x => x.IsDefined<ContainerConstructorAttribute>(), out constructor);
 			}
 
 			public void SetConfiguration(IContainerConfiguration configuration)
 			{
 				implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
 				definitionConfiguration = type.IsGenericType
-											  ? configuration.GetOrNull<ImplementationConfiguration>(type.GetGenericTypeDefinition())
-											  : null;
+					? configuration.GetOrNull<ImplementationConfiguration>(type.GetGenericTypeDefinition())
+					: null;
 			}
 
 			public void SetContext(ResolutionContext context)
 			{
 				implementationConfiguration = context.GetConfiguration<ImplementationConfiguration>(type);
 				definitionConfiguration = type.IsGenericType
-											  ? context.GetConfiguration<ImplementationConfiguration>(type.GetGenericTypeDefinition())
-											  : null;
+					? context.GetConfiguration<ImplementationConfiguration>(type.GetGenericTypeDefinition())
+					: null;
 				arguments = context.arguments;
-				objectAccessor = context.arguments == null ? null : ObjectAccessors.Instance.GetAccessor(context.arguments.GetType());
+				objectAccessor = context.arguments == null
+					? null
+					: ObjectAccessors.Instance.GetAccessor(context.arguments.GetType());
 			}
 
 			public bool TryGetFromArguments(string name, out object result)
@@ -371,8 +465,8 @@ namespace SimpleContainer
 			ConstructorInfo constructor;
 			if (!implementation.TryGetConstructor(out constructor))
 				service.Throw(implementation.publicConstructors.Length == 0
-								  ? "no public ctors, maybe ctor is private?"
-								  : "many public ctors, maybe some of them should be made private?");
+					? "no public ctors, maybe ctor is private?"
+					: "many public ctors, maybe some of them should be made private?");
 			implementation.SetContext(service.context);
 			var formalParameters = constructor.GetParameters();
 			var actualArguments = new object[formalParameters.Length];
@@ -386,11 +480,11 @@ namespace SimpleContainer
 				var dependencyValue = dependencyService.SingleInstance();
 				if (dependencyValue != null && !formalParameter.ParameterType.IsInstanceOfType(dependencyValue))
 					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]\r\n{4}",
-																	 dependencyValue.GetType().FormatName(),
-																	 formalParameter.ParameterType.FormatName(),
-																	 formalParameter.Name,
-																	 dependencyValue,
-								  service.context.Format());
+						dependencyValue.GetType().FormatName(),
+						formalParameter.ParameterType.FormatName(),
+						formalParameter.Name,
+						dependencyValue,
+						service.context.Format());
 				actualArguments[i] = dependencyValue;
 			}
 			if (service.context.Contract == null || service.contractUsed)
@@ -412,12 +506,13 @@ namespace SimpleContainer
 
 		public ContainerService ResolvedService(object instance, bool contractUsed = false)
 		{
-			var result = new ContainerService { contractUsed = contractUsed };
+			var result = new ContainerService {contractUsed = contractUsed};
 			result.instances.Add(instance);
 			return result;
 		}
 
-		private ContainerService InstantiateDependency(ParameterInfo formalParameter, Implementation implementation, ResolutionContext resolutionContext)
+		private ContainerService InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
+			ResolutionContext resolutionContext)
 		{
 			object actualArgument;
 			if (implementation.TryGetFromArguments(formalParameter.Name, out actualArgument))
@@ -434,10 +529,11 @@ namespace SimpleContainer
 			}
 			if (implementationType == null)
 			{
-				var interfaceConfiguration = resolutionContext.GetConfiguration<InterfaceConfiguration>(formalParameter.ParameterType);
+				var interfaceConfiguration =
+					resolutionContext.GetConfiguration<InterfaceConfiguration>(formalParameter.ParameterType);
 				if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 				{
-					var instance = interfaceConfiguration.Factory(new FactoryContext { Container = this, Target = implementation.type });
+					var instance = interfaceConfiguration.Factory(new FactoryContext {Container = this, Target = implementation.type});
 					return ResolvedService(instance);
 				}
 			}
@@ -447,11 +543,13 @@ namespace SimpleContainer
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
-				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type, resourceAttribute.Name);
+				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type,
+					resourceAttribute.Name);
 				if (resourceStream == null)
-					throw new SimpleContainerException(string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
-																	 resourceAttribute.Name, implementation.type,
-																	 implementation.type.Assembly.GetName().Name, resolutionContext.Format()));
+					throw new SimpleContainerException(
+						string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
+							resourceAttribute.Name, implementation.type,
+							implementation.type.Assembly.GetName().Name, resolutionContext.Format()));
 				return ResolvedService(resourceStream);
 			}
 			Type enumerableItem;
@@ -461,12 +559,19 @@ namespace SimpleContainer
 				type = isEnumerable ? enumerableItem : implementationType,
 				name = formalParameter.Name
 			};
+
+			RequireContractAttribute requireContractAttribute;
+			var contracts = formalParameter.TryGetCustomAttribute(out requireContractAttribute)
+				? new[] {requireContractAttribute.ContractName}
+				: (dependencyConfiguration != null && dependencyConfiguration.Contracts != null
+					? (IEnumerable<string>) dependencyConfiguration.Contracts
+					: null);
 			ContainerService result;
-			if (dependencyConfiguration != null && dependencyConfiguration.Contracts != null)
+			if (contracts != null)
 			{
 				result = new ContainerService {type = childRequest.type};
 				var contractServices = new List<object>();
-				foreach (var contract in dependencyConfiguration.Contracts)
+				foreach (var contract in contracts)
 				{
 					resolutionContext.ActivateContract(contract);
 					contractServices.AddRange(Resolve(childRequest, resolutionContext).instances);
@@ -500,7 +605,7 @@ namespace SimpleContainer
 			return TryUnwrapEnumerable(type, out result) ? result : type;
 		}
 
-		private struct CacheKey: IEquatable<CacheKey>
+		private struct CacheKey : IEquatable<CacheKey>
 		{
 			public readonly Type type;
 			private readonly string contract;
@@ -541,7 +646,8 @@ namespace SimpleContainer
 			}
 		}
 
-		private static object InvokeConstructor(MethodBase method, object self, object[] actualArguments, ResolutionContext resolutionContext)
+		private static object InvokeConstructor(MethodBase method, object self, object[] actualArguments,
+			ResolutionContext resolutionContext)
 		{
 			try
 			{

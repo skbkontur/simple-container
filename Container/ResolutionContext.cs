@@ -13,8 +13,7 @@ namespace SimpleContainer
 		private int depth;
 		public string Contract { get; private set; }
 		public object arguments;
-
-		private IContainerConfiguration contextConfiguration;
+		private IContainerConfiguration contractConfiguration;
 
 		public ResolutionContext(IContainerConfiguration configuration, object arguments = null)
 		{
@@ -25,7 +24,7 @@ namespace SimpleContainer
 		public T GetConfiguration<T>(Type type) where T : class
 		{
 			T result;
-			if (contextConfiguration == null || (result = contextConfiguration.GetOrNull<T>(type)) == null)
+			if (contractConfiguration == null || (result = contractConfiguration.GetOrNull<T>(type)) == null)
 				return configuration.GetOrNull<T>(type);
 			current.Peek().service.contractUsed = true;
 			return result;
@@ -46,7 +45,7 @@ namespace SimpleContainer
 			log.Add(item);
 			if (currentTypes.Contains(service.type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
-																 service.type.FormatName(), previous == null ? "null" : previous.service.type.FormatName(), Format()));
+					service.type.FormatName(), previous == null ? "null" : previous.service.type.FormatName(), Format()));
 			currentTypes.Add(service.type);
 			service.context = this;
 		}
@@ -66,16 +65,16 @@ namespace SimpleContainer
 				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contract, Format()));
 			if (Contract != null)
 				throw new SimpleContainerException(
-					string.Format("nested contexts are not supported, outer context [{0}], inner context [{1}]\r\n{2}",
+					string.Format("nested contexts are not supported, outer contract [{0}], inner contract [{1}]\r\n{2}",
 						Contract, contract, Format()));
 			Contract = contract;
-			contextConfiguration = newContextConfiguration;
+			contractConfiguration = newContextConfiguration;
 		}
 
 		public void DeactivateContext()
 		{
 			Contract = null;
-			contextConfiguration = null;
+			contractConfiguration = null;
 		}
 
 		public string Format(Type targetType = null)
@@ -111,7 +110,9 @@ namespace SimpleContainer
 					startDepth = state.depth;
 				}
 				writer.WriteIndent(state.depth - startDepth);
-				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.type) ? state.name : state.service.type.FormatName());
+				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.type)
+					? state.name
+					: state.service.type.FormatName());
 				if (state.contractName != null && state.service.contractUsed)
 					writer.WriteUsedContract(state.contractName);
 				if (state.contractName != null && state.contractDeclared)
