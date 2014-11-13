@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanDeduceGenericParameterFromGenericType : GenericConfigurationTestBase
+	public class CanDeduceGenericParameterFromGenericType : PreconfiguredContainerTestBase
 	{
 		public interface IParameter
 		{

@@ -1,9 +1,10 @@
 using System;
 using NUnit.Framework;
+using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class ServicesUsedByServicesCreatedByFactoriesAreSingletons: FactoryConfigurationTestBase
+	public class ServicesUsedByServicesCreatedByFactoriesAreSingletons : PreconfiguredContainerTestBase
 	{
 		public class ServiceA
 		{

@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class VerifyConstraintsForDependencies: GenericConfigurationTestBase
+	public class VerifyConstraintsForDependencies : PreconfiguredContainerTestBase
 	{
 		public interface IMyWrapper
 		{

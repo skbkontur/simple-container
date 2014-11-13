@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class NonGenericChildOfGenericComponentOverridesDeductionFromConstraints : GenericConfigurationTestBase
+	public class NonGenericChildOfGenericComponentOverridesDeductionFromConstraints : PreconfiguredContainerTestBase
 	{
 		public interface IMyCommand
 		{

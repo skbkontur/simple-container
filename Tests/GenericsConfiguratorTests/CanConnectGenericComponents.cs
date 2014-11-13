@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanConnectGenericComponents : GenericConfigurationTestBase
+	public class CanConnectGenericComponents : PreconfiguredContainerTestBase
 	{
 		public abstract class CommandBase
 		{

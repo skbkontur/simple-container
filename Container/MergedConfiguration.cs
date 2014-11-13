@@ -11,20 +11,7 @@ namespace SimpleContainer
 		{
 			this.parent = parent;
 			this.child = child;
-			ResetAction = delegate
-						  {
-							  parent.ResetAction();
-							  child.ResetAction();
-						  };
-			HostName = parent.HostName;
 		}
-
-		public bool CanCreateChildContainers
-		{
-			get { return parent.CanCreateChildContainers; }
-		}
-
-		public Action ResetAction { get; private set; }
 
 		public T GetOrNull<T>(Type type) where T: class
 		{
@@ -35,7 +22,5 @@ namespace SimpleContainer
 		{
 			return child.GetByKeyOrNull(contextKey) ?? parent.GetByKeyOrNull(contextKey);
 		}
-
-		public string HostName { get; private set; }
 	}
 }

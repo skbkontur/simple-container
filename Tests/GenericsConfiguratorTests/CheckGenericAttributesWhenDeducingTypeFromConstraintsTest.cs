@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CheckGenericAttributesWhenDeducingTypeFromConstraintsTest : GenericConfigurationTestBase
+	public class CheckGenericAttributesWhenDeducingTypeFromConstraintsTest : PreconfiguredContainerTestBase
 	{
 		public interface IMyCommand
 		{

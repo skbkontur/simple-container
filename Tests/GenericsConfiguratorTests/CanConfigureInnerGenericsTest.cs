@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanConfigureInnerGenericsTest: GenericConfigurationTestBase
+	public class CanConfigureInnerGenericsTest : PreconfiguredContainerTestBase
 	{
 		public interface IInterface
 		{

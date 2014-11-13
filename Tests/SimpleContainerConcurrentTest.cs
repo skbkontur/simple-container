@@ -101,7 +101,7 @@ namespace SimpleContainer.Tests
 
 			private SimpleContainer CreateContainer()
 			{
-				return new SimpleContainer(GetType().GetNestedTypes());
+				return StupidContainerHelpers.CreateContainer(GetType().GetNestedTypes());
 			}
 		}
 	}

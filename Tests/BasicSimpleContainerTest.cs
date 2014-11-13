@@ -121,11 +121,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(c =>
-				{
-					ApplyGenericsConfigurator(c);
-					c.BindDependencyValue(typeof (GenericDefinition<>), typeof (int), 42);
-				});
+				var container = Container(c => c.BindDependencyValue(typeof (GenericDefinition<>), typeof (int), 42));
 				var outerServices = container.GetAll<IOuterService>().ToArray();
 				Assert.That(outerServices.Length, Is.EqualTo(2));
 				Assert.That(outerServices.Single(x => x.ServiceType == typeof (ServiceA)).Argument, Is.EqualTo(42));
@@ -293,7 +289,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(ApplyFactoriesConfigurator);
+				var container = Container();
 				var instance = container.Get<SomeService>().Factory(typeof (int), new {argument = 42});
 				Assert.That(instance.Type, Is.EqualTo(typeof (int)));
 				Assert.That(instance.Argument, Is.EqualTo(42));
@@ -336,7 +332,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(ApplyGenericsConfigurator);
+				var container = Container();
 				var result = container.Get<SomeService<int>>();
 				Assert.That(result.otherService, Is.SameAs(container.Get<OtherService<int>>()));
 			}
@@ -405,7 +401,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(ApplyFactoriesConfigurator);
+				var container = Container();
 				var result = container.Get<SomeService>().Factory();
 				Assert.That(result, Is.Not.Null);
 				Assert.That(result.GetType(), Is.EqualTo(typeof (ClassA)));
@@ -705,35 +701,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class EnumerableDependecyImplementationNotCreatedDueToHostMismatch : BasicSimpleContainerTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container(x => x.WithHostName("h1"));
-				Assert.That(container.Get<A>().interfaces, Is.Empty);
-			}
-
-			public class A
-			{
-				public readonly IEnumerable<IInterface> interfaces;
-
-				public A(IEnumerable<IInterface> interfaces)
-				{
-					this.interfaces = interfaces;
-				}
-			}
-
-			[Hosting("h2")]
-			public class B : IInterface
-			{
-			}
-
-			public interface IInterface
-			{
-			}
-		}
-
 		public class EnumerableDependenciesAreRequired : BasicSimpleContainerTest
 		{
 			[Test]
@@ -809,44 +776,6 @@ namespace SimpleContainer.Tests
 				}
 
 				public ChildService ChildService { get; private set; }
-			}
-		}
-
-		public class FilterByHost : BasicSimpleContainerTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container(c => c.WithHostName("h2"));
-				Assert.That(container.GetAll<IIntf>(),
-					Is.EquivalentTo(new IIntf[] {container.Get<B>(), container.Get<C>(), container.Get<D>()}));
-				Assert.That(container.GetImplementationsOf<IIntf>(), Is.EquivalentTo(new[] {typeof (B), typeof (C), typeof (D)}));
-
-				Assert.That(container.GetConstructionLog(typeof (IIntf)),
-					Is.StringContaining("IIntf++\r\n\tA! - host mismatch, declared h1 != current h2\r\n\tB\r\n\tC"));
-			}
-
-			[Hosting("h1")]
-			public class A : IIntf
-			{
-			}
-
-			public class B : IIntf
-			{
-			}
-
-			[Hosting("h2")]
-			public class C : IIntf
-			{
-			}
-
-			[Hosting("h1", "h2")]
-			public class D : IIntf
-			{
-			}
-
-			public interface IIntf
-			{
 			}
 		}
 
@@ -1323,29 +1252,6 @@ namespace SimpleContainer.Tests
 			}
 
 			public class Child2 : AbstractParent
-			{
-			}
-		}
-
-		public class SetConfiguration : BasicSimpleContainerTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				container.SetConfiguration(x => x.Bind<IIntf, B>());
-				Assert.That(container.Get<IIntf>(), Is.SameAs(container.Get<B>()));
-			}
-
-			public class A : IIntf
-			{
-			}
-
-			public class B : IIntf
-			{
-			}
-
-			public interface IIntf
 			{
 			}
 		}

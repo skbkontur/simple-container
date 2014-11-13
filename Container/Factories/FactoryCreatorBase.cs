@@ -39,6 +39,6 @@ namespace SimpleContainer.Factories
 			return caster;
 		}
 
-		public abstract bool TryInstantiate(ContainerService containerService);
+		public abstract bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService);
 	}
 }

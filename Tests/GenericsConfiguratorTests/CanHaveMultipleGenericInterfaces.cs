@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanHaveMultipleGenericInterfaces : GenericConfigurationTestBase
+	public class CanHaveMultipleGenericInterfaces : PreconfiguredContainerTestBase
 	{
 		public interface IGenericInterface1<T>
 		{

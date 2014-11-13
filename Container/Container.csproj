@@ -53,8 +53,9 @@
     <Compile Include="Configuration\ProductionProfile.cs" />
     <Compile Include="Configuration\ProfileConfiguratorFactory.cs" />
     <Compile Include="ContainerConfigurationBuilder.cs" />
-    <Compile Include="ContainerHost.cs" />
+    <Compile Include="ContainerComponent.cs" />
     <Compile Include="ContainerService.cs" />
+    <Compile Include="DefaultInheritanceHierarchy.cs" />
     <Compile Include="DependenciesInjector.cs" />
     <Compile Include="Factories\FactoryConfigurationProcessor.cs" />
     <Compile Include="Factories\FactoryConfigurator.cs" />
@@ -74,9 +75,14 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\ComponentHostingOptions.cs" />
+    <Compile Include="Hosting\ContainerHost.cs" />
+    <Compile Include="Hosting\HostingEnvironment.cs" />
+    <Compile Include="Hosting\HostingEnvironmentFactory.cs" />
     <Compile Include="Hosting\IShutdownCoordinator.cs" />
+    <Compile Include="Hosting\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="IContainerConfiguration.cs" />
+    <Compile Include="IInheritanceHierarchy.cs" />
     <Compile Include="ImplementationConfiguration.cs" />
     <Compile Include="ImplentationDependencyConfiguration.cs" />
     <Compile Include="Infection\ContainerConstructorAttribute.cs" />
@@ -92,6 +98,7 @@
     <Compile Include="IResolveDependency.cs" />
     <Compile Include="Hosting\IRunnable.cs" />
     <Compile Include="IServiceFactory.cs" />
+    <Compile Include="IServiceHost.cs" />
     <Compile Include="ISimpleLogWriter.cs" />
     <Compile Include="Hosting\IComponent.cs" />
     <Compile Include="MergedConfiguration.cs" />
@@ -108,7 +115,6 @@
     <Compile Include="Reflection\ReflectionEmit\MemberAccessor.cs" />
     <Compile Include="Reflection\ReflectionEmit\MemberAccessorFactory.cs" />
     <Compile Include="Reflection\ReflectionEmit\PropertyAccessorFactory.cs" />
-    <Compile Include="Reflection\ReflectionEmit\RuntimeTypeBuilder.cs" />
     <Compile Include="Reflection\ReflectionEmit\SimpleExpressionEvaluator.cs" />
     <Compile Include="Reflection\ReflectionEmit\TypeMismatchException.cs" />
     <Compile Include="Reflection\ReflectionEmit\UnboxingCaster.cs" />
@@ -117,6 +123,7 @@
     <Compile Include="Reflection\ReflectionHelpers.cs" />
     <Compile Include="ResolutionContext.cs" />
     <Compile Include="ResolutionRequest.cs" />
+    <Compile Include="RestrictedInheritanceHierarchy.cs" />
     <Compile Include="SimpleContainer.cs" />
     <Compile Include="SimpleContainerException.cs" />
     <Compile Include="SimpleContainerHelpers.cs" />

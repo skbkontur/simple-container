@@ -42,7 +42,6 @@
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />
     <Compile Include="FactoryConfiguratorTests\CanCreateNestedImplementation.cs" />
-    <Compile Include="FactoryConfiguratorTests\FactoryConfigurationTestBase.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesCreatedByFactoriesAreNotSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesUsedByServicesCreatedByFactoriesAreSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\SimpleFactoryConfiguratorTest.cs" />
@@ -58,9 +57,9 @@
     <Compile Include="GenericsConfiguratorTests\CheckGenericAttributesWhenDeducingTypeFromConstraintsTest.cs" />
     <Compile Include="GenericsConfiguratorTests\ConsiderOnlyFullyClosingDependencies.cs" />
     <Compile Include="GenericsConfiguratorTests\DiscardGenericsUnmachedByContstraints.cs" />
-    <Compile Include="GenericsConfiguratorTests\GenericConfigurationTestBase.cs" />
     <Compile Include="GenericsConfiguratorTests\NonGenericChildOfGenericComponentOverridesTypesDeductionFromConstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\VerifyConstraintsForDependencies.cs" />
+    <Compile Include="Hosting\HostingTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleContainerConcurrentTest.cs" />
     <Compile Include="SimpleContainerContractsTest.cs" />
@@ -77,6 +76,7 @@
   <ItemGroup>
     <EmbeddedResource Include="testResource.txt" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

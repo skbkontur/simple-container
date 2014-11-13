@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting.Messaging;
 using SimpleContainer.Factories;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
@@ -11,85 +12,16 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
-	public class HostingEnvironment
+	public static class StupidContainerHelpers
 	{
-		private readonly IEnumerable<Assembly> assemblies;
-
-		public HostingEnvironment(IEnumerable<Assembly> assemblies)
+		public static SimpleContainer CreateContainer(IEnumerable<Type> types, params Action<ContainerConfigurationBuilder>[] configure)
 		{
-			this.assemblies = assemblies;
-		}
-
-		public ContainerHostFactory CreateHostFactory(Assembly primaryAssembly)
-		{
-			//internal-конфига (FactoryConfigurator, GenericConfigurator) должна реюзаться, т.к.
-			//ее создание очень затратно - надо заенумить вообще все типы во всех сборках.
-
-			//естественно, реюзается дерево зависимостей
-
-			//сами экземпляры конфигураторов тоже реюзаются
-
-			//от одного вызова GetHost к другому меняется только приоритет одних конфигураторов перед другими
-			//на основе их принадлежности PrimaryAssembly
+			var typesArray = types.ToArray();
+			var configuration = SimpleContainerHelpers.CreateContainerConfiguration(typesArray, configure);
+			var inheritors = DefaultInheritanceHierarchy.Create(typesArray);
+			return new SimpleContainer(configuration, inheritors);
 		}
 	}
-
-	public class ContainerHostFactory
-	{
-		public ContainerHost CreateHost()
-		{
-			//
-		}
-	}
-
-	public class Application
-	{
-		public string HostName { get; private set; }
-
-		public void Run()
-		{
-			//сюда должен попадать основной поток - метод Main в обычной консольной прилаге
-			//здесь возможны два режима работы
-			//	просто вызвать единственную реализацию IRunnable
-			//	если кто-то выставил IsBackground, то текущий поток должен втухнуть на IShutdownCoordinator.Task.WaitOne();
-
-			//короче, нужна абстракция, инкапсулирующая в себя работу с IComponent-ами.
-			//именно эта абстракция должна торчать в ебучем BootstrapPoller-е.
-
-			//по сути эта абстракция должна инкапсулировать SimpleContainer и уметь в правильный момент запускать IComponent-ы
-			//она должна имплементить IDisposable
-			//эта абстракция дожна знать целевой тип - нужно запустить резолв этого типа, чтобы поймать все IComponent-ы, которые
-			//вылетят за время его создания. Тупо зарезолвить всех, кто имплементит IComponent не сканает, т.к. они в разных контрактах
-			//могут создаваться
-
-			//и все равно не понятно, как блять разводить реализации из разных PrimaryAssembly
-			//без сохранения информации о ссылках это вооще невозможно.
-			//шарить деревья потомков не получится ?
-			//пусть именно эта абстракция называется ContainerHost
-		}
-	}
-
-	//HostingEnvironment
-
-	//ContainerHost
-
-	//Application
-
-	//public class ContainerHost
-	//{
-	//	public IContainer GetContainer()
-	//	{
-	//		//возвращаемые контейнеры отличаются только содержимым instanceCache-а
-
-	//		//где в этой модели точка входа ??
-
-	//		//какой интерфейс должен быть у точки входа ?
-
-	//		//как он завязан на IShutdownCoordinator ?
-
-	//		//и в какой, блять, все таки момент должны зваться ебаные IComponent-ы ?
-	//	}
-	//}
 
 	//todo отпилить этап анализа зависимостей => meta, contractUsage + factories
 	//todo перевести на явную стек машину
@@ -98,56 +30,32 @@ namespace SimpleContainer
 	//todo логировать значения simple-типов, заюзанные через конфигурирование
 	public class SimpleContainer : IContainer, IResolveDependency, IServiceFactory
 	{
-		private IContainerConfiguration configuration;
-
+		private readonly IContainerConfiguration configuration;
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
 
 		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
 			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
 
-		private readonly IDictionary<Type, List<Type>> inheritors;
-		private readonly Type[] types;
-		private Action<object> buildUp;
+		private readonly IInheritanceHierarchy inheritors;
 		internal event Action<ContainerService> OnResolve;
 
-		public SimpleContainer(IEnumerable<Type> types, params Action<ContainerConfigurationBuilder>[] configure)
+		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors)
 		{
-			this.types = types.ToArray();
-			configuration = SimpleContainerHelpers.CreateContainerConfiguration(this.types, configure);
-			inheritors = BuildInheritorsMap(this.types);
+			this.configuration = configuration;
+			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
-			buildUp = dependenciesInjector.BuildUp;
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration);
 				return Resolve(new ResolutionRequest {type = key.type}, context);
 			};
-			createContainerServiceDelegate = k => new ContainerService {type = k.type};
-			factoryPlugins.Add(new SimpleFactoryPlugin(this));
-			factoryPlugins.Add(new FactoryWithArgumentsPlugin(this));
-		}
-
-		private static IDictionary<Type, List<Type>> BuildInheritorsMap(IEnumerable<Type> types)
-		{
-			var result = new Dictionary<Type, List<Type>>();
-			foreach (var type in types.Where(x => !x.IsNestedPrivate))
-			{
-				if (type.IsAbstract)
-					continue;
-				foreach (var parentType in type.GetInterfaces().Union(type.ParentsOrSelf()))
-				{
-					List<Type> children;
-					if (!result.TryGetValue(parentType, out children))
-						result.Add(parentType, children = new List<Type>(1));
-					children.Add(type);
-				}
-			}
-			return result;
 		}
 
 		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
-		private readonly Func<CacheKey, ContainerService> createContainerServiceDelegate;
+
+		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
+			k => new ContainerService {type = k.type};
 
 		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
 			ReflectionHelpers.EmitCallOf;
@@ -182,21 +90,19 @@ namespace SimpleContainer
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
 		{
-			List<Type> result;
-			return inheritors.TryGetValue(interfaceType, out result)
+			var result = inheritors.GetOrNull(interfaceType);
+			return result != null
 				? result.Where(delegate(Type type)
 				{
 					var implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
 					return implementationConfiguration == null || !implementationConfiguration.DontUseIt;
-				})
-					.Where(ImplementationAcceptedByHostFilter)
-					.ToArray()
+				}).ToArray()
 				: Type.EmptyTypes;
 		}
 
 		public void BuildUp(object target)
 		{
-			buildUp(target);
+			dependenciesInjector.BuildUp(target);
 		}
 
 		public void DumpConstructionLog(Type type, string contractName, bool entireResolutionContext, ISimpleLogWriter writer)
@@ -204,30 +110,6 @@ namespace SimpleContainer
 			ContainerService containerService;
 			if (instanceCache.TryGetValue(new CacheKey(type, contractName), out containerService))
 				containerService.context.Format(entireResolutionContext ? null : type, writer);
-		}
-
-		public void Reset()
-		{
-			instanceCache.Clear();
-			configuration.ResetAction();
-		}
-
-		public IDisposable OverrideConfiguration(params Action<ContainerConfigurationBuilder>[] actions)
-		{
-			if (!configuration.CanCreateChildContainers)
-				throw new SimpleContainerException(
-					"can't create child container; enable it using EnableChildContainerCreation method");
-			var oldConfiguration = configuration;
-			configuration = new MergedConfiguration(configuration,
-				SimpleContainerHelpers.CreateContainerConfiguration(null, actions));
-			buildUp = dependenciesInjector.BuildUpWithoutCache;
-			return new ActionDisposable(() => configuration = oldConfiguration);
-		}
-
-		public void SetConfiguration(params Action<ContainerConfigurationBuilder>[] actions)
-		{
-			configuration = SimpleContainerHelpers.CreateContainerConfiguration(types, actions);
-			dependenciesInjector = new DependenciesInjector(this);
 		}
 
 		private ContainerService Resolve(ResolutionRequest request, ResolutionContext context)
@@ -260,7 +142,11 @@ namespace SimpleContainer
 			context.EndResolve(containerService);
 		}
 
-		private readonly List<IFactoryPlugin> factoryPlugins = new List<IFactoryPlugin>();
+		private readonly IFactoryPlugin[] factoryPlugins =
+		{
+			new SimpleFactoryPlugin(),
+			new FactoryWithArgumentsPlugin()
+		};
 
 		private void Instantiate(ContainerService service)
 		{
@@ -291,7 +177,7 @@ namespace SimpleContainer
 			}
 			if (service.type.IsValueType)
 				service.Throw("can't create value type");
-			if (factoryPlugins.Any(p => p.TryInstantiate(service)))
+			if (factoryPlugins.Any(p => p.TryInstantiate(this, service)))
 				return;
 			if (service.type.IsGenericType && service.type.ContainsGenericParameters)
 			{
@@ -307,15 +193,6 @@ namespace SimpleContainer
 				localTypes = implementationTypes;
 			foreach (var type in localTypes)
 				InstantiateImplementation(service, type);
-		}
-
-		private bool ImplementationAcceptedByHostFilter(Type type)
-		{
-			HostingAttribute hostingAttribute;
-			return configuration.HostName == null ||
-			       !type.TryGetCustomAttribute(out hostingAttribute) ||
-			       hostingAttribute.Names.Contains("*") ||
-			       hostingAttribute.Names.Contains(configuration.HostName);
 		}
 
 		private void InstantiateImplementation(ContainerService service, Type implementationType)
@@ -339,14 +216,7 @@ namespace SimpleContainer
 			var factoryMethod = GetFactoryOrNull(implementationType);
 			if (factoryMethod == null)
 			{
-				if (ImplementationAcceptedByHostFilter(implementationType))
-				{
-					DefaultInstantiateImplementation(implementationType, service);
-					return;
-				}
-				service.context.Report("host mismatch, declared {0} != current {1}",
-					implementationType.GetCustomAttribute<HostingAttribute>().Names.JoinStrings(","),
-					configuration.HostName);
+				DefaultInstantiateImplementation(implementationType, service);
 				return;
 			}
 			var factory = Resolve(new ResolutionRequest {type = factoryMethod.DeclaringType}, service.context);
@@ -362,7 +232,7 @@ namespace SimpleContainer
 
 		private IEnumerable<Type> GetInheritors(Type type)
 		{
-			return type.IsAbstract ? inheritors.GetOrDefault(type).EmptyIfNull() : EnumerableHelpers.Return(type);
+			return type.IsAbstract ? inheritors.GetOrNull(type).EmptyIfNull() : EnumerableHelpers.Return(type);
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)

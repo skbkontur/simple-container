@@ -6,13 +6,13 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
-	public class ContainerHost<TEntryPoint> : IDisposable
+	public class ContainerComponent<TEntryPoint> : IDisposable
 	{
 		private readonly SimpleContainer container;
 		private readonly List<ComponentHostingOptions> components = new List<ComponentHostingOptions>();
 		private bool entryPointCreated;
 
-		public ContainerHost(SimpleContainer container)
+		public ContainerComponent(SimpleContainer container)
 		{
 			this.container = container;
 			container.OnResolve += delegate(ContainerService service)

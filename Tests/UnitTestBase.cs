@@ -2,6 +2,7 @@
 
 namespace SimpleContainer.Tests
 {
+	[TestFixture]
 	public class UnitTestBase
 	{
 		[SetUp]

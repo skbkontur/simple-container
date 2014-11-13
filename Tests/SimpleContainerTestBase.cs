@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Specialized;
 using System.Reflection;
-using SimpleContainer.Configuration;
-using SimpleContainer.Factories;
-using SimpleContainer.Generics;
+using SimpleContainer.Hosting;
 
 namespace SimpleContainer.Tests
 {
@@ -11,24 +8,14 @@ namespace SimpleContainer.Tests
 	{
 		protected SimpleContainer Container(params Action<ContainerConfigurationBuilder>[] configure)
 		{
+			var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("SimpleContainer"));
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
-			return new SimpleContainer(targetTypes, configure);
-		}
-
-		protected void ApplyFactoriesConfigurator(ContainerConfigurationBuilder builder)
-		{
-			UseProfileConfigurator(new FactoryConfigurator(), builder);
-		}
-
-		protected void ApplyGenericsConfigurator(ContainerConfigurationBuilder builder)
-		{
-			UseProfileConfigurator(new GenericsConfigurator(x => x.Name.StartsWith("SimpleContainer")), builder);
-		}
-
-		private static void UseProfileConfigurator(IHandleProfile<BasicProfile> profileConfigurator,
-			ContainerConfigurationBuilder builder)
-		{
-			profileConfigurator.Handle(new NameValueCollection(), builder);
+			var hostingEnvironment = factory.Create(targetTypes);
+			return hostingEnvironment.CreateContainer(delegate(ContainerConfigurationBuilder builder)
+			{
+				foreach (var action in configure)
+					action(builder);
+			});
 		}
 	}
 }

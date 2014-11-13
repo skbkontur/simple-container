@@ -1,9 +1,10 @@
 using System;
 using NUnit.Framework;
+using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class CanAutodetectGenericArgumentType : FactoryConfigurationTestBase
+	public class CanAutodetectGenericArgumentType : PreconfiguredContainerTestBase
 	{
 		public class SomeService
 		{

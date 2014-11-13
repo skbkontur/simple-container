@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanInjectGenericComponentTest: GenericConfigurationTestBase
+	public class CanInjectGenericComponentTest : PreconfiguredContainerTestBase
 	{
 		public abstract class Restriction
 		{

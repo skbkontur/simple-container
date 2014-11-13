@@ -145,7 +145,7 @@ namespace SimpleContainer.Factories
 				   };
 		}
 
-		public override bool TryInstantiate(ContainerService containerService)
+		public override bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService)
 		{
 			return false;
 		}

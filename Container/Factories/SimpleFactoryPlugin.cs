@@ -2,16 +2,9 @@ using System;
 
 namespace SimpleContainer.Factories
 {
-	public class SimpleFactoryPlugin: FactoryCreatorBase
+	public class SimpleFactoryPlugin : FactoryCreatorBase
 	{
-		private readonly IServiceFactory serviceFactory;
-
-		public SimpleFactoryPlugin(IServiceFactory serviceFactory)
-		{
-			this.serviceFactory = serviceFactory;
-		}
-
-		public override bool TryInstantiate(ContainerService containerService)
+		public override bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService)
 		{
 			if (!containerService.type.IsGenericType)
 				return false;

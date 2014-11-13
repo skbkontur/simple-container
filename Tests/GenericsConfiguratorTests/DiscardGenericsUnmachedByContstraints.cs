@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class DiscardGenericsUnmachedByContstraints: GenericConfigurationTestBase
+	public class DiscardGenericsUnmachedByContstraints : PreconfiguredContainerTestBase
 	{
 		public interface IMyWrapper
 		{

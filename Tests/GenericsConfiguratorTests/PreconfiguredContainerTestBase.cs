@@ -7,9 +7,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		protected override void SetUp()
 		{
 			base.SetUp();
-			container = Container(Configure);
+			container = Container();
 		}
-
-		protected abstract void Configure(ContainerConfigurationBuilder builder);
 	}
 }

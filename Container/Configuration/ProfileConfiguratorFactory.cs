@@ -11,7 +11,7 @@ namespace SimpleContainer.Configuration
 		private readonly IContainer container;
 
 		public ProfileConfiguratorFactory(IEnumerable<Type> types, IDescribeConfigurator configuratorDescriber)
-			: this(new SimpleContainer(types), configuratorDescriber)
+			: this(StupidContainerHelpers.CreateContainer(types), configuratorDescriber)
 		{
 		}
 

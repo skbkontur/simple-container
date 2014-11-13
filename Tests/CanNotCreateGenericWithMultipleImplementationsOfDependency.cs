@@ -3,13 +3,13 @@ using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests
 {
-	public class CanNotCreateGenericWithMultipleImplementationsOfDependency: GenericConfigurationTestBase
+	public class CanNotCreateGenericWithMultipleImplementationsOfDependency : PreconfiguredContainerTestBase
 	{
 		public interface IService
 		{
 		}
 
-		public class Service<TEvent>: IService
+		public class Service<TEvent> : IService
 		{
 			private readonly IDependency<TEvent> dependency;
 
@@ -23,8 +23,8 @@ namespace SimpleContainer.Tests
 		{
 		}
 
-		public class Dependency<T>: IDependency<GenericParameter>
-			where T: IConstraint
+		public class Dependency<T> : IDependency<GenericParameter>
+			where T : IConstraint
 		{
 		}
 
@@ -36,11 +36,11 @@ namespace SimpleContainer.Tests
 		{
 		}
 
-		public class Constraint1: IConstraint
+		public class Constraint1 : IConstraint
 		{
 		}
 
-		public class Constraint2: IConstraint
+		public class Constraint2 : IConstraint
 		{
 		}
 

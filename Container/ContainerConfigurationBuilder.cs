@@ -48,9 +48,7 @@ namespace SimpleContainer
 	public class ContainerConfigurationBuilder
 	{
 		private readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
-		private bool canCreateChildContainers;
 		private readonly List<Action> resetActions = new List<Action>();
-		private string hostName;
 
 		private readonly IDictionary<string, ContainerConfigurationBuilder> contractConfigurators =
 			new Dictionary<string, ContainerConfigurationBuilder>();
@@ -61,12 +59,6 @@ namespace SimpleContainer
 		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>() where TImplementation : TInterface
 		{
 			return Bind(typeof (TInterface), typeof (TImplementation));
-		}
-
-		public ContainerConfigurationBuilder WithHostName(string newHostName)
-		{
-			hostName = newHostName;
-			return this;
 		}
 
 		public ContainerConfigurationBuilder Bind(Type interfaceType, Type implementationType)
@@ -248,22 +240,9 @@ namespace SimpleContainer
 			return DontUse(typeof (T));
 		}
 
-		public ContainerConfigurationBuilder EnableChildContainerCreation()
-		{
-			canCreateChildContainers = true;
-			return this;
-		}
-
 		public IContainerConfiguration Build()
 		{
-			return new ContainerConfiguration(configurations, canCreateChildContainers,
-				delegate
-				{
-					foreach (var resetAction in resetActions)
-						resetAction();
-				},
-				contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()),
-				hostName);
+			return new ContainerConfiguration(configurations, contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()));
 		}
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)
@@ -302,19 +281,11 @@ namespace SimpleContainer
 			private readonly IDictionary<Type, object> configurations;
 			private readonly IDictionary<string, IContainerConfiguration> contractsConfigurators;
 
-			public ContainerConfiguration(IDictionary<Type, object> configurations, bool canCreateChildContainers,
-				Action resetAction,
-				IDictionary<string, IContainerConfiguration> contractsConfigurators, string hostName)
+			public ContainerConfiguration(IDictionary<Type, object> configurations, IDictionary<string, IContainerConfiguration> contractsConfigurators)
 			{
 				this.configurations = configurations;
 				this.contractsConfigurators = contractsConfigurators;
-				CanCreateChildContainers = canCreateChildContainers;
-				ResetAction = resetAction;
-				HostName = hostName;
 			}
-
-			public bool CanCreateChildContainers { get; private set; }
-			public Action ResetAction { get; private set; }
 
 			public T GetOrNull<T>(Type type) where T : class
 			{
@@ -325,8 +296,6 @@ namespace SimpleContainer
 			{
 				return contractsConfigurators.GetOrDefault(contextKey);
 			}
-
-			public string HostName { get; private set; }
 		}
 	}
 }
