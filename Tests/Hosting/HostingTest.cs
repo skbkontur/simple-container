@@ -11,10 +11,9 @@ namespace SimpleContainer.Tests.Hosting
 {
 	public abstract class HostingTest : UnitTestBase
 	{
-		public class Simple : HostingTest
+		public class ImplementationsFromIndependentPrimaryAssemblies : HostingTest
 		{
 			private const string a1Code = @"
-					using System;
 					using System.Collections.Specialized;
 					using SimpleContainer.Hosting;
 
@@ -30,7 +29,6 @@ namespace SimpleContainer.Tests.Hosting
 				";
 
 			private const string a2Code = @"
-					using System;
 					using System.Collections.Specialized;
 					using SimpleContainer.Hosting;
 
@@ -48,8 +46,8 @@ namespace SimpleContainer.Tests.Hosting
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(a1Code, typeof(IRunnable).Assembly, typeof(NameValueCollection).Assembly);
-				var a2 = CompileAssembly(a2Code, typeof(IRunnable).Assembly, typeof(NameValueCollection).Assembly);
+				var a1 = CompileAssembly(a1Code);
+				var a2 = CompileAssembly(a2Code);
 				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
 				var hostingEnvironment = factory.Create(new[] {a1, a2});
 
@@ -63,6 +61,93 @@ namespace SimpleContainer.Tests.Hosting
 			}
 		}
 
+		public class AcceptImplementationFromReferencedAssembly : HostingTest
+		{
+			private const string a1Code = @"
+					using System.Collections.Specialized;
+					using SimpleContainer.Hosting;
+
+					namespace A1
+					{
+						public class Runnable1: IRunnable
+						{
+							public void Run(NameValueCollection arguments)
+							{
+							}
+						}
+					}
+				";
+
+			private const string a2Code = @"
+					namespace A2
+					{
+						public class Impl2
+						{
+							public Impl2(A1.Runnable1 doNotAllowsCompilerRemoveReferenceToA1)
+							{
+							}
+						}
+					}
+				";
+
+			[Test]
+			public void Test()
+			{
+				var a1 = CompileAssembly(a1Code);
+				var a2 = CompileAssembly(a2Code, a1);
+				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
+				var hostingEnvironment = factory.Create(new[] { a1, a2 });
+
+				IRunnable a1Runnable;
+				using (hostingEnvironment.CreateHost(a2).StartHosting(out a1Runnable))
+					Assert.That(a1Runnable.GetType().Name, Is.EqualTo("Runnable1"));
+			}
+		}
+
+		public class AcceptImplementationFromAssemblyReferencedViaAttribute : HostingTest
+		{
+			private const string a1Code = @"
+					using System.Collections.Specialized;
+					using SimpleContainer.Hosting;
+
+					namespace A1
+					{
+						public class Runnable1: IRunnable
+						{
+							public void Run(NameValueCollection arguments)
+							{
+							}
+						}
+					}
+				";
+
+			private const string a2CodeFormat = @"
+					using SimpleContainer.Hosting;
+
+					[assembly: ContainerReference(""{0}"")]
+
+					namespace A2
+					{{
+						public class Impl2
+						{{
+						}}
+					}}
+				";
+
+			[Test]
+			public void Test()
+			{
+				var a1 = CompileAssembly(a1Code);
+				var a2 = CompileAssembly(string.Format(a2CodeFormat, a1.GetName().Name), a1);
+				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
+				var hostingEnvironment = factory.Create(new[] { a1, a2 });
+
+				IRunnable a1Runnable;
+				using (hostingEnvironment.CreateHost(a2).StartHosting(out a1Runnable))
+					Assert.That(a1Runnable.GetType().Name, Is.EqualTo("Runnable1"));
+			}
+		}
+
 		protected Assembly CompileAssembly(string source, params Assembly[] references)
 		{
 			var testAssemblyName = "tmp_" + Guid.NewGuid().ToString("N");
@@ -72,7 +157,8 @@ namespace SimpleContainer.Tests.Hosting
 				OutputAssembly = tempAssemblyFileName,
 				GenerateExecutable = false
 			};
-			foreach (var reference in references.Select(x => x.GetName().Name + ".dll"))
+			var defaultAssemblies = new[] {typeof (IRunnable).Assembly, typeof (NameValueCollection).Assembly};
+			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.GetName().Name + ".dll"))
 				compilationParameters.ReferencedAssemblies.Add(reference);
 			var compilationResult = CodeDomProvider.CreateProvider("C#").CompileAssemblyFromSource(compilationParameters, source);
 			if (compilationResult.Errors.HasErrors || compilationResult.Errors.HasWarnings)

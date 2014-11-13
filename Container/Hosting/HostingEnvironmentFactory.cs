@@ -57,7 +57,7 @@ namespace SimpleContainer.Hosting
 		{
 			var configuration = CreateDefaultConfiguration(types);
 			var inheritors = DefaultInheritanceHierarchy.Create(types);
-			return new HostingEnvironment(inheritors, configuration);
+			return new HostingEnvironment(inheritors, configuration, assembliesFilter);
 		}
 
 		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)

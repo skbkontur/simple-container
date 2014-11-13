@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 
 namespace SimpleContainer.Hosting
 {
@@ -7,19 +6,16 @@ namespace SimpleContainer.Hosting
 	{
 		private readonly IInheritanceHierarchy hierarchy;
 		private readonly IContainerConfiguration configuration;
-		private readonly Assembly primaryAssembly;
 
-		public ContainerHost(IInheritanceHierarchy hierarchy, IContainerConfiguration configuration, Assembly primaryAssembly)
+		public ContainerHost(IInheritanceHierarchy hierarchy, IContainerConfiguration configuration)
 		{
 			this.hierarchy = hierarchy;
 			this.configuration = configuration;
-			this.primaryAssembly = primaryAssembly;
 		}
 
 		public IDisposable StartHosting<T>(out T service)
 		{
-			var restrictedHierarchy = new RestrictedInheritanceHierarchy(primaryAssembly, hierarchy);
-			var containerComponent = new ContainerComponent<T>(new SimpleContainer(configuration, restrictedHierarchy));
+			var containerComponent = new ContainerComponent<T>(new SimpleContainer(configuration, hierarchy));
 			service = containerComponent.CreateEntryPoint();
 			return containerComponent;
 		}
