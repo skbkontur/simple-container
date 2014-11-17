@@ -10,7 +10,7 @@ namespace SimpleContainer
 	{
 		public static T Get<T>(this IContainer container)
 		{
-			return (T) container.Get(typeof (T));
+			return (T) container.Get(typeof (T), null);
 		}
 
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)

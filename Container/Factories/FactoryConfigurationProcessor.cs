@@ -136,7 +136,7 @@ namespace SimpleContainer.Factories
 							   else if (parameter.HasDefaultValue)
 								   parameterValue = parameter.DefaultValue;
 							   else
-								   dependencyResolver.Get(parameter.ParameterType);
+								   dependencyResolver.Get(parameter.ParameterType, null);
 						   }
 						   parameterValues[i] = parameterValue;
 					   }

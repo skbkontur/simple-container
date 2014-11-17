@@ -6,15 +6,17 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
-	public class ContainerComponent<TEntryPoint> : IDisposable
+	public class ContainerComponent : IDisposable
 	{
 		private readonly SimpleContainer container;
+		private readonly ServiceName name;
 		private readonly List<ComponentHostingOptions> components = new List<ComponentHostingOptions>();
 		private bool entryPointCreated;
 
-		public ContainerComponent(SimpleContainer container)
+		public ContainerComponent(SimpleContainer container, ServiceName name)
 		{
 			this.container = container;
+			this.name = name;
 			container.OnResolve += delegate(ContainerService service)
 			{
 				if (!typeof (IComponent).IsAssignableFrom(service.type))
@@ -23,7 +25,7 @@ namespace SimpleContainer
 				{
 					const string messageFormat = "can't create type [{0}] because it implements IComponent, " +
 					                             "but entry point [{1}] have already been created";
-					var message = string.Format(messageFormat, service.type.FormatName(), typeof (TEntryPoint).FormatName());
+					var message = string.Format(messageFormat, service.type.FormatName(), name.type.FormatName());
 					throw new InvalidOperationException(message);
 				}
 
@@ -32,11 +34,11 @@ namespace SimpleContainer
 			};
 		}
 
-		public TEntryPoint CreateEntryPoint()
+		public object CreateEntryPoint()
 		{
 			if (entryPointCreated)
 				throw new InvalidOperationException("entry point already created");
-			var entryPoint = container.Get<TEntryPoint>();
+			var entryPoint = container.Get(name.type, name.contract);
 			entryPointCreated = true;
 			foreach (var componentOptions in components.AsEnumerable().Reverse())
 				componentOptions.Initialize();

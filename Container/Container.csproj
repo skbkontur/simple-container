@@ -80,6 +80,7 @@
     <Compile Include="Hosting\HostingEnvironment.cs" />
     <Compile Include="Hosting\HostingEnvironmentFactory.cs" />
     <Compile Include="Hosting\IShutdownCoordinator.cs" />
+    <Compile Include="Hosting\ShutdownCoordinator.cs" />
     <Compile Include="Hosting\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="IContainerConfiguration.cs" />
@@ -125,6 +126,7 @@
     <Compile Include="ResolutionContext.cs" />
     <Compile Include="ResolutionRequest.cs" />
     <Compile Include="AssembliesRestrictedInheritanceHierarchy.cs" />
+    <Compile Include="ServiceName.cs" />
     <Compile Include="SimpleContainer.cs" />
     <Compile Include="SimpleContainerException.cs" />
     <Compile Include="SimpleContainerHelpers.cs" />

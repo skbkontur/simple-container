@@ -2,7 +2,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
 	public abstract class PreconfiguredContainerTestBase : SimpleContainerTestBase
 	{
-		protected SimpleContainer container;
+		protected IContainer container;
 
 		protected override void SetUp()
 		{

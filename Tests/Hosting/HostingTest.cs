@@ -3,6 +3,7 @@ using System.CodeDom.Compiler;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
@@ -48,15 +49,14 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(a2Code);
-				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
-				var hostingEnvironment = factory.Create(new[] {a1, a2});
+				var hostingEnvironment = Factory().FromAssemblies(new[] {a1, a2});
 
 				IRunnable a1Runnable;
-				using (hostingEnvironment.CreateHost(a1).StartHosting(out a1Runnable))
+				using (hostingEnvironment.CreateHost(a1, null).StartHosting(out a1Runnable))
 					Assert.That(a1Runnable.GetType().Name, Is.EqualTo("A1Runnable"));
 
 				IRunnable a2Runnable;
-				using (hostingEnvironment.CreateHost(a2).StartHosting(out a2Runnable))
+				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a2Runnable))
 					Assert.That(a2Runnable.GetType().Name, Is.EqualTo("A2Runnable"));
 			}
 		}
@@ -95,11 +95,10 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(a2Code, a1);
-				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
-				var hostingEnvironment = factory.Create(new[] { a1, a2 });
+				var hostingEnvironment = Factory().FromAssemblies(new[] { a1, a2 });
 
 				IRunnable a1Runnable;
-				using (hostingEnvironment.CreateHost(a2).StartHosting(out a1Runnable))
+				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a1Runnable))
 					Assert.That(a1Runnable.GetType().Name, Is.EqualTo("Runnable1"));
 			}
 		}
@@ -139,11 +138,10 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(string.Format(a2CodeFormat, a1.GetName().Name), a1);
-				var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
-				var hostingEnvironment = factory.Create(new[] { a1, a2 });
+				var hostingEnvironment = Factory().FromAssemblies(new[] { a1, a2 });
 
 				IRunnable a1Runnable;
-				using (hostingEnvironment.CreateHost(a2).StartHosting(out a1Runnable))
+				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a1Runnable))
 					Assert.That(a1Runnable.GetType().Name, Is.EqualTo("Runnable1"));
 			}
 		}
@@ -157,7 +155,12 @@ namespace SimpleContainer.Tests.Hosting
 				OutputAssembly = tempAssemblyFileName,
 				GenerateExecutable = false
 			};
-			var defaultAssemblies = new[] {typeof (IRunnable).Assembly, typeof (NameValueCollection).Assembly};
+			var defaultAssemblies = new[]
+			{
+				Assembly.GetExecutingAssembly(),
+				typeof (IRunnable).Assembly,
+				typeof (NameValueCollection).Assembly
+			};
 			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.GetName().Name + ".dll"))
 				compilationParameters.ReferencedAssemblies.Add(reference);
 			var compilationResult = CodeDomProvider.CreateProvider("C#").CompileAssemblyFromSource(compilationParameters, source);
@@ -170,6 +173,19 @@ namespace SimpleContainer.Tests.Hosting
 				Assert.Fail(message);
 			}
 			return compilationResult.CompiledAssembly;
+		}
+
+		protected override void SetUp()
+		{
+			base.SetUp();
+			LogBuilder = new StringBuilder();
+		}
+
+		public static StringBuilder LogBuilder { get; private set; }
+
+		protected static HostingEnvironmentFactory Factory()
+		{
+			return new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
 		}
 	}
 }

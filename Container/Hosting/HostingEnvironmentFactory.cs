@@ -18,10 +18,15 @@ namespace SimpleContainer.Hosting
 			this.assembliesFilter = assembliesFilter;
 		}
 
-		public HostingEnvironment Create(string directoryPath, bool withExecutables)
+		public HostingEnvironment FromDefaultBinDirectory(bool withExecutables)
 		{
-			var assemblies = Directory.GetFiles(BasePath(), "*.dll")
-				.Union(withExecutables ? Directory.GetFiles(BasePath(), "*.exe") : Enumerable.Empty<string>())
+			return FromDirectory(GetBinDirectory(), withExecutables);
+		}
+
+		public HostingEnvironment FromDirectory(string directory, bool withExecutables)
+		{
+			var assemblies = Directory.GetFiles(directory, "*.dll")
+				.Union(withExecutables ? Directory.GetFiles(directory, "*.exe") : Enumerable.Empty<string>())
 				.Select(delegate(string s)
 				{
 					try
@@ -37,27 +42,27 @@ namespace SimpleContainer.Hosting
 				.Where(assembliesFilter)
 				.Select(Assembly.Load)
 				.Distinct();
-			return Create(assemblies);
+			return FromAssemblies(assemblies);
 		}
 
-		private static string BasePath()
-		{
-			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
-				? AppDomain.CurrentDomain.BaseDirectory
-				: AppDomain.CurrentDomain.RelativeSearchPath;
-		}
-
-		public HostingEnvironment Create(IEnumerable<Assembly> assemblies)
+		public HostingEnvironment FromAssemblies(IEnumerable<Assembly> assemblies)
 		{
 			var types = LoadTypes(assemblies);
-			return Create(types);
+			return FromTypes(types);
 		}
 
-		public HostingEnvironment Create(Type[] types)
+		public HostingEnvironment FromTypes(Type[] types)
 		{
 			var configuration = CreateDefaultConfiguration(types);
 			var inheritors = DefaultInheritanceHierarchy.Create(types);
 			return new HostingEnvironment(inheritors, configuration, assembliesFilter);
+		}
+
+		private static string GetBinDirectory()
+		{
+			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
+				? AppDomain.CurrentDomain.BaseDirectory
+				: AppDomain.CurrentDomain.RelativeSearchPath;
 		}
 
 		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)

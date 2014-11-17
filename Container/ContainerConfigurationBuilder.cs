@@ -39,6 +39,11 @@ namespace SimpleContainer
 			return this;
 		}
 
+		public ServiceConfigurationBuilder<TService> Bind(Func<FactoryContext, TService> factory)
+		{
+			return this;
+		}
+
 		public ServiceConfigurationBuilder<TService> AddContract(string dependencyName, string contract)
 		{
 			return this;

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Remoting.Messaging;
 using SimpleContainer.Factories;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
@@ -60,14 +59,19 @@ namespace SimpleContainer
 		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
 			ReflectionHelpers.EmitCallOf;
 
-		private DependenciesInjector dependenciesInjector;
+		private readonly DependenciesInjector dependenciesInjector;
 
-		public object Get(Type serviceType)
+		public object Get(Type type)
+		{
+			return Get(type, null);
+		}
+
+		public object Get(Type serviceType, string contract)
 		{
 			Type enumerableItem;
 			if (TryUnwrapEnumerable(serviceType, out enumerableItem))
 				return GetAll(enumerableItem);
-			var key = new CacheKey(serviceType, null);
+			var key = new CacheKey(serviceType, contract);
 			var result = serviceType.IsDefined<DontReuseAttribute>()
 				? createInstanceDelegate(key)
 				: instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve();
@@ -76,8 +80,9 @@ namespace SimpleContainer
 
 		public IEnumerable<object> GetAll(Type serviceType)
 		{
-			return
-				instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate).WaitForResolve().AsEnumerable();
+			return instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate)
+				.WaitForResolve()
+				.AsEnumerable();
 		}
 
 		public object Create(Type type, string contract, object arguments)

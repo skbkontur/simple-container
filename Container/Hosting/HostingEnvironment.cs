@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
@@ -10,6 +11,7 @@ namespace SimpleContainer.Hosting
 		private readonly IInheritanceHierarchy hierarchy;
 		private readonly IContainerConfiguration configuration;
 		private readonly Func<AssemblyName, bool> assemblyFilter;
+		public IShutdownCoordinator ShutdownCoordinator { get; private set; }
 
 		public HostingEnvironment(IInheritanceHierarchy hierarchy, IContainerConfiguration configuration,
 			Func<AssemblyName, bool> assemblyFilter)
@@ -17,24 +19,24 @@ namespace SimpleContainer.Hosting
 			this.hierarchy = hierarchy;
 			this.configuration = configuration;
 			this.assemblyFilter = assemblyFilter;
+			ShutdownCoordinator = new ShutdownCoordinator();
 		}
 
-		public SimpleContainer CreateContainer(Action<ContainerConfigurationBuilder> configure)
+		public ContainerHost CreateHost(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure)
 		{
-			var configurationBuilder = new ContainerConfigurationBuilder();
-			configure(configurationBuilder);
-			return new SimpleContainer(new MergedConfiguration(configuration, configurationBuilder.Build()), hierarchy);
-		}
-
-		public ContainerHost CreateHost(Assembly primaryAssembly)
-		{
-			var targetAssemblies = Utils.Closure(primaryAssembly,
-				a => a.GetReferencedAssemblies()
-					.Concat(a.GetCustomAttributes<ContainerReferenceAttribute>().Select(x => new AssemblyName(x.AssemblyName)))
-					.Where(assemblyFilter).Select(Assembly.Load))
-				.ToSet();
+			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
 			var restrictedHierarchy = new AssembliesRestrictedInheritanceHierarchy(targetAssemblies, hierarchy);
-			return new ContainerHost(restrictedHierarchy, configuration);
+			return new ContainerHost(restrictedHierarchy, configuration, configure, ShutdownCoordinator);
+		}
+
+		private IEnumerable<Assembly> ReferencedAssemblies(Assembly assembly)
+		{
+			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
+				.Select(x => new AssemblyName(x.AssemblyName));
+			return assembly.GetReferencedAssemblies()
+				.Concat(referencedByAttribute)
+				.Where(assemblyFilter)
+				.Select(Assembly.Load);
 		}
 
 		//internal-конфига (FactoryConfigurator, GenericConfigurator) должна реюзаться, т.к.
