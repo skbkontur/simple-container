@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Infection;
@@ -184,8 +182,8 @@ namespace SimpleContainer.Tests
 					builder.InContext<A>("bc2").Bind<IInterface, D>();
 				});
 				var a = container.Get<A>();
-				var result1 = a.bc1.getResult(new { value = 1 });
-				var result2 = a.bc2.getResult(new { value = 2 });
+				var result1 = a.bc1.getResult(new {value = 1});
+				var result2 = a.bc2.getResult(new {value = 2});
 				Assert.That(result1.value, Is.EqualTo(1));
 				Assert.That(result2.value, Is.EqualTo(2));
 				Assert.That(result1.intf, Is.InstanceOf<C>());
@@ -296,8 +294,9 @@ namespace SimpleContainer.Tests
 					builder.InContext<InnerService>("service").Bind<Service, Service>();
 				});
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				const string expectedMessage = "nested contexts are not supported, outer contract [OuterService.innerService], inner contract [InnerService.service]\r\n" +
-											   "Wrap!\r\n\tOuterService!\r\n\t\tInnerService[OuterService.innerService]->[OuterService.innerService]!";
+				const string expectedMessage =
+					"nested contexts are not supported, outer contract [OuterService.innerService], inner contract [InnerService.service]\r\n" +
+					"Wrap!\r\n\tOuterService!\r\n\t\tInnerService[OuterService.innerService]->[OuterService.innerService]!";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -500,8 +499,8 @@ namespace SimpleContainer.Tests
 					builder.AddContract<AllWrapsHost>("wraps", "service1Contract");
 					builder.AddContract<AllWrapsHost>("wraps", "service2Contract");
 
-					builder.ConfigureContract("service1Contract").Bind<IService, Service1>();
-					builder.ConfigureContract("service2Contract").Bind<IService, Service2>();
+					builder.Contract("service1Contract").Bind<IService, Service1>();
+					builder.Contract("service2Contract").Bind<IService, Service2>();
 				});
 				var wrap = container.Get<AllWrapsHost>();
 				Assert.That(wrap.wraps.Length, Is.EqualTo(2));
@@ -566,8 +565,8 @@ namespace SimpleContainer.Tests
 					builder.AddContract<ServiceWrap>("wraps", "service1Contract");
 					builder.AddContract<ServiceWrap>("wraps", "service2Contract");
 
-					builder.ConfigureContract("service1Contract").BindDependency<OtherService>("parameter", 1);
-					builder.ConfigureContract("service2Contract").BindDependency<OtherService>("parameter", 2);
+					builder.Contract("service1Contract").BindDependency<OtherService>("parameter", 1);
+					builder.Contract("service2Contract").BindDependency<OtherService>("parameter", 2);
 				});
 				var wrap = container.Get<ServiceWrap>();
 				Assert.That(wrap.wraps.Length, Is.EqualTo(1));
@@ -606,8 +605,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.ConfigureContract("A").Bind<IService, ServiceA>();
-					builder.ConfigureContract("B").Bind<IService, ServiceB>();
+					builder.Contract("A").Bind<IService, ServiceA>();
+					builder.Contract("B").Bind<IService, ServiceB>();
 				});
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.serviceA, Is.InstanceOf<ServiceA>());

@@ -22,22 +22,21 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected IContainer Container(params Action<ContainerConfigurationBuilder>[] configureActions)
+		protected IDisposable StartHosting<T>(Action<ContainerConfigurationBuilder> configureAction, out T service)
 		{
 			var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("SimpleContainer"));
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
 			var hostingEnvironment = factory.FromTypes(targetTypes);
-			IContainer container;
-			Action<ContainerConfigurationBuilder> configureAction = delegate(ContainerConfigurationBuilder builder)
-			{
-				foreach (var action in configureActions)
-					action(builder);
-			};
-			var disposable = hostingEnvironment
+			return hostingEnvironment
 				.CreateHost(Assembly.GetExecutingAssembly(), configureAction)
-				.StartHosting(out container);
-			disposables.Add(disposable);
-			return container;
+				.StartHosting(out service);
+		}
+
+		protected IContainer Container(Action<ContainerConfigurationBuilder> configureActions = null)
+		{
+			IContainer result;
+			disposables.Add(StartHosting(configureActions, out result));
+			return result;
 		}
 	}
 }

@@ -10,10 +10,12 @@ namespace SimpleContainer
 		public Func<FactoryContext, object> Factory { get; set; }
 		public bool UseAutosearch { get; set; }
 
-		public void AddImplementation(Type type)
+		public void AddImplementation(Type type, bool clearOld)
 		{
 			if (ImplementationTypes == null)
 				ImplementationTypes = new List<Type>();
+			if (clearOld)
+				ImplementationTypes.Clear();
 			if (!ImplementationTypes.Contains(type))
 				ImplementationTypes.Add(type);
 		}

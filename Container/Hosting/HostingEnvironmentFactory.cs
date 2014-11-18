@@ -15,7 +15,7 @@ namespace SimpleContainer.Hosting
 
 		public HostingEnvironmentFactory(Func<AssemblyName, bool> assembliesFilter)
 		{
-			this.assembliesFilter = assembliesFilter;
+			this.assembliesFilter = name => assembliesFilter(name) || name.Name == "SimpleContainer";
 		}
 
 		public HostingEnvironment FromDefaultBinDirectory(bool withExecutables)
@@ -53,8 +53,9 @@ namespace SimpleContainer.Hosting
 
 		public HostingEnvironment FromTypes(Type[] types)
 		{
-			var configuration = CreateDefaultConfiguration(types);
-			var inheritors = DefaultInheritanceHierarchy.Create(types);
+			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).ToArray();
+			var configuration = CreateDefaultConfiguration(hostingTypes);
+			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
 			return new HostingEnvironment(inheritors, configuration, assembliesFilter);
 		}
 

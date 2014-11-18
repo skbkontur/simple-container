@@ -39,26 +39,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\BasicProfile.cs" />
-    <Compile Include="Configuration\ConfiguratorBuilder.cs" />
-    <Compile Include="Configuration\ConfiguratorDescriber.cs" />
-    <Compile Include="Configuration\FunctionalTestProfile.cs" />
-    <Compile Include="Configuration\IConditionalConfigurator.cs" />
-    <Compile Include="Configuration\IConfigure.cs" />
-    <Compile Include="Configuration\IDescribeConfigurator.cs" />
-    <Compile Include="Configuration\IHandleProfile.cs" />
-    <Compile Include="Configuration\IntegrationProfile.cs" />
-    <Compile Include="Configuration\IProfile.cs" />
-    <Compile Include="Configuration\LiteProfile.cs" />
-    <Compile Include="Configuration\ProductionProfile.cs" />
-    <Compile Include="Configuration\ProfileConfiguratorFactory.cs" />
     <Compile Include="ContainerConfigurationBuilder.cs" />
     <Compile Include="ContainerComponent.cs" />
     <Compile Include="ContainerService.cs" />
     <Compile Include="DefaultInheritanceHierarchy.cs" />
     <Compile Include="DependenciesInjector.cs" />
     <Compile Include="Factories\FactoryConfigurationProcessor.cs" />
-    <Compile Include="Factories\FactoryConfigurator.cs" />
     <Compile Include="Factories\FactoryCreatorBase.cs" />
     <Compile Include="Factories\FactoryWithArgumentsPlugin.cs" />
     <Compile Include="Factories\IFactoryPlugin.cs" />
@@ -68,7 +54,6 @@
     <Compile Include="Generics\GenericDependency.cs" />
     <Compile Include="Generics\GenericOverrideInfo.cs" />
     <Compile Include="Generics\GenericsConfigurationProcessor.cs" />
-    <Compile Include="Generics\GenericsConfigurator.cs" />
     <Compile Include="Generics\TypeHelpers.cs" />
     <Compile Include="Helpers\ActionDisposable.cs" />
     <Compile Include="Helpers\DictionaryExtensions.cs" />
@@ -79,6 +64,7 @@
     <Compile Include="Hosting\ContainerReferenceAttribute.cs" />
     <Compile Include="Hosting\HostingEnvironment.cs" />
     <Compile Include="Hosting\HostingEnvironmentFactory.cs" />
+    <Compile Include="Hosting\IServiceConfigurator.cs" />
     <Compile Include="Hosting\IShutdownCoordinator.cs" />
     <Compile Include="Hosting\ShutdownCoordinator.cs" />
     <Compile Include="Hosting\SimpleContainerTypeLoadException.cs" />
@@ -98,7 +84,6 @@
     <Compile Include="InterfaceConfiguration.cs" />
     <Compile Include="IObjectAccessor.cs" />
     <Compile Include="IResolveDependency.cs" />
-    <Compile Include="Hosting\IRunnable.cs" />
     <Compile Include="IServiceFactory.cs" />
     <Compile Include="IServiceHost.cs" />
     <Compile Include="ISimpleLogWriter.cs" />
@@ -126,6 +111,7 @@
     <Compile Include="ResolutionContext.cs" />
     <Compile Include="ResolutionRequest.cs" />
     <Compile Include="AssembliesRestrictedInheritanceHierarchy.cs" />
+    <Compile Include="ServiceConfigurationBuilder.cs" />
     <Compile Include="ServiceName.cs" />
     <Compile Include="SimpleContainer.cs" />
     <Compile Include="SimpleContainerException.cs" />

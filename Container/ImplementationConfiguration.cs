@@ -1,14 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
 	public class ImplementationConfiguration
 	{
-		private readonly List<ImplentationDependencyConfiguration> dependencies = new List<ImplentationDependencyConfiguration>();
+		private readonly List<ImplentationDependencyConfiguration> dependencies =
+			new List<ImplentationDependencyConfiguration>();
+
 		public bool DontUseIt { get; set; }
 
 		public ImplentationDependencyConfiguration GetByKeyOrNull(string key)
@@ -25,7 +26,7 @@ namespace SimpleContainer
 		{
 			var result = GetByKeyOrNull(key);
 			if (result == null)
-				dependencies.Add(result = new ImplentationDependencyConfiguration { Key = key });
+				dependencies.Add(result = new ImplentationDependencyConfiguration {Key = key});
 			return result;
 		}
 	}

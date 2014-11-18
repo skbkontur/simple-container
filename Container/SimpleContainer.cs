@@ -13,7 +13,8 @@ namespace SimpleContainer
 {
 	public static class StupidContainerHelpers
 	{
-		public static SimpleContainer CreateContainer(IEnumerable<Type> types, params Action<ContainerConfigurationBuilder>[] configure)
+		public static SimpleContainer CreateContainer(IEnumerable<Type> types,
+			params Action<ContainerConfigurationBuilder>[] configure)
 		{
 			var typesArray = types.ToArray();
 			var configuration = SimpleContainerHelpers.CreateContainerConfiguration(typesArray, configure);
@@ -30,6 +31,7 @@ namespace SimpleContainer
 	public class SimpleContainer : IContainer, IResolveDependency, IServiceFactory
 	{
 		private readonly IContainerConfiguration configuration;
+
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
 
@@ -46,7 +48,7 @@ namespace SimpleContainer
 			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
-				var context = new ResolutionContext(configuration);
+				var context = new ResolutionContext(configuration, key.contract);
 				return Resolve(new ResolutionRequest {type = key.type}, context);
 			};
 		}
@@ -87,8 +89,7 @@ namespace SimpleContainer
 
 		public object Create(Type type, string contract, object arguments)
 		{
-			var resolutionContext = new ResolutionContext(configuration, arguments);
-			resolutionContext.ActivateContract(contract);
+			var resolutionContext = new ResolutionContext(configuration, contract, arguments);
 			var result = Resolve(new ResolutionRequest {type = type, createNew = true}, resolutionContext);
 			return result.SingleInstance();
 		}
@@ -136,6 +137,8 @@ namespace SimpleContainer
 							DoResolve(request.name, result, context);
 							result.SetResolved();
 						}
+				if (OnResolve != null)
+					OnResolve(result);
 			}
 			return result;
 		}
@@ -174,7 +177,11 @@ namespace SimpleContainer
 				}
 				if (interfaceConfiguration.Factory != null)
 				{
-					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext {Container = this}));
+					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext
+					{
+						container = this,
+						contract = service.context.Contract
+					}));
 					return;
 				}
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
@@ -402,16 +409,6 @@ namespace SimpleContainer
 					return ResolvedService(dependencyConfiguration.Factory(this));
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
-			if (implementationType == null)
-			{
-				var interfaceConfiguration =
-					resolutionContext.GetConfiguration<InterfaceConfiguration>(formalParameter.ParameterType);
-				if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
-				{
-					var instance = interfaceConfiguration.Factory(new FactoryContext {Container = this, Target = implementation.type});
-					return ResolvedService(instance);
-				}
-			}
 			implementationType = implementationType ?? formalParameter.ParameterType;
 			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
 				return ResolvedService(formalParameter.DefaultValue);
@@ -434,13 +431,25 @@ namespace SimpleContainer
 				type = isEnumerable ? enumerableItem : implementationType,
 				name = formalParameter.Name
 			};
-
 			RequireContractAttribute requireContractAttribute;
 			var contracts = formalParameter.TryGetCustomAttribute(out requireContractAttribute)
-				? new[] {requireContractAttribute.ContractName}
+				? new List<string>(1) {requireContractAttribute.ContractName}
 				: (dependencyConfiguration != null && dependencyConfiguration.Contracts != null
-					? (IEnumerable<string>) dependencyConfiguration.Contracts
+					? dependencyConfiguration.Contracts
 					: null);
+			var interfaceConfiguration = resolutionContext.GetConfiguration<InterfaceConfiguration>(implementationType);
+			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
+			{
+				if (contracts != null && contracts.Count > 1)
+					throw new InvalidOperationException("shit");
+				var instance = interfaceConfiguration.Factory(new FactoryContext
+				{
+					container = this,
+					target = implementation.type,
+					contract = contracts != null ? contracts.SingleOrDefault() : null
+				});
+				return ResolvedService(instance);
+			}
 			ContainerService result;
 			if (contracts != null)
 			{
@@ -450,7 +459,7 @@ namespace SimpleContainer
 				{
 					resolutionContext.ActivateContract(contract);
 					contractServices.AddRange(Resolve(childRequest, resolutionContext).instances);
-					resolutionContext.DeactivateContext();
+					resolutionContext.DeactivateContract();
 				}
 				result.instances.AddRange(contractServices.Distinct());
 			}
@@ -483,7 +492,7 @@ namespace SimpleContainer
 		private struct CacheKey : IEquatable<CacheKey>
 		{
 			public readonly Type type;
-			private readonly string contract;
+			public readonly string contract;
 
 			public CacheKey(Type type, string contract)
 			{

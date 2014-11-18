@@ -731,8 +731,11 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(c => c.Bind(typeof (IInterface), typeof (SomeImpl<int>)),
-					c => c.Bind(typeof (IInterface), typeof (SomeImpl<string>)));
+				var container = Container(c =>
+				{
+					c.Bind(typeof (IInterface), typeof (SomeImpl<int>));
+					c.Bind(typeof (IInterface), typeof (SomeImpl<string>));
+				});
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
 					Is.EqualTo(
@@ -753,7 +756,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(builder => builder.Bind<ChildService>(c => new ChildService(c.Target)));
+				var container = Container(builder => builder.Bind<ChildService>(c => new ChildService(c.target)));
 				Assert.That(container.Get<SomeService>().ChildService.ParentService, Is.EqualTo(typeof (SomeService)));
 				Assert.That(container.Get<ChildService>().ParentService, Is.Null);
 			}

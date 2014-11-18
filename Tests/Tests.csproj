@@ -59,6 +59,7 @@
     <Compile Include="GenericsConfiguratorTests\DiscardGenericsUnmachedByContstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\NonGenericChildOfGenericComponentOverridesTypesDeductionFromConstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\VerifyConstraintsForDependencies.cs" />
+    <Compile Include="Hosting\HostingAssembliesTest.cs" />
     <Compile Include="Hosting\HostingTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleContainerConcurrentTest.cs" />

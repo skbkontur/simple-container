@@ -4,7 +4,8 @@ namespace SimpleContainer
 {
 	public class FactoryContext
 	{
-		public IContainer Container;
-		public Type Target;
+		public IContainer container;
+		public Type target;
+		public string contract;
 	}
 }

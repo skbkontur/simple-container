@@ -15,10 +15,12 @@ namespace SimpleContainer
 		public object arguments;
 		private IContainerConfiguration contractConfiguration;
 
-		public ResolutionContext(IContainerConfiguration configuration, object arguments = null)
+		public ResolutionContext(IContainerConfiguration configuration, string contract, object arguments = null)
 		{
 			this.configuration = configuration;
 			this.arguments = arguments;
+			if (!string.IsNullOrEmpty(contract))
+				ActivateContract(contract);
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -58,8 +60,6 @@ namespace SimpleContainer
 
 		public void ActivateContract(string contract)
 		{
-			if (string.IsNullOrEmpty(contract))
-				return;
 			var newContextConfiguration = configuration.GetByKeyOrNull(contract);
 			if (newContextConfiguration == null)
 				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contract, Format()));
@@ -71,7 +71,7 @@ namespace SimpleContainer
 			contractConfiguration = newContextConfiguration;
 		}
 
-		public void DeactivateContext()
+		public void DeactivateContract()
 		{
 			Contract = null;
 			contractConfiguration = null;

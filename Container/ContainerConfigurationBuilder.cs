@@ -1,55 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
 using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
-	public class ServiceConfigurationBuilder<TService>
-	{
-		public ServiceConfigurationBuilder<TService> DontUse()
-		{
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<TService> Contract<TContract>()
-		{
-			return this;
-		}
-		
-		public ServiceConfigurationBuilder<TService> Contract(string contractName)
-		{
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<TService> Dependencies(object values)
-		{
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<TService> Bind<TImplementation>()
-		{
-			return this;
-		}
-		
-		public ServiceConfigurationBuilder<TService> Bind(Type type)
-		{
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<TService> Bind(Func<FactoryContext, TService> factory)
-		{
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<TService> AddContract(string dependencyName, string contract)
-		{
-			return this;
-		}
-	}
-
 	public class ContainerConfigurationBuilder
 	{
 		private readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
@@ -61,17 +19,17 @@ namespace SimpleContainer
 		private readonly List<Action<ContainerConfigurationBuilder, Type>> scanners =
 			new List<Action<ContainerConfigurationBuilder, Type>>();
 
-		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>() where TImplementation : TInterface
+		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>(bool clearOld = false) where TImplementation : TInterface
 		{
-			return Bind(typeof (TInterface), typeof (TImplementation));
+			return Bind(typeof(TInterface), typeof(TImplementation), clearOld);
 		}
 
-		public ContainerConfigurationBuilder Bind(Type interfaceType, Type implementationType)
+		public ContainerConfigurationBuilder Bind(Type interfaceType, Type implementationType, bool clearOld = false)
 		{
 			if (!interfaceType.IsAssignableFrom(implementationType))
 				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
 					implementationType.FormatName()));
-			GetOrCreate<InterfaceConfiguration>(interfaceType).AddImplementation(implementationType);
+			GetOrCreate<InterfaceConfiguration>(interfaceType).AddImplementation(implementationType, clearOld);
 			return this;
 		}
 
@@ -164,7 +122,9 @@ namespace SimpleContainer
 
 		public ContainerConfigurationBuilder BindDependencies<T>(object dependencies)
 		{
-			throw new NotSupportedException();
+			foreach (var property in dependencies.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+				BindDependency<T>(property.Name, property.GetValue(dependencies, null));
+			return this;
 		}
 
 		public ContainerConfigurationBuilder BindDependencyValue(Type type, Type dependencyType, object value)
@@ -187,13 +147,13 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerConfigurationBuilder ConfigureContract<T>()
+		public ContainerConfigurationBuilder Contract<T>()
 			where T : RequireContractAttribute, new()
 		{
-			return ConfigureContract(new T().ContractName);
+			return Contract(new T().ContractName);
 		}
 
-		public ContainerConfigurationBuilder ConfigureContract(string contract)
+		public ContainerConfigurationBuilder Contract(string contract)
 		{
 			if (contractConfigurators.ContainsKey(contract))
 				throw new InvalidOperationException(string.Format("contract {0} already defined", contract));

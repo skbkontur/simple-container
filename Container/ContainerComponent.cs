@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using SimpleContainer.Hosting;
 using SimpleContainer.Reflection;
 
@@ -40,8 +39,9 @@ namespace SimpleContainer
 				throw new InvalidOperationException("entry point already created");
 			var entryPoint = container.Get(name.type, name.contract);
 			entryPointCreated = true;
-			foreach (var componentOptions in components.AsEnumerable().Reverse())
-				componentOptions.Initialize();
+			foreach (var c in components)
+				c.Initialize();
+			components.Reverse();
 			return entryPoint;
 		}
 
