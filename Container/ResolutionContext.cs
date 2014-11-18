@@ -32,7 +32,7 @@ namespace SimpleContainer
 			return result;
 		}
 
-		public void BeginResolve(string name, ContainerService service)
+		public void Resolve(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current.Peek();
 			var item = new ResolutionItem
@@ -41,19 +41,16 @@ namespace SimpleContainer
 				name = name,
 				contractName = Contract,
 				contractDeclared = Contract != null && previous != null && previous.contractName == null,
-				service = service
+				service = containerService
 			};
 			current.Push(item);
 			log.Add(item);
-			if (currentTypes.Contains(service.type))
+			if (currentTypes.Contains(containerService.type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
-					service.type.FormatName(), previous == null ? "null" : previous.service.type.FormatName(), Format()));
-			currentTypes.Add(service.type);
-			service.context = this;
-		}
-
-		public void EndResolve(ContainerService service)
-		{
+					containerService.type.FormatName(), previous == null ? "null" : previous.service.type.FormatName(), Format()));
+			currentTypes.Add(containerService.type);
+			containerService.context = this;
+			container.Instantiate(containerService);
 			currentTypes.Remove(current.Pop().service.type);
 			depth--;
 		}

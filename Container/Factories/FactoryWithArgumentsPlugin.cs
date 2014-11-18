@@ -2,9 +2,9 @@ using System;
 
 namespace SimpleContainer.Factories
 {
-	public class FactoryWithArgumentsPlugin : FactoryCreatorBase
+	public class FactoryWithArgumentsPlugin : IFactoryPlugin
 	{
-		public override bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService)
+		public bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService)
 		{
 			var funcType = containerService.type;
 			if (!funcType.IsGenericType)
@@ -17,7 +17,7 @@ namespace SimpleContainer.Factories
 			var type = typeArguments[1];
 			var contract = containerService.context.Contract;
 			Func<object, object> factory = arguments => serviceFactory.Create(type, contract, arguments);
-			containerService.instances.Add(GetCaster(type).CastToTyped(factory));
+			containerService.instances.Add(DelegateCaster.Create(type).Cast(factory));
 			containerService.contractUsed = true;
 			return true;
 		}

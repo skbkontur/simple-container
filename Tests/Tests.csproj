@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicSimpleContainerTest.cs" />
+    <Compile Include="CacheTypeTest.cs" />
     <Compile Include="CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />

@@ -13,6 +13,11 @@ namespace SimpleContainer
 			return (T) container.Get(typeof (T), null);
 		}
 
+		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
+		{
+			return (T) container.Create(typeof (T), contract, arguments);
+		}
+
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)
 		{
 			return container.GetImplementationsOf(typeof (T));
@@ -26,17 +31,6 @@ namespace SimpleContainer
 		public static bool TryGet<T>(this IContainer container, out T result)
 		{
 			return container.GetAll<T>().TrySingle(out result);
-		}
-
-		public static IContainerConfiguration CreateContainerConfiguration(Type[] types,
-			params Action<ContainerConfigurationBuilder>[] configureActions)
-		{
-			var builder = new ContainerConfigurationBuilder();
-			foreach (var action in configureActions)
-				action(builder);
-			if (types != null)
-				builder.ApplyScanners(types);
-			return builder.Build();
 		}
 
 		public static IEnumerable<object> GetDependencyValues(this IContainer container, Type type)

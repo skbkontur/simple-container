@@ -9,6 +9,7 @@ namespace SimpleContainer
 		IEnumerable<Type> GetImplementationsOf(Type interfaceType);
 		IEnumerable<object> GetAll(Type type);
 		object Get(Type type, string contract);
+		object Create(Type type, string contract, object arguments);
 		void BuildUp(object target);
 		void DumpConstructionLog(Type type, string contractName, bool entireResolutionContext, ISimpleLogWriter writer);
 	}

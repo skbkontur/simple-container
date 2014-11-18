@@ -3,7 +3,7 @@
 namespace SimpleContainer.Tests
 {
 	[TestFixture]
-	public class UnitTestBase
+	public abstract class UnitTestBase
 	{
 		[SetUp]
 		protected virtual void SetUp()

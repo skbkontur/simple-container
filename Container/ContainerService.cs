@@ -9,6 +9,7 @@ namespace SimpleContainer
 {
 	public class ContainerService
 	{
+		public CacheLevel cacheLevel;
 		public Type type;
 		public ResolutionContext context;
 		public bool contractUsed;

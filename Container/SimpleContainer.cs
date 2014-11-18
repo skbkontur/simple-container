@@ -11,18 +11,6 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer
 {
-	public static class StupidContainerHelpers
-	{
-		public static SimpleContainer CreateContainer(IEnumerable<Type> types,
-			params Action<ContainerConfigurationBuilder>[] configure)
-		{
-			var typesArray = types.ToArray();
-			var configuration = SimpleContainerHelpers.CreateContainerConfiguration(typesArray, configure);
-			var inheritors = DefaultInheritanceHierarchy.Create(typesArray);
-			return new SimpleContainer(configuration, inheritors);
-		}
-	}
-
 	//todo отпилить этап анализа зависимостей => meta, contractUsage + factories
 	//todo перевести на явную стек машину
 	//todo заинлайнить GenericConfigurator
@@ -30,16 +18,30 @@ namespace SimpleContainer
 	//todo логировать значения simple-типов, заюзанные через конфигурирование
 	public class SimpleContainer : IContainer, IResolveDependency, IServiceFactory
 	{
+		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
+			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
+
+		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
+			ReflectionHelpers.EmitCallOf;
+
+		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
+			k => new ContainerService { type = k.type, cacheLevel = CacheLevel.Host };
+
+		private static readonly IFactoryPlugin[] factoryPlugins =
+		{
+			new SimpleFactoryPlugin(),
+			new FactoryWithArgumentsPlugin()
+		};
+
 		private readonly IContainerConfiguration configuration;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
 
-		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
-			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
-
 		private readonly IInheritanceHierarchy inheritors;
 		internal event Action<ContainerService> OnResolve;
+		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
+		private readonly DependenciesInjector dependenciesInjector;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors)
 		{
@@ -49,19 +51,9 @@ namespace SimpleContainer
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contract);
-				return Resolve(new ResolutionRequest {type = key.type}, context);
+				return ResolveSingleton(key.type, null, context);
 			};
 		}
-
-		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
-
-		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
-			k => new ContainerService {type = k.type};
-
-		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
-			ReflectionHelpers.EmitCallOf;
-
-		private readonly DependenciesInjector dependenciesInjector;
 
 		public object Get(Type type)
 		{
@@ -74,10 +66,7 @@ namespace SimpleContainer
 			if (TryUnwrapEnumerable(serviceType, out enumerableItem))
 				return GetAll(enumerableItem);
 			var key = new CacheKey(serviceType, contract);
-			var result = serviceType.IsDefined<DontReuseAttribute>()
-				? createInstanceDelegate(key)
-				: instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve();
-			return result.SingleInstance();
+			return instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve().SingleInstance();
 		}
 
 		public IEnumerable<object> GetAll(Type serviceType)
@@ -90,7 +79,8 @@ namespace SimpleContainer
 		public object Create(Type type, string contract, object arguments)
 		{
 			var resolutionContext = new ResolutionContext(configuration, contract, arguments);
-			var result = Resolve(new ResolutionRequest {type = type, createNew = true}, resolutionContext);
+			var result = new ContainerService {type = type, cacheLevel = CacheLevel.None};
+			resolutionContext.Resolve(null, result, this);
 			return result.SingleInstance();
 		}
 
@@ -118,45 +108,23 @@ namespace SimpleContainer
 				containerService.context.Format(entireResolutionContext ? null : type, writer);
 		}
 
-		private ContainerService Resolve(ResolutionRequest request, ResolutionContext context)
+		private ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
 		{
-			ContainerService result;
-			var cacheKey = new CacheKey(request.type, context.Contract);
-			if (request.createNew || request.type.IsDefined<DontReuseAttribute>())
-			{
-				result = createContainerServiceDelegate(cacheKey);
-				DoResolve(request.name, result, context);
-			}
-			else
-			{
-				result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
-				if (!result.resolved)
-					lock (result.lockObject)
-						if (!result.resolved)
-						{
-							DoResolve(request.name, result, context);
-							result.SetResolved();
-						}
-				if (OnResolve != null)
-					OnResolve(result);
-			}
+			var cacheKey = new CacheKey(type, context.Contract);
+			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
+			if (!result.resolved)
+				lock (result.lockObject)
+					if (!result.resolved)
+					{
+						context.Resolve(name, result, this);
+						result.SetResolved();
+					}
+			if (OnResolve != null)
+				OnResolve(result);
 			return result;
 		}
 
-		private void DoResolve(string name, ContainerService containerService, ResolutionContext context)
-		{
-			context.BeginResolve(name, containerService);
-			Instantiate(containerService);
-			context.EndResolve(containerService);
-		}
-
-		private readonly IFactoryPlugin[] factoryPlugins =
-		{
-			new SimpleFactoryPlugin(),
-			new FactoryWithArgumentsPlugin()
-		};
-
-		private void Instantiate(ContainerService service)
+		internal void Instantiate(ContainerService service)
 		{
 			if (ReflectionHelpers.simpleTypes.Contains(service.type))
 				service.Throw("can't create simple type");
@@ -211,13 +179,15 @@ namespace SimpleContainer
 		{
 			if (service.type != implementationType)
 			{
-				var implementationRequest = new ResolutionRequest
+				ContainerService childService;
+				if (service.cacheLevel == CacheLevel.None)
 				{
-					type = implementationType,
-					createNew = service.type.IsDefined<DontReuseAttribute>()
-				};
-				var implementationService = Resolve(implementationRequest, service.context);
-				service.instances.AddRange(implementationService.instances);
+					childService = new ContainerService {type = implementationType, cacheLevel = CacheLevel.None};
+					service.context.Resolve(null, childService, this);
+				}
+				else
+					childService = ResolveSingleton(implementationType, null, service.context);
+				service.instances.AddRange(childService.instances);
 				return;
 			}
 			if (implementationType.IsDefined<IgnoreImplementationAttribute>())
@@ -231,7 +201,7 @@ namespace SimpleContainer
 				DefaultInstantiateImplementation(implementationType, service);
 				return;
 			}
-			var factory = Resolve(new ResolutionRequest {type = factoryMethod.DeclaringType}, service.context);
+			var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
 			if (factory.instances.Count == 1)
 				service.instances.Add(InvokeConstructor(factoryMethod, factory.instances[0], new object[0], service.context));
 		}
@@ -356,6 +326,13 @@ namespace SimpleContainer
 			{
 				var formalParameter = formalParameters[i];
 				var dependencyService = InstantiateDependency(formalParameter, implementation, service.context);
+				if (dependencyService.cacheLevel < service.cacheLevel)
+					service.Throw("dependency [{0}] of type [{1}] cacheLevel [{2}] is incompatibe with cacheLevel [{3}] of [{4}]",
+						formalParameter.Name,
+						dependencyService.type.FormatName(),
+						dependencyService.cacheLevel,
+						service.cacheLevel,
+						service.type.FormatName());
 				service.contractUsed |= dependencyService.contractUsed;
 				if (dependencyService.instances.Count == 0)
 					return;
@@ -386,9 +363,10 @@ namespace SimpleContainer
 			service.instances.AddRange(serviceWithoutContract.instances);
 		}
 
-		public ContainerService ResolvedService(object instance, bool contractUsed = false)
+		public ContainerService ResolvedService(object instance, bool contractUsed = false,
+			CacheLevel cacheLevel = CacheLevel.Host)
 		{
-			var result = new ContainerService {contractUsed = contractUsed};
+			var result = new ContainerService {contractUsed = contractUsed, cacheLevel = cacheLevel};
 			result.instances.Add(instance);
 			return result;
 		}
@@ -398,7 +376,7 @@ namespace SimpleContainer
 		{
 			object actualArgument;
 			if (implementation.TryGetFromArguments(formalParameter.Name, out actualArgument))
-				return ResolvedService(actualArgument);
+				return ResolvedService(actualArgument, false, CacheLevel.None);
 			var dependencyConfiguration = implementation.GetDependencyConfiguration(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
@@ -424,13 +402,6 @@ namespace SimpleContainer
 							implementation.type.Assembly.GetName().Name, resolutionContext.Format()));
 				return ResolvedService(resourceStream);
 			}
-			Type enumerableItem;
-			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
-			var childRequest = new ResolutionRequest
-			{
-				type = isEnumerable ? enumerableItem : implementationType,
-				name = formalParameter.Name
-			};
 			RequireContractAttribute requireContractAttribute;
 			var contracts = formalParameter.TryGetCustomAttribute(out requireContractAttribute)
 				? new List<string>(1) {requireContractAttribute.ContractName}
@@ -440,8 +411,6 @@ namespace SimpleContainer
 			var interfaceConfiguration = resolutionContext.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
-				if (contracts != null && contracts.Count > 1)
-					throw new InvalidOperationException("shit");
 				var instance = interfaceConfiguration.Factory(new FactoryContext
 				{
 					container = this,
@@ -450,25 +419,36 @@ namespace SimpleContainer
 				});
 				return ResolvedService(instance);
 			}
+			Type enumerableItem;
+			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
+			var dependencyType = isEnumerable ? enumerableItem : implementationType;
 			ContainerService result;
 			if (contracts != null)
 			{
-				result = new ContainerService {type = childRequest.type};
-				var contractServices = new List<object>();
-				foreach (var contract in contracts)
-				{
-					resolutionContext.ActivateContract(contract);
-					contractServices.AddRange(Resolve(childRequest, resolutionContext).instances);
-					resolutionContext.DeactivateContract();
-				}
-				result.instances.AddRange(contractServices.Distinct());
+				var contractServices = contracts
+					.Select(delegate(string contract)
+					{
+						resolutionContext.ActivateContract(contract);
+						var childService = ResolveSingleton(dependencyType, formalParameter.Name, resolutionContext);
+						resolutionContext.DeactivateContract();
+						return childService;
+					})
+					.ToArray();
+				result = Combine(dependencyType, contractServices);
 			}
 			else
-				result = Resolve(childRequest, resolutionContext);
+				result = ResolveSingleton(dependencyType, formalParameter.Name, resolutionContext);
 			if (isEnumerable)
 				return ResolvedService(result.AsEnumerable(), result.contractUsed);
 			if (result.instances.Count == 0 && formalParameter.HasDefaultValue)
 				result.instances.Add(formalParameter.DefaultValue);
+			return result;
+		}
+
+		private static ContainerService Combine(Type type, IEnumerable<ContainerService> children)
+		{
+			var result = new ContainerService {type = type, cacheLevel = CacheLevel.Host};
+			result.instances.AddRange(children.SelectMany(x => x.instances).Distinct());
 			return result;
 		}
 

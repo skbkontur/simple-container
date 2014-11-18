@@ -626,37 +626,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontReuseAttributeWorks : BasicSimpleContainerTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.Get<ClassA>(), Is.Not.SameAs(container.Get<ClassA>()));
-				Assert.That(container.Get<ClassB>(), Is.Not.SameAs(container.Get<ClassB>()));
-				Assert.That(container.Get<IInterface>(), Is.Not.SameAs(container.Get<IInterface>()));
-				Assert.That(container.Get<Impl>(), Is.SameAs(container.Get<Impl>()));
-			}
-
-			[DontReuse]
-			public class ClassA
-			{
-			}
-
-			public class ClassB : ClassA
-			{
-			}
-
-			[DontReuse]
-			public interface IInterface
-			{
-			}
-
-			public class Impl : IInterface
-			{
-			}
-		}
-
 		public class DontUse : BasicSimpleContainerTest
 		{
 			[Test]

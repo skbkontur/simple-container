@@ -165,13 +165,8 @@ namespace SimpleContainer.Tests.Hosting
 			public void Test()
 			{
 				Component1 component1;
-				var componentCreated = false;
-				var error = Assert.Throws<AggregateException>(delegate
-				{
-					using (StartHosting(null, out component1))
-						componentCreated = true;
-				});
-				Assert.That(componentCreated);
+				var disposable = StartHosting(null, out component1);
+				var error = Assert.Throws<AggregateException>(disposable.Dispose);
 				Assert.That(error.Message, Is.EqualTo("error stopping components"));
 				Assert.That(error.InnerExceptions[0].Message, Is.EqualTo("error stopping component [Component1]"));
 				Assert.That(error.InnerExceptions[0].InnerException.Message, Is.EqualTo("test component1 crash"));

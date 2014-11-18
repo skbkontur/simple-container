@@ -52,10 +52,10 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				const int threadCount = 6;
-				var testContainer = CreateContainer();
+				var testContainer = Container();
 				var barrier = new Barrier(threadCount, _ =>
 													   {
-														   testContainer = CreateContainer();
+														   testContainer = Container();
 														   generation++;
 													   });
 				Exception failure = null;
@@ -74,7 +74,7 @@ namespace SimpleContainer.Tests
 																testContainer.GetAll<ServiceBase>();
 																var implTypes = testContainer.GetImplementationsOf<ServiceBase>();
 																foreach (var implType in implTypes)
-																	testContainer.Get(implType);
+																	testContainer.Get(implType, null);
 															}
 														}
 														finally
@@ -97,11 +97,6 @@ namespace SimpleContainer.Tests
 					thread.Join();
 				if (failure != null)
 					Assert.Fail("source exception:\r\n" + failure);
-			}
-
-			private SimpleContainer CreateContainer()
-			{
-				return StupidContainerHelpers.CreateContainer(GetType().GetNestedTypes());
 			}
 		}
 	}

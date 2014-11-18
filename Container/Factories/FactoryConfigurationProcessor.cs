@@ -7,7 +7,7 @@ using SimpleContainer.Reflection;
 
 namespace SimpleContainer.Factories
 {
-	public class FactoryConfigurationProcessor: FactoryCreatorBase
+	public class FactoryConfigurationProcessor
 	{
 		private readonly ConcurrentDictionary<Type, Func<object, object>> genericFactories = new ConcurrentDictionary<Type, Func<object, object>>();
 
@@ -53,10 +53,10 @@ namespace SimpleContainer.Factories
 			return implementationType;
 		}
 
-		private Delegate CreateGenericFactory(Type serviceType, Type implementationDefinition, IContainer mtContainer)
+		private Delegate CreateGenericFactory(Type serviceType, Type implementationDefinition, IContainer container)
 		{
-			return GetCaster(serviceType)
-				.CastToTyped((type, o) => GetGenericFactoryInternal(implementationDefinition, mtContainer, new[] { type })(o));
+			return DelegateCaster.Create(serviceType)
+				.Cast((type, o) => GetGenericFactoryInternal(implementationDefinition, container, new[] {type})(o));
 		}
 
 		private Func<object, object> GetGenericFactoryInternal(Type implementationDefinition, IContainer mtContainer, Type[] closingSequence)
@@ -88,7 +88,7 @@ namespace SimpleContainer.Factories
 								   c => CreateAutoClosingFactory(serviceType, implementationDefinition, closingParameters[0], c));
 		}
 
-		private Delegate CreateAutoClosingFactory(Type serviceType, Type implementationDefinition, ParameterInfo autoclosingParameter, IContainer mtContainer)
+		private Delegate CreateAutoClosingFactory(Type serviceType, Type implementationDefinition, ParameterInfo autoclosingParameter, IContainer container)
 		{
 			Func<object, object> f = delegate(object o)
 									 {
@@ -109,12 +109,12 @@ namespace SimpleContainer.Factories
 
 											 closingTypesSequence = TypeHelpers.GetClosingTypesSequence(autoclosingParameter.ParameterType, closedParameterType);
 										 }
-										 return GetGenericFactoryInternal(implementationDefinition, mtContainer, closingTypesSequence)(o);
+										 return GetGenericFactoryInternal(implementationDefinition, container, closingTypesSequence)(o);
 									 };
-			return GetCaster(serviceType).CastToTyped(f);
+			return DelegateCaster.Create(serviceType).Cast(f);
 		}
 
-		private Func<object, object> CreateFactory(Type type, IContainer dependencyResolver)
+		private static Func<object, object> CreateFactory(Type type, IContainer container)
 		{
 			var constructor = type.GetConstructors().Single();
 			var parameters = constructor.GetParameters().ToArray();
@@ -130,24 +130,19 @@ namespace SimpleContainer.Factories
 						   var parameter = parameters[i];
 						   if (!accessor.TryGet(o, parameter.Name, out parameterValue))
 						   {
-							   var resolved = dependencyResolver.GetAll(parameter.ParameterType).ToArray();
+							   var resolved = container.GetAll(parameter.ParameterType).ToArray();
 							   if (resolved.Length == 1)
 								   parameterValue = resolved[0];
 							   else if (parameter.HasDefaultValue)
 								   parameterValue = parameter.DefaultValue;
 							   else
-								   dependencyResolver.Get(parameter.ParameterType, null);
+								   container.Get(parameter.ParameterType, null);
 						   }
 						   parameterValues[i] = parameterValue;
 					   }
 
 					   return constructorInvoker(null, parameterValues);
 				   };
-		}
-
-		public override bool TryInstantiate(IServiceFactory serviceFactory, ContainerService containerService)
-		{
-			return false;
 		}
 	}
 }

@@ -16,12 +16,10 @@ namespace SimpleContainer
 		private readonly IDictionary<string, ContainerConfigurationBuilder> contractConfigurators =
 			new Dictionary<string, ContainerConfigurationBuilder>();
 
-		private readonly List<Action<ContainerConfigurationBuilder, Type>> scanners =
-			new List<Action<ContainerConfigurationBuilder, Type>>();
-
-		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>(bool clearOld = false) where TImplementation : TInterface
+		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>(bool clearOld = false)
+			where TImplementation : TInterface
 		{
-			return Bind(typeof(TInterface), typeof(TImplementation), clearOld);
+			return Bind(typeof (TInterface), typeof (TImplementation), clearOld);
 		}
 
 		public ContainerConfigurationBuilder Bind(Type interfaceType, Type implementationType, bool clearOld = false)
@@ -133,17 +131,8 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerConfigurationBuilder ScanTypesWith(Action<ContainerConfigurationBuilder, Type> scanner)
+		public ContainerConfigurationBuilder Static(Type type)
 		{
-			scanners.Add(scanner);
-			return this;
-		}
-
-		public ContainerConfigurationBuilder ApplyScanners(Type[] types)
-		{
-			foreach (var scanner in scanners)
-				foreach (var type in types)
-					scanner(this, type);
 			return this;
 		}
 
@@ -182,12 +171,6 @@ namespace SimpleContainer
 			return InContext(typeof (T), dependencies);
 		}
 
-		public ContainerConfigurationBuilder SetResetAction(Action action)
-		{
-			resetActions.Add(action);
-			return this;
-		}
-
 		public ContainerConfigurationBuilder UseAutosearch(Type interfaceType, bool useAutosearch)
 		{
 			GetOrCreate<InterfaceConfiguration>(interfaceType).UseAutosearch = useAutosearch;
@@ -207,7 +190,8 @@ namespace SimpleContainer
 
 		public IContainerConfiguration Build()
 		{
-			return new ContainerConfiguration(configurations, contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()));
+			return new ContainerConfiguration(configurations,
+				contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()));
 		}
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)
@@ -246,7 +230,8 @@ namespace SimpleContainer
 			private readonly IDictionary<Type, object> configurations;
 			private readonly IDictionary<string, IContainerConfiguration> contractsConfigurators;
 
-			public ContainerConfiguration(IDictionary<Type, object> configurations, IDictionary<string, IContainerConfiguration> contractsConfigurators)
+			public ContainerConfiguration(IDictionary<Type, object> configurations,
+				IDictionary<string, IContainerConfiguration> contractsConfigurators)
 			{
 				this.configurations = configurations;
 				this.contractsConfigurators = contractsConfigurators;
