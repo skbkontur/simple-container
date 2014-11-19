@@ -11,15 +11,15 @@ namespace SimpleContainer.Implementation
 {
 	public class DependenciesInjector
 	{
-		private readonly IResolveDependency resolver;
+		private readonly IContainer container;
 		private readonly ConcurrentDictionary<Type, Injection[]> injections = new ConcurrentDictionary<Type, Injection[]>();
 
 		private const BindingFlags bindingFlags =
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-		public DependenciesInjector(IResolveDependency resolver)
+		public DependenciesInjector(IContainer container)
 		{
-			this.resolver = resolver;
+			this.container = container;
 		}
 
 		public void BuildUp(object target)
@@ -33,7 +33,7 @@ namespace SimpleContainer.Implementation
 		{
 			var dependencies = GetInjections(target.GetType());
 			foreach (var dependency in dependencies)
-				dependency.accessor.Set(target, resolver.Get(dependency.accessor.MemberType));
+				dependency.accessor.Set(target, container.Get(dependency.accessor.MemberType, null));
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)
@@ -69,7 +69,7 @@ namespace SimpleContainer.Implementation
 			{
 				var member = selfInjections[i];
 				var resultIndex = i + baseInjectionsCount;
-				result[resultIndex].value = resolver.Get(member.MemberType());
+				result[resultIndex].value = container.Get(member.MemberType(), null);
 				result[resultIndex].accessor = MemberAccessor<object>.Get(member);
 			}
 			return result;

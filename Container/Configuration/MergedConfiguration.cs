@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleContainer.Configuration
 {
-	public class MergedConfiguration: IContainerConfiguration
+	public class MergedConfiguration : IContainerConfiguration
 	{
 		private readonly IContainerConfiguration parent;
 		private readonly IContainerConfiguration child;
@@ -13,7 +13,7 @@ namespace SimpleContainer.Configuration
 			this.child = child;
 		}
 
-		public T GetOrNull<T>(Type type) where T: class
+		public T GetOrNull<T>(Type type) where T : class
 		{
 			return child.GetOrNull<T>(type) ?? parent.GetOrNull<T>(type);
 		}

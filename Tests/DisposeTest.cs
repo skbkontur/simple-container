@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
@@ -90,6 +91,34 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<IMyInterface>(), Is.SameAs(container.Get<MyImpl>()));
 				container.Dispose();
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("MyImpl.Dispose "));
+			}
+		}
+
+		public class SeparateDisposableImplementation : ContainerConfigurationTest
+		{
+			[Static]
+			public class Impl : IInterface, IDisposable
+			{
+				public void Dispose()
+				{
+					LogBuilder.Append("Impl.Dispose ");
+				}
+			}
+
+			[Static]
+			public interface IInterface
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				using (var staticContainer = CreateStaticContainer())
+				{
+					staticContainer.Get<IInterface>();
+					Assert.That(LogBuilder.ToString(), Is.EqualTo(""));
+				}
+				Assert.That(LogBuilder.ToString(), Is.EqualTo("Impl.Dispose "));
 			}
 		}
 

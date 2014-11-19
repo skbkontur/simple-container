@@ -364,7 +364,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceA>());
 				Assert.That(error.Message,
 					Is.StringContaining(
-						"can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicSimpleContainerTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]\r\nServiceA!\r\n\tServiceWithInexistentResource!"));
+						"can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]\r\nServiceA!\r\n\tServiceWithInexistentResource!"));
 			}
 
 			public class ServiceA

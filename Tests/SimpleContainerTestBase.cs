@@ -37,9 +37,14 @@ namespace SimpleContainer.Tests
 		{
 			var staticContainer = CreateStaticContainer();
 			disposables.Add(staticContainer);
-			var result = staticContainer.CreateLocalContainer(Assembly.GetExecutingAssembly(), configure);
+			var result = LocalContainer(staticContainer, configure);
 			disposables.Add(result);
 			return result;
+		}
+
+		protected static IContainer LocalContainer(IStaticContainer staticContainer, Action<ContainerConfigurationBuilder> configure)
+		{
+			return staticContainer.CreateLocalContainer(Assembly.GetExecutingAssembly(), configure);
 		}
 	}
 }

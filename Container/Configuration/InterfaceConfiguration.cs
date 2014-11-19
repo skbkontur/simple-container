@@ -10,6 +10,7 @@ namespace SimpleContainer.Configuration
 		public object Implementation { get; set; }
 		public Func<FactoryContext, object> Factory { get; set; }
 		public bool UseAutosearch { get; set; }
+		public CacheLevel? CacheLevel { get; set; }
 
 		public void AddImplementation(Type type, bool clearOld)
 		{

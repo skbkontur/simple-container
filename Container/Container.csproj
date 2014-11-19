@@ -80,8 +80,6 @@
     <Compile Include="Infection\RequireContractAttribute.cs" />
     <Compile Include="Configuration\InterfaceConfiguration.cs" />
     <Compile Include="Helpers\IObjectAccessor.cs" />
-    <Compile Include="Implementation\IResolveDependency.cs" />
-    <Compile Include="Implementation\IServiceFactory.cs" />
     <Compile Include="Implementation\ISimpleLogWriter.cs" />
     <Compile Include="Hosting\IComponent.cs" />
     <Compile Include="Configuration\MergedConfiguration.cs" />

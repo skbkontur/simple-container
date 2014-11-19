@@ -11,6 +11,7 @@ namespace SimpleContainer.Implementation
 	public class StaticContainer : SimpleContainer, IStaticContainer
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
+		private IEnumerable<Type> staticServices;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter) : base(configuration, inheritors, null)
@@ -28,6 +29,20 @@ namespace SimpleContainer.Implementation
 					configurator.Configure(configurationBuilder);
 			if (configure != null)
 				configure(configurationBuilder);
+			var newStaticServices = configurationBuilder.GetStaticServices().ToArray();
+			if (staticServices == null)
+				staticServices = newStaticServices;
+			else
+			{
+				var diff = staticServices.Except(newStaticServices).ToArray();
+				if (diff.Any())
+					throw new SimpleContainerException(string.Format("inconsistent static configuration, [{0}] were static, now local",
+						diff.Select(x => x.FormatName()).JoinStrings(",")));
+				diff = newStaticServices.Except(staticServices).ToArray();
+				if (diff.Any())
+					throw new SimpleContainerException(string.Format("inconsistent static configuration, [{0}] were local, now static",
+						diff.Select(x => x.FormatName()).JoinStrings(",")));
+			}
 			var containerConfiguration = new MergedConfiguration(configuration, configurationBuilder.Build());
 			return new SimpleContainer(containerConfiguration, restrictedHierarchy, this);
 		}

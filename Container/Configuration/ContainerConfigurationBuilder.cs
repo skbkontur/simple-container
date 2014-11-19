@@ -130,8 +130,9 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder Static(Type type)
+		public ContainerConfigurationBuilder CacheLevel(Type type, CacheLevel cacheLevel)
 		{
+			GetOrCreate<InterfaceConfiguration>(type).CacheLevel = cacheLevel;
 			return this;
 		}
 
@@ -185,6 +186,23 @@ namespace SimpleContainer.Configuration
 		public ContainerConfigurationBuilder DontUse<T>()
 		{
 			return DontUse(typeof (T));
+		}
+
+		public IEnumerable<Type> GetStaticServices()
+		{
+			foreach (var c in contractConfigurators)
+			{
+				var contractStaticServices = c.Value.GetStaticServices().ToArray();
+				if (!contractStaticServices.Any())
+					continue;
+				const string messageFormat = "can't configure static on contract level; contract [{0}], services [{1}]";
+				throw new SimpleContainerException(string.Format(messageFormat, c.Key,
+					contractStaticServices.Select(x => x.FormatName()).JoinStrings(",")));
+			}
+			return configurations
+				.Where(x => x.Value is InterfaceConfiguration &&
+				            ((InterfaceConfiguration) x.Value).CacheLevel == Implementation.CacheLevel.Static)
+				.Select(x => x.Key);
 		}
 
 		public IContainerConfiguration Build()

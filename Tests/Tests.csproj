@@ -68,6 +68,7 @@
     <Compile Include="ContractsTest.cs" />
     <Compile Include="GetDependenciesTest.cs" />
     <Compile Include="SimpleContainerTestBase.cs" />
+    <Compile Include="StaticContainerTest.cs" />
     <Compile Include="UnitTestBase.cs" />
   </ItemGroup>
   <ItemGroup>
