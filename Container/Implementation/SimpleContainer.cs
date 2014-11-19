@@ -420,12 +420,18 @@ namespace SimpleContainer.Implementation
 							implementation.type.Assembly.GetName().Name, service.context.Format()));
 				return ResolvedService(resourceStream);
 			}
+			Type enumerableItem;
+			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
+			var dependencyType = isEnumerable ? enumerableItem : implementationType;
+
 			RequireContractAttribute requireContractAttribute;
-			var contracts = formalParameter.TryGetCustomAttribute(out requireContractAttribute)
+			var contracts = formalParameter.TryGetCustomAttribute(out requireContractAttribute) ||
+			                dependencyType.TryGetCustomAttribute(out requireContractAttribute)
 				? new List<string>(1) {requireContractAttribute.ContractName}
 				: (dependencyConfiguration != null && dependencyConfiguration.Contracts != null
 					? dependencyConfiguration.Contracts
 					: null);
+
 			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
@@ -437,9 +443,7 @@ namespace SimpleContainer.Implementation
 				});
 				return ResolvedService(instance);
 			}
-			Type enumerableItem;
-			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
-			var dependencyType = isEnumerable ? enumerableItem : implementationType;
+
 			ContainerService result;
 			if (contracts != null)
 			{

@@ -75,5 +75,16 @@ namespace SimpleContainer
 			foreach (var ñ in container.GetInstanceCache<IComponent>())
 				ñ.Run();
 		}
+
+		public static object Run(this IContainer container, Type type, string contract)
+		{
+			container.Run();
+			return container.Get(type, contract);
+		}
+
+		public static T Run<T>(this IContainer container, string contract)
+		{
+			return (T) container.Run(typeof (T), contract);
+		}
 	}
 }

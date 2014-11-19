@@ -2,7 +2,8 @@
 
 namespace SimpleContainer.Infection
 {
-	public class FrameworkBoundaryAttribute: Attribute
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+	public class FrameworkBoundaryAttribute : Attribute
 	{
 	}
 }

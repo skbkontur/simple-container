@@ -2,7 +2,8 @@
 
 namespace SimpleContainer.Infection
 {
-	public class InjectAttribute: Attribute
+	[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+	public class InjectAttribute : Attribute
 	{
 	}
 }

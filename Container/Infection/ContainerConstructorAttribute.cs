@@ -2,7 +2,8 @@ using System;
 
 namespace SimpleContainer.Infection
 {
-	public class ContainerConstructorAttribute: Attribute
+	[AttributeUsage(AttributeTargets.Constructor)]
+	public class ContainerConstructorAttribute : Attribute
 	{
 	}
 }

@@ -2,7 +2,8 @@ using System;
 
 namespace SimpleContainer.Infection
 {
-	public class IgnoreImplementationAttribute: Attribute
+	[AttributeUsage(AttributeTargets.Class)]
+	public class IgnoreImplementationAttribute : Attribute
 	{
 	}
 }
