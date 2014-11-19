@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
@@ -428,6 +429,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
+				Assert.That(container.Get<IContainer>(), Is.SameAs(container));
 				Assert.That(container.Get<SomeService>(), Is.SameAs(container.Get<IContainer>().Get<SomeService>()));
 			}
 
@@ -832,36 +834,6 @@ namespace SimpleContainer.Tests
 				}
 
 				public IInterface Interface { get; private set; }
-			}
-		}
-
-		public class HostNotSet_AllAccepted : BasicSimpleContainerTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.GetAll<IIntf>(),
-					Is.EquivalentTo(new IIntf[] {container.Get<A>(), container.Get<B>(), container.Get<C>()}));
-				Assert.That(container.GetImplementationsOf<IIntf>(), Is.EquivalentTo(new[] {typeof (A), typeof (B), typeof (C)}));
-			}
-
-			[Hosting("h1")]
-			public class A : IIntf
-			{
-			}
-
-			public class B : IIntf
-			{
-			}
-
-			[Hosting("h2")]
-			public class C : IIntf
-			{
-			}
-
-			public interface IIntf
-			{
 			}
 		}
 

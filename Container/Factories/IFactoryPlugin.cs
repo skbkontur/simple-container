@@ -1,3 +1,5 @@
+using SimpleContainer.Implementation;
+
 namespace SimpleContainer.Factories
 {
 	public interface IFactoryPlugin

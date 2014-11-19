@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using SimpleContainer.Implementation;
 using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests

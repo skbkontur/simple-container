@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
+using SimpleContainer.Configuration;
 using SimpleContainer.Hosting;
 
 namespace SimpleContainer.Tests
@@ -13,7 +15,10 @@ namespace SimpleContainer.Tests
 		{
 			base.SetUp();
 			disposables = new List<IDisposable>();
+			LogBuilder = new StringBuilder();
 		}
+
+		public static StringBuilder LogBuilder { get; private set; }
 
 		protected override void TearDown()
 		{
@@ -22,20 +27,19 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected IDisposable StartHosting<T>(Action<ContainerConfigurationBuilder> configureAction, out T service)
+		protected IStaticContainer CreateStaticContainer()
 		{
-			var factory = new HostingEnvironmentFactory(x => x.Name.StartsWith("SimpleContainer"));
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
-			var hostingEnvironment = factory.FromTypes(targetTypes);
-			return hostingEnvironment
-				.CreateHost(Assembly.GetExecutingAssembly(), configureAction)
-				.StartHosting(out service);
+			var factory = new ContainerFactory(x => x.Name.StartsWith("SimpleContainer"));
+			return factory.FromTypes(targetTypes);
 		}
 
-		protected IContainer Container(Action<ContainerConfigurationBuilder> configureActions = null)
+		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null)
 		{
-			IContainer result;
-			disposables.Add(StartHosting(configureActions, out result));
+			var staticContainer = CreateStaticContainer();
+			disposables.Add(staticContainer);
+			var result = staticContainer.CreateLocalContainer(Assembly.GetExecutingAssembly(), configure);
+			disposables.Add(result);
 			return result;
 		}
 	}

@@ -1,4 +1,5 @@
 using System;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {

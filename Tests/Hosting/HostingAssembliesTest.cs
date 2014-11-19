@@ -6,6 +6,7 @@ using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Tests.Hosting
 {
@@ -21,7 +22,7 @@ namespace SimpleContainer.Tests.Hosting
 					{
 						public class A1Component: IComponent
 						{
-							public void Run(ComponentHostingOptions arguments)
+							public void Run()
 							{
 							}
 						}
@@ -36,7 +37,7 @@ namespace SimpleContainer.Tests.Hosting
 					{
 						public class A2Component: IComponent
 						{
-							public void Run(ComponentHostingOptions arguments)
+							public void Run()
 							{
 							}
 						}
@@ -48,15 +49,14 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(a2Code);
-				var hostingEnvironment = Factory().FromAssemblies(new[] {a1, a2});
+				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
+				{
+					using (var localContainer = staticContainer.CreateLocalContainer(a1, null))
+						Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("A1Component"));
 
-				IComponent a1Component;
-				using (hostingEnvironment.CreateHost(a1, null).StartHosting(out a1Component))
-					Assert.That(a1Component.GetType().Name, Is.EqualTo("A1Component"));
-
-				IComponent a2Component;
-				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a2Component))
-					Assert.That(a2Component.GetType().Name, Is.EqualTo("A2Component"));
+					using (var localContainer = staticContainer.CreateLocalContainer(a2, null))
+						Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("A2Component"));
+				}
 			}
 		}
 
@@ -70,7 +70,7 @@ namespace SimpleContainer.Tests.Hosting
 					{
 						public class Component1: IComponent
 						{
-							public void Run(ComponentHostingOptions options)
+							public void Run()
 							{
 							}
 						}
@@ -94,11 +94,9 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(a2Code, a1);
-				var hostingEnvironment = Factory().FromAssemblies(new[] {a1, a2});
-
-				IComponent a1Component;
-				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a1Component))
-					Assert.That(a1Component.GetType().Name, Is.EqualTo("Component1"));
+				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
+				using (var localContainer = staticContainer.CreateLocalContainer(a2, null))
+					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
 			}
 		}
 
@@ -112,7 +110,7 @@ namespace SimpleContainer.Tests.Hosting
 					{
 						public class Component1: IComponent
 						{
-							public void Run(ComponentHostingOptions options)
+							public void Run()
 							{
 							}
 						}
@@ -120,7 +118,7 @@ namespace SimpleContainer.Tests.Hosting
 				";
 
 			private const string a2CodeFormat = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Infection;
 
 					[assembly: ContainerReference(""{0}"")]
 
@@ -137,11 +135,9 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(a1Code);
 				var a2 = CompileAssembly(string.Format(a2CodeFormat, a1.GetName().Name), a1);
-				var hostingEnvironment = Factory().FromAssemblies(new[] {a1, a2});
-
-				IComponent a1Component;
-				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out a1Component))
-					Assert.That(a1Component.GetType().Name, Is.EqualTo("Component1"));
+				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
+				using (var localContainer = staticContainer.CreateLocalContainer(a2, null))
+					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
 			}
 		}
 
@@ -172,7 +168,7 @@ namespace SimpleContainer.Tests.Hosting
 				";
 
 			private const string unreferencedAssemblyCode = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Configuration;
 					using SimpleContainer;
 					using System;
 					using A1;
@@ -191,6 +187,7 @@ namespace SimpleContainer.Tests.Hosting
 
 			private const string entryAssemblyCode = @"
 					using SimpleContainer.Hosting;
+					using SimpleContainer.Infection;
 					using System;
 
 					[assembly: ContainerReference(""{0}"")]
@@ -203,7 +200,7 @@ namespace SimpleContainer.Tests.Hosting
 							{{
 							}}
 
-							public void Run(ComponentHostingOptions arguments)
+							public void Run()
 							{{
 							}}
 						}}
@@ -217,19 +214,19 @@ namespace SimpleContainer.Tests.Hosting
 				var unreferencedAssembly = CompileAssembly(unreferencedAssemblyCode, mainAssembly);
 				var entryAssembly = CompileAssembly(string.Format(entryAssemblyCode, mainAssembly.GetName().Name), mainAssembly);
 
-				var hostingEnvironment = Factory().FromAssemblies(new[] {mainAssembly, unreferencedAssembly, entryAssembly});
-
-				IComponent component;
-				var containerHost = hostingEnvironment.CreateHost(entryAssembly, null);
-				var error = Assert.Throws<SimpleContainerException>(() => containerHost.StartHosting(out component));
-				Assert.That(error.Message, Is.StringContaining("many implementations for IServiceProvider\r\n\tImpl1\r\n\tImpl2"));
+				using (var staticContainer = Factory().FromAssemblies(new[] {mainAssembly, unreferencedAssembly, entryAssembly}))
+				using (var localContainer = staticContainer.CreateLocalContainer(entryAssembly, null))
+				{
+					var error = Assert.Throws<SimpleContainerException>(() => localContainer.Get<IComponent>());
+					Assert.That(error.Message, Is.StringContaining("many implementations for IServiceProvider\r\n\tImpl1\r\n\tImpl2"));
+				}
 			}
 		}
 
 		public class LocalConfiguratorsExecuteLast : HostingAssembliesTest
 		{
 			private const string referencedAssemblycode = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Configuration;
 					using SimpleContainer;
 					using System;
 
@@ -262,8 +259,7 @@ namespace SimpleContainer.Tests.Hosting
 				";
 
 			private const string primaryAssemblyCode = @"
-					using SimpleContainer.Hosting;
-					using SimpleContainer;
+					using SimpleContainer.Configuration;
 					using System;
 					using A1;
 
@@ -284,11 +280,9 @@ namespace SimpleContainer.Tests.Hosting
 			{
 				var a1 = CompileAssembly(referencedAssemblycode);
 				var a2 = CompileAssembly(primaryAssemblyCode, a1);
-				var hostingEnvironment = Factory().FromAssemblies(new[] {a1, a2});
-
-				IServiceProvider serviceProvider;
-				using (hostingEnvironment.CreateHost(a2, null).StartHosting(out serviceProvider))
-					Assert.That(serviceProvider.GetType().Name, Is.EqualTo("Impl2"));
+				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
+				using (var localContainer = staticContainer.CreateLocalContainer(a2, null))
+					Assert.That(localContainer.Get<IServiceProvider>().GetType().Name, Is.EqualTo("Impl2"));
 			}
 		}
 
@@ -321,9 +315,9 @@ namespace SimpleContainer.Tests.Hosting
 			return compilationResult.CompiledAssembly;
 		}
 
-		protected static HostingEnvironmentFactory Factory()
+		protected static ContainerFactory Factory()
 		{
-			return new HostingEnvironmentFactory(x => x.Name.StartsWith("tmp_"));
+			return new ContainerFactory(x => x.Name.StartsWith("tmp_"));
 		}
 	}
 }

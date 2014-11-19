@@ -2,8 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using SimpleContainer.Configuration;
 using SimpleContainer.Generics;
-using SimpleContainer.Reflection;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Factories
 {
@@ -92,9 +93,9 @@ namespace SimpleContainer.Factories
 		{
 			Func<object, object> f = delegate(object o)
 									 {
-										 var accessor = ObjectAccessors.Instance.GetAccessor(o.GetType());
+										 var accessor = ObjectAccessor.Get(o);
 										 object autoclosingParameterValue;
-										 if (!accessor.TryGet(o, autoclosingParameter.Name, out autoclosingParameterValue))
+										 if (!accessor.TryGet(autoclosingParameter.Name, out autoclosingParameterValue))
 											 throw new InvalidOperationException("can't detect type of " + implementationDefinition.Name);
 										 Type[] closingTypesSequence;
 										 if (autoclosingParameter.ParameterType.IsGenericParameter)
@@ -122,13 +123,13 @@ namespace SimpleContainer.Factories
 
 			return delegate(object o)
 				   {
-					   var accessor = ObjectAccessors.Instance.GetAccessor(o.GetType());
+					   var accessor = ObjectAccessor.Get(o);
 					   var parameterValues = new object[parameters.Length];
 					   for (var i = 0; i < parameterValues.Length; i++)
 					   {
 						   object parameterValue;
 						   var parameter = parameters[i];
-						   if (!accessor.TryGet(o, parameter.Name, out parameterValue))
+						   if (!accessor.TryGet(parameter.Name, out parameterValue))
 						   {
 							   var resolved = container.GetAll(parameter.ParameterType).ToArray();
 							   if (resolved.Length == 1)

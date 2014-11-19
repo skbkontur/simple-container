@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Generics
 {
