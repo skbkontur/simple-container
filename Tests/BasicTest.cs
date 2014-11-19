@@ -9,9 +9,9 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class BasicSimpleContainerTest : SimpleContainerTestBase
+	public abstract class BasicTest : SimpleContainerTestBase
 	{
-		public class BindInvalidDependency_CorrectException : BasicSimpleContainerTest
+		public class BindInvalidDependency_CorrectException : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -40,7 +40,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class BindInvalidParameterValueOfSimpleType_CorrentExceptionAtConfigurationPhase : BasicSimpleContainerTest
+		public class BindInvalidParameterValueOfSimpleType_CorrentExceptionAtConfigurationPhase : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -66,7 +66,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class BindInvalidParameterValue_CorrentExceptionInConfigurationPhase : BasicSimpleContainerTest
+		public class BindInvalidParameterValue_CorrentExceptionInConfigurationPhase : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -92,7 +92,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class BindToInvalidImplementation_CorrectExceptionAtConfigurationPhase : BasicSimpleContainerTest
+		public class BindToInvalidImplementation_CorrectExceptionAtConfigurationPhase : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -117,7 +117,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanConfigureGenericDefinition : BasicSimpleContainerTest
+		public class CanConfigureGenericDefinition : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -167,7 +167,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectBaseNotAbstractClass : BasicSimpleContainerTest
+		public class CanInjectBaseNotAbstractClass : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -200,7 +200,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectEnumerableByAttribute : BasicSimpleContainerTest
+		public class CanInjectEnumerableByAttribute : BasicTest
 		{
 			[Inject]
 			public IEnumerable<IInterface> Interfaces { get; private set; }
@@ -226,7 +226,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectEnumerableByCtor : BasicSimpleContainerTest
+		public class CanInjectEnumerableByCtor : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -259,7 +259,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectFactoriesOfGenerics : BasicSimpleContainerTest
+		public class CanInjectFactoriesOfGenerics : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -285,7 +285,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectGenericFactories : BasicSimpleContainerTest
+		public class CanInjectGenericFactories : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -328,7 +328,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectGenericService : BasicSimpleContainerTest
+		public class CanInjectGenericService : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -353,7 +353,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectResource : BasicSimpleContainerTest
+		public class CanInjectResource : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -397,7 +397,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectSimpleFactories : BasicSimpleContainerTest
+		public class CanInjectSimpleFactories : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -423,7 +423,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanResolveContainer : BasicSimpleContainerTest
+		public class CanResolveContainer : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -438,7 +438,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CannotCreateOpenGenerics : BasicSimpleContainerTest
+		public class CannotCreateOpenGenerics : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -459,7 +459,7 @@ namespace SimpleContainer.Tests
 
 		//todo сомнительная фича, выпились при возможности
 
-		public class CannotResolveServiceFactory_NoFallback : BasicSimpleContainerTest
+		public class CannotResolveServiceFactory_NoFallback : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -485,7 +485,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContainerConstructorAttribute : BasicSimpleContainerTest
+		public class ContainerConstructorAttribute : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -511,7 +511,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CrashDuringConstruction_WrapWithContainerException : BasicSimpleContainerTest
+		public class CrashDuringConstruction_WrapWithContainerException : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -543,7 +543,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CyclicDependency : BasicSimpleContainerTest
+		public class CyclicDependency : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -584,7 +584,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DependencyConfiguredWithNull : BasicSimpleContainerTest
+		public class DependencyConfiguredWithNull : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -608,7 +608,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DependencyWithOptionalValue : BasicSimpleContainerTest
+		public class DependencyWithOptionalValue : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -628,7 +628,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontUse : BasicSimpleContainerTest
+		public class DontUse : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -650,7 +650,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : BasicSimpleContainerTest
+		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -672,7 +672,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class EnumerableDependenciesAreRequired : BasicSimpleContainerTest
+		public class EnumerableDependenciesAreRequired : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -697,7 +697,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ErrorMessageForGenerics : BasicSimpleContainerTest
+		public class ErrorMessageForGenerics : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -722,7 +722,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class FactoryDependantOnServiceType : BasicSimpleContainerTest
+		public class FactoryDependantOnServiceType : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -753,7 +753,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GetAfterGetAll_CorrectErrorMessage : BasicSimpleContainerTest
+		public class GetAfterGetAll_CorrectErrorMessage : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -778,7 +778,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GracefullErrorMessageForUncreatableTypes : BasicSimpleContainerTest
+		public class GracefullErrorMessageForUncreatableTypes : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -800,7 +800,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GracefullErrorMessageWhenNoImplementationFound : BasicSimpleContainerTest
+		public class GracefullErrorMessageWhenNoImplementationFound : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -837,7 +837,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class IgnoreImplementation : BasicSimpleContainerTest
+		public class IgnoreImplementation : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -860,7 +860,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ImplementationWithDependencyConfiguredByType : BasicSimpleContainerTest
+		public class ImplementationWithDependencyConfiguredByType : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -880,7 +880,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ImplementationWithDependencyImplementationConfig : BasicSimpleContainerTest
+		public class ImplementationWithDependencyImplementationConfig : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -912,7 +912,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ImplementationWithExplicitDelegateFactory : BasicSimpleContainerTest
+		public class ImplementationWithExplicitDelegateFactory : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -931,7 +931,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ImplementationWithValueConfig : BasicSimpleContainerTest
+		public class ImplementationWithValueConfig : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -951,7 +951,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class InterfaceWithConstantImplementation : BasicSimpleContainerTest
+		public class InterfaceWithConstantImplementation : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -970,7 +970,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class MultipleImplementations_CorrectError : BasicSimpleContainerTest
+		public class MultipleImplementations_CorrectError : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -995,7 +995,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class NotCreatableService_Throw : BasicSimpleContainerTest
+		public class NotCreatableService_Throw : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1036,7 +1036,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ReportManyCtors : BasicSimpleContainerTest
+		public class ReportManyCtors : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1069,7 +1069,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ReportSkipMessageForPrivateCtors : BasicSimpleContainerTest
+		public class ReportSkipMessageForPrivateCtors : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1092,7 +1092,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ServiceFactory : BasicSimpleContainerTest
+		public class ServiceFactory : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1131,7 +1131,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ServiceWithConfig : BasicSimpleContainerTest
+		public class ServiceWithConfig : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1153,7 +1153,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ServiceWithDependency : BasicSimpleContainerTest
+		public class ServiceWithDependency : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1177,7 +1177,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ServiceWithMultipleImplementations : BasicSimpleContainerTest
+		public class ServiceWithMultipleImplementations : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1200,7 +1200,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class Simple : BasicSimpleContainerTest
+		public class Simple : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1214,7 +1214,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SimpleCreate : BasicSimpleContainerTest
+		public class SimpleCreate : BasicTest
 		{
 			public class ClassA
 			{
@@ -1240,7 +1240,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SimpleWithInterface : BasicSimpleContainerTest
+		public class SimpleWithInterface : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1260,7 +1260,7 @@ namespace SimpleContainer.Tests
 
 		//todo по неабстактному родителю зарезолвить все реализации, в том числе его самого ???
 
-		public class SimpleWithParent : BasicSimpleContainerTest
+		public class SimpleWithParent : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1279,7 +1279,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipNestedPrivate : BasicSimpleContainerTest
+		public class SkipNestedPrivate : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1312,7 +1312,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class StructsCannotBeCreated : BasicSimpleContainerTest
+		public class StructsCannotBeCreated : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1350,7 +1350,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class TrackDependenciesForUnresolvedServices : BasicSimpleContainerTest
+		public class TrackDependenciesForUnresolvedServices : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1382,7 +1382,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class UseConstructorArgumentNamesInErrorMessageForSimpleTypesOnly : BasicSimpleContainerTest
+		public class UseConstructorArgumentNamesInErrorMessageForSimpleTypesOnly : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1437,7 +1437,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class UseValueCreatedBy : BasicSimpleContainerTest
+		public class UseValueCreatedBy : BasicTest
 		{
 			[Test]
 			public void Test()

@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests
 {
-	public class ContainerFactoryTest : SimpleContainerTestBase
+	public class CloneContainerTest : SimpleContainerTestBase
 	{
 		private static int counter;
 

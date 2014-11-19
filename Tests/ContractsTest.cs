@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -9,9 +8,9 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class SimpleContainerContractsTest : SimpleContainerTestBase
+	public abstract class ContractsTest : SimpleContainerTestBase
 	{
-		public class RequireContractTest : SimpleContainerContractsTest
+		public class RequireContractTest : ContractsTest
 		{
 			public class ContainerClass1
 			{
@@ -78,7 +77,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractsWorksWithFactories : SimpleContainerContractsTest
+		public class ContractsWorksWithFactories : ContractsTest
 		{
 			public class A
 			{
@@ -128,7 +127,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractsWorksWithFactoriesWithArguments : SimpleContainerContractsTest
+		public class ContractsWorksWithFactoriesWithArguments : ContractsTest
 		{
 			public class A
 			{
@@ -194,7 +193,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DoNotDuplicateServicesNotDependentOnContracts : SimpleContainerContractsTest
+		public class DoNotDuplicateServicesNotDependentOnContracts : ContractsTest
 		{
 			public class ServiceClient1
 			{
@@ -261,7 +260,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class NestedContractsAreProhibited : SimpleContainerContractsTest
+		public class NestedContractsAreProhibited : ContractsTest
 		{
 			public class Wrap
 			{
@@ -304,7 +303,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractFormatting : SimpleContainerContractsTest
+		public class ContractFormatting : ContractsTest
 		{
 			public class Wrap
 			{
@@ -350,7 +349,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractUsageViaCache : SimpleContainerContractsTest
+		public class ContractUsageViaCache : ContractsTest
 		{
 			public class Client
 			{
@@ -410,7 +409,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SelfConfigurationContractDependency : SimpleContainerContractsTest
+		public class SelfConfigurationContractDependency : ContractsTest
 		{
 			public class Wrap
 			{
@@ -460,7 +459,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractsCanBeUnioned : SimpleContainerContractsTest
+		public class ContractsCanBeUnioned : ContractsTest
 		{
 			public class AllWrapsHost
 			{
@@ -512,7 +511,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractIsNotConfigured : SimpleContainerContractsTest
+		public class ContractIsNotConfigured : ContractsTest
 		{
 			public class Service
 			{
@@ -534,7 +533,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class UnionContractsWithNonContractDependentServices : SimpleContainerContractsTest
+		public class UnionContractsWithNonContractDependentServices : ContractsTest
 		{
 			public class ServiceWrap
 			{
@@ -577,7 +576,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractCanBeSpecifiedViaInfection : SimpleContainerContractsTest
+		public class ContractCanBeSpecifiedViaInfection : ContractsTest
 		{
 			public class Wrap
 			{
