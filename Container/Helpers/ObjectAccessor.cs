@@ -27,6 +27,7 @@ namespace SimpleContainer.Helpers
 		{
 			private readonly TypeAccessor typeAccessor;
 			private readonly object obj;
+			private readonly List<string> used = new List<string>();
 
 			public ObjectAccessorImpl(TypeAccessor typeAccessor, object obj)
 			{
@@ -36,7 +37,15 @@ namespace SimpleContainer.Helpers
 
 			public bool TryGet(string name, out object value)
 			{
-				return typeAccessor.TryGet(obj, name, out value);
+				var result = typeAccessor.TryGet(obj, name, out value);
+				if (result)
+					used.Add(name);
+				return result;
+			}
+
+			public IEnumerable<string> GetUnused()
+			{
+				return typeAccessor.GetNames().Except(used);
 			}
 		}
 
@@ -47,6 +56,11 @@ namespace SimpleContainer.Helpers
 			public TypeAccessor(IDictionary<string, IMemberAccessor> properties)
 			{
 				this.properties = properties;
+			}
+
+			public IEnumerable<string> GetNames()
+			{
+				return properties.Keys;
 			}
 
 			public bool TryGet(object o, string name, out object value)

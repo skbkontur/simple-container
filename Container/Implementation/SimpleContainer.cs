@@ -89,6 +89,12 @@ namespace SimpleContainer.Implementation
 				createNew = true
 			};
 			resolutionContext.Resolve(null, result, this);
+			if (result.arguments != null)
+			{
+				var unused = result.arguments.GetUnused().ToArray();
+				if (unused.Any())
+					resolutionContext.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
+			}
 			return result.SingleInstance();
 		}
 

@@ -1,43 +1,150 @@
 ﻿using System;
 using NUnit.Framework;
-using SimpleContainer.Tests.GenericsConfiguratorTests;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class SimpleFactoryConfiguratorTest : SimpleContainerTestBase
+	public abstract class SimpleFactoryConfiguratorTest : SimpleContainerTestBase
 	{
-		public class ServiceA
+		public class Simple : SimpleFactoryConfiguratorTest
 		{
-		}
-
-		public class ServiceB
-		{
-			public readonly ServiceA serviceA;
-			public readonly string someValue;
-
-			public ServiceB(ServiceA serviceA, string someValue)
+			public class ServiceA
 			{
-				this.serviceA = serviceA;
-				this.someValue = someValue;
+			}
+
+			public class ServiceB
+			{
+				public readonly ServiceA serviceA;
+				public readonly string someValue;
+
+				public ServiceB(ServiceA serviceA, string someValue)
+				{
+					this.serviceA = serviceA;
+					this.someValue = someValue;
+				}
+			}
+
+			public class ServiceC
+			{
+				public readonly Func<object, ServiceB> factory;
+
+				public ServiceC(Func<object, ServiceB> factory)
+				{
+					this.factory = factory;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var service = Container().Get<ServiceC>().factory.Invoke(new {someValue = "x"});
+				Assert.That(service.serviceA, Is.Not.Null);
+				Assert.That(service.someValue, Is.EquivalentTo("x"));
 			}
 		}
 
-		public class ServiceC
+		public class CanCreateInterfaceImplementation : SimpleFactoryConfiguratorTest
 		{
-			public readonly Func<object, ServiceB> factory;
-
-			public ServiceC(Func<object, ServiceB> factory)
+			public interface IInterface
 			{
-				this.factory = factory;
+			}
+
+			public class Impl : IInterface
+			{
+				public readonly string argument;
+
+				public Impl(string argument)
+				{
+					this.argument = argument;
+				}
+			}
+
+			public class Wrap
+			{
+				public readonly Func<object, IInterface> createInterface;
+
+				public Wrap(Func<object, IInterface> createInterface)
+				{
+					this.createInterface = createInterface;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var impl = container.Get<Wrap>().createInterface(new {argument = "666"});
+				Assert.That(impl, Is.InstanceOf<Impl>());
+				Assert.That(((Impl) impl).argument, Is.EqualTo("666"));
 			}
 		}
 
-		[Test]
-		public void Test()
+		public class UnusedArguments : SimpleFactoryConfiguratorTest
 		{
-			var service = Container().Get<ServiceC>().factory.Invoke(new { someValue = "x" });
-			Assert.That(service.serviceA, Is.Not.Null);
-			Assert.That(service.someValue, Is.EquivalentTo("x"));
+			public class Wrap
+			{
+				public readonly Func<object, Service> createService;
+
+				public Wrap(Func<object, Service> createService)
+				{
+					this.createService = createService;
+				}
+			}
+
+			public class Service
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var wrap = container.Get<Wrap>();
+				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
+				Assert.That(error.Message, Is.EqualTo("arguments [argument] are not used\r\nService"));
+			}
+		}
+
+		public class ArgumentsAreNotUsedForDependencies : SimpleFactoryConfiguratorTest
+		{
+			public class Wrap
+			{
+				public readonly Func<object, Service> createService;
+
+				public Wrap(Func<object, Service> createService)
+				{
+					this.createService = createService;
+				}
+			}
+
+			public class Service
+			{
+				public readonly Dependency dependency;
+
+				public Service(Dependency dependency)
+				{
+					this.dependency = dependency;
+				}
+			}
+			
+			public class Dependency
+			{
+				public readonly string argument;
+
+				public Dependency(string argument)
+				{
+					this.argument = argument;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var wrap = container.Get<Wrap>();
+				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
+				Assert.That(error.Message, Is.EqualTo("can't create simple type\r\nService!\r\n\tDependency!\r\n\t\targument! - <---------------"));
+			}
 		}
 	}
 }

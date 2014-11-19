@@ -55,7 +55,7 @@ namespace SimpleContainer
 
 		public IStaticContainer FromTypes(Type[] types)
 		{
-			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).ToArray();
+			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
 			return new StaticContainer(configuration, inheritors, assembliesFilter);
