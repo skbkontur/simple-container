@@ -118,7 +118,7 @@ namespace SimpleContainer.Implementation
 		{
 			var services = new List<ContainerService>(instanceCache.Values.Where(x => type.IsAssignableFrom(x.type)));
 			services.Sort((a, b) => a.topSortIndex.CompareTo(b.topSortIndex));
-			return services.SelectMany(x => x.instances);
+			return services.SelectMany(x => x.instances).Distinct();
 		}
 
 		private ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)

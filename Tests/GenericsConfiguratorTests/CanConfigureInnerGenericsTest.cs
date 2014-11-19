@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanConfigureInnerGenericsTest : PreconfiguredContainerTestBase
+	public class CanConfigureInnerGenericsTest : SimpleContainerTestBase
 	{
 		public interface IInterface
 		{
@@ -35,9 +35,10 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var handlers = container.GetAll<IInterface>().ToArray();
+			var handlers = Container().GetAll<IInterface>().ToArray();
 			Assert.That(handlers.Length, Is.EqualTo(2));
-			Assert.That(handlers.OfType<MyJoiner<int, string>>().Single().joiners.Single(), Is.SameAs(handlers.OfType<JoinHandler>().Single()));
+			Assert.That(handlers.OfType<MyJoiner<int, string>>().Single().joiners.Single(),
+				Is.SameAs(handlers.OfType<JoinHandler>().Single()));
 		}
 	}
 }

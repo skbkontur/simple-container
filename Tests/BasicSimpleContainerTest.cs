@@ -1214,6 +1214,32 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class SimpleCreate : BasicSimpleContainerTest
+		{
+			public class ClassA
+			{
+			}
+
+			public interface IInterface
+			{
+			}
+
+			public class Impl : IInterface
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Create<ClassA>(), Is.Not.SameAs(container.Create<ClassA>()));
+				Assert.That(container.Create<ClassA>(), Is.Not.SameAs(container.Get<ClassA>()));
+				Assert.That(container.Create<IInterface>(), Is.Not.SameAs(container.Get<IInterface>()));
+				Assert.That(container.Create<IInterface>(), Is.Not.SameAs(container.Create<IInterface>()));
+				Assert.That(container.Get<Impl>(), Is.SameAs(container.Get<Impl>()));
+			}
+		}
+
 		public class SimpleWithInterface : BasicSimpleContainerTest
 		{
 			[Test]

@@ -1,12 +1,11 @@
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Hosting;
 
-namespace SimpleContainer.Tests.Hosting
+namespace SimpleContainer.Tests
 {
-	public abstract class ContainerDependenciesTest : SimpleContainerTestBase
+	public abstract class ContainerConfigurationTest : SimpleContainerTestBase
 	{
-		public class SimpleConfigurators : ContainerDependenciesTest
+		public class SimpleConfigurators : ContainerConfigurationTest
 		{
 			public interface IInterface
 			{
@@ -36,7 +35,7 @@ namespace SimpleContainer.Tests.Hosting
 			}
 		}
 
-		public class ServiceCanHaveManyConfigurators : ContainerDependenciesTest
+		public class ServiceCanHaveManyConfigurators : ContainerConfigurationTest
 		{
 			public class Service
 			{
@@ -82,7 +81,7 @@ namespace SimpleContainer.Tests.Hosting
 			}
 		}
 
-		public class CanBindDependenciesViaAnonymousType : ContainerDependenciesTest
+		public class CanBindDependenciesViaAnonymousType : ContainerConfigurationTest
 		{
 			public class TestService
 			{

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using SimpleContainer.Configuration;
-using SimpleContainer.Hosting;
 
 namespace SimpleContainer.Tests
 {

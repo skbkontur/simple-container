@@ -8,7 +8,7 @@ using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 
-namespace SimpleContainer.Tests.Hosting
+namespace SimpleContainer.Tests
 {
 	public abstract class HostingAssembliesTest : UnitTestBase
 	{

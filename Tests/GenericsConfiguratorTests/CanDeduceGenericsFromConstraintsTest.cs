@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanDeduceGenericsFromConstraintsTest : PreconfiguredContainerTestBase
+	public class CanDeduceGenericsFromConstraintsTest : SimpleContainerTestBase
 	{
 		public interface IMyCommand
 		{
@@ -29,8 +29,8 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IHandler>().Select(x => x.GetType()).ToArray(),
-			            Is.EquivalentTo(new[] {typeof (Handler<MyCommand1>), typeof (Handler<MyCommand2>)}));
+			Assert.That(Container().GetAll<IHandler>().Select(x => x.GetType()).ToArray(),
+				Is.EquivalentTo(new[] {typeof (Handler<MyCommand1>), typeof (Handler<MyCommand2>)}));
 		}
 	}
 }

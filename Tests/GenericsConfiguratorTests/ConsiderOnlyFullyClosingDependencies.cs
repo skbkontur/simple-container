@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class ConsiderOnlyFullyClosingDependencies : PreconfiguredContainerTestBase
+	public class ConsiderOnlyFullyClosingDependencies : SimpleContainerTestBase
 	{
 		public interface IReference
 		{
@@ -29,7 +29,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IReference>(), Is.Empty);
+			Assert.That(Container().GetAll<IReference>(), Is.Empty);
 		}
 	}
 }

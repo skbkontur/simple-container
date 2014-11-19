@@ -1,10 +1,9 @@
 using NUnit.Framework;
 using SimpleContainer.Implementation;
-using SimpleContainer.Tests.GenericsConfiguratorTests;
 
-namespace SimpleContainer.Tests
+namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanNotCreateGenericWithMultipleImplementationsOfDependency : PreconfiguredContainerTestBase
+	public class CanNotCreateGenericWithMultipleImplementationsOfDependency : SimpleContainerTestBase
 	{
 		public interface IService
 		{
@@ -48,6 +47,7 @@ namespace SimpleContainer.Tests
 		[Test]
 		public void Test()
 		{
+			var container = Container();
 			Assert.Throws<SimpleContainerException>(() => container.Get<IService>());
 		}
 	}

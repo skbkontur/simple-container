@@ -3,13 +3,13 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanUseGenericAndNonGenericImplementationsOfOneInterface : PreconfiguredContainerTestBase
+	public class CanUseGenericAndNonGenericImplementationsOfOneInterface : SimpleContainerTestBase
 	{
 		public abstract class Restriction
 		{
 		}
 
-		public class ConcreteRestriction: Restriction
+		public class ConcreteRestriction : Restriction
 		{
 		}
 
@@ -17,19 +17,19 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		{
 		}
 
-		public class GenericComponent<T>: IMyInterface
-			where T: Restriction
+		public class GenericComponent<T> : IMyInterface
+			where T : Restriction
 		{
 		}
 
-		public class NonGenericComponent: IMyInterface
+		public class NonGenericComponent : IMyInterface
 		{
 		}
 
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IMyInterface>().Count(), Is.EqualTo(2));
+			Assert.That(Container().GetAll<IMyInterface>().Count(), Is.EqualTo(2));
 		}
 	}
 }

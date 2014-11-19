@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class DiscardGenericsUnmachedByContstraints : PreconfiguredContainerTestBase
+	public class DiscardGenericsUnmachedByContstraints : SimpleContainerTestBase
 	{
 		public interface IMyWrapper
 		{
@@ -36,14 +36,15 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		{
 		}
 
-		public class MyService2: IMyHandler<Constraint>
+		public class MyService2 : IMyHandler<Constraint>
 		{
 		}
 
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IMyWrapper>().Cast<MyWrapper<Constraint>>().Single().handler, Is.InstanceOf<MyService2>());
+			Assert.That(Container().GetAll<IMyWrapper>().Cast<MyWrapper<Constraint>>().Single().handler,
+				Is.InstanceOf<MyService2>());
 		}
 	}
 }

@@ -2,14 +2,14 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class VerifyConstraintsForDependencies : PreconfiguredContainerTestBase
+	public class VerifyConstraintsForDependencies : SimpleContainerTestBase
 	{
 		public interface IMyWrapper
 		{
 		}
 
-		public class MyWrapper<T>: IMyWrapper
-			where T: Constraint
+		public class MyWrapper<T> : IMyWrapper
+			where T : Constraint
 		{
 			public readonly IMyHandler<T> handler;
 
@@ -31,14 +31,14 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		{
 		}
 
-		public class MyService: IMyHandler<TestData>
+		public class MyService : IMyHandler<TestData>
 		{
 		}
 
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IMyWrapper>(), Is.Empty);
+			Assert.That(Container().GetAll<IMyWrapper>(), Is.Empty);
 		}
 	}
 }

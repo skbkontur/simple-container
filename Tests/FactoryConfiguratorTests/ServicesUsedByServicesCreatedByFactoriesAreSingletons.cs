@@ -4,7 +4,7 @@ using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class ServicesUsedByServicesCreatedByFactoriesAreSingletons : PreconfiguredContainerTestBase
+	public class ServicesUsedByServicesCreatedByFactoriesAreSingletons : SimpleContainerTestBase
 	{
 		public class ServiceA
 		{
@@ -35,7 +35,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var factory = container.Get<ServiceC>().factory;
+			var factory = Container().Get<ServiceC>().factory;
 			Assert.That(factory.Invoke(new { someValue = "x" }).serviceA,
 			            Is.SameAs(factory.Invoke(new { someValue = "y" }).serviceA));
 		}

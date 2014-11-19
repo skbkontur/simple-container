@@ -4,7 +4,7 @@ using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class CanAutodetectGenericArgumentType : PreconfiguredContainerTestBase
+	public class CanAutodetectGenericArgumentType : SimpleContainerTestBase
 	{
 		public class SomeService
 		{
@@ -59,6 +59,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		[Test]
 		public void Test()
 		{
+			var container = Container();
 			var someService = container.Get<SomeService>();
 			var intGenericService = container.Get<IntGenericService>();
 			Assert.That(someService.Run(intGenericService, "testParameter"), Is.EqualTo("i'm int testParameter"));

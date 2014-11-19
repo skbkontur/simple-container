@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanDeduceGenericParameterFromGenericType : PreconfiguredContainerTestBase
+	public class CanDeduceGenericParameterFromGenericType : SimpleContainerTestBase
 	{
 		public interface IParameter
 		{
@@ -49,10 +49,11 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var handlers = container.GetAll<IInterface>().ToArray();
+			var handlers = Container().GetAll<IInterface>().ToArray();
 			Assert.That(handlers.Length, Is.EqualTo(2));
 			Assert.That(handlers.OfType<IInterface<int>>().Single().handleres.Single(), Is.InstanceOf<MyJoiner<int, string>>());
-			Assert.That(handlers.OfType<IInterface<JoinEvent<int, string>>>().Single().handleres.Single(), Is.InstanceOf<JoinHandler>());
+			Assert.That(handlers.OfType<IInterface<JoinEvent<int, string>>>().Single().handleres.Single(),
+				Is.InstanceOf<JoinHandler>());
 		}
 	}
 }

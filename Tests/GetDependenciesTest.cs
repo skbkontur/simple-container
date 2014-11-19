@@ -5,9 +5,9 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class SimpleContainerDependenciesTest: SimpleContainerTestBase
+	public abstract class GetDependenciesTest: SimpleContainerTestBase
 	{
-		public class NoConstructors_NoDependencies: SimpleContainerDependenciesTest
+		public class NoConstructors_NoDependencies: GetDependenciesTest
 		{
 			public class A
 			{
@@ -21,7 +21,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class Simple: SimpleContainerDependenciesTest
+		public class Simple: GetDependenciesTest
 		{
 			public class A
 			{
@@ -42,7 +42,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GetDependenciesForInjections: SimpleContainerDependenciesTest
+		public class GetDependenciesForInjections: GetDependenciesTest
 		{
 			public class A
 			{
@@ -63,7 +63,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GetDependenciesForInjectionsInlineEnumerables : SimpleContainerDependenciesTest
+		public class GetDependenciesForInjectionsInlineEnumerables : GetDependenciesTest
 		{
 			public class A
 			{
@@ -84,7 +84,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DependencyValues: SimpleContainerDependenciesTest
+		public class DependencyValues: GetDependenciesTest
 		{
 			public class A
 			{
@@ -105,7 +105,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class Recursive: SimpleContainerDependenciesTest
+		public class Recursive: GetDependenciesTest
 		{
 			public class A
 			{
@@ -133,7 +133,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
-		public class GetDependencyValuesRecursive: SimpleContainerDependenciesTest
+		public class GetDependencyValuesRecursive: GetDependenciesTest
 		{
 			public class A
 			{
@@ -162,7 +162,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class Uniqueness: SimpleContainerDependenciesTest
+		public class Uniqueness: GetDependenciesTest
 		{
 			public class A
 			{
@@ -191,7 +191,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ManyDependenciesInOneClass: SimpleContainerDependenciesTest
+		public class ManyDependenciesInOneClass: GetDependenciesTest
 		{
 			public class A
 			{
@@ -217,7 +217,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class InterfacesCannotContainInjections: SimpleContainerDependenciesTest
+		public class InterfacesCannotContainInjections: GetDependenciesTest
 		{
 			public class Class
 			{
@@ -242,7 +242,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipFuncs: SimpleContainerDependenciesTest
+		public class SkipFuncs: GetDependenciesTest
 		{
 			public class Class
 			{
@@ -267,7 +267,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipSimpleTypes: SimpleContainerDependenciesTest
+		public class SkipSimpleTypes: GetDependenciesTest
 		{
 			public class Class
 			{
@@ -288,7 +288,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipExplicitlyConfiguredDependencyValues : SimpleContainerDependenciesTest
+		public class SkipExplicitlyConfiguredDependencyValues : GetDependenciesTest
 		{
 			public class X
 			{
@@ -312,7 +312,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipExplicitlyConfiguredServices: SimpleContainerDependenciesTest
+		public class SkipExplicitlyConfiguredServices: GetDependenciesTest
 		{
 			public class X
 			{
@@ -336,7 +336,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
-		public class SkipDependenciesWithFactories : SimpleContainerDependenciesTest
+		public class SkipDependenciesWithFactories : GetDependenciesTest
 		{
 			public class X
 			{
@@ -360,7 +360,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
-		public class Enumerable: SimpleContainerDependenciesTest
+		public class Enumerable: GetDependenciesTest
 		{
 			public class Class
 			{

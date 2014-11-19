@@ -4,7 +4,7 @@ using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class CanCreateNestedImplementation : PreconfiguredContainerTestBase
+	public class CanCreateNestedImplementation : SimpleContainerTestBase
 	{
 		public interface IServiceB
 		{
@@ -33,7 +33,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var serviceA = container.Get<ServiceA>();
+			var serviceA = Container().Get<ServiceA>();
 			var serviceB = serviceA.func(typeof (int), new {parameter = 42});
 			Assert.That(serviceB, Is.InstanceOf<ServiceA.ServiceB<int>>());
 			Assert.That(((ServiceA.ServiceB<int>) serviceB).parameter, Is.EqualTo(42));

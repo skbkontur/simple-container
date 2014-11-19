@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanHaveMultipleGenericInterfaces : PreconfiguredContainerTestBase
+	public class CanHaveMultipleGenericInterfaces : SimpleContainerTestBase
 	{
 		public interface IGenericInterface1<T>
 		{
@@ -38,6 +38,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
+			var container = Container();
 			var components = container.GetAll<IComponentInterface>().ToArray();
 			Assert.That(components.Length, Is.EqualTo(1));
 			Assert.That(components[0], Is.SameAs(container.Get<IGenericInterface1<int>>()));

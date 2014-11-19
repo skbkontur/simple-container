@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CheckGenericAttributesWhenDeducingTypeFromConstraintsTest : PreconfiguredContainerTestBase
+	public class CheckGenericAttributesWhenDeducingTypeFromConstraintsTest : SimpleContainerTestBase
 	{
 		public interface IMyCommand
 		{
@@ -35,7 +35,8 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			Assert.That(container.GetAll<IHandler>().Select(x => x.GetType()).ToArray(), Is.EqualTo(new[] {typeof (Handler<MyCommand1>)}));
+			Assert.That(Container().GetAll<IHandler>().Select(x => x.GetType()).ToArray(),
+				Is.EqualTo(new[] {typeof (Handler<MyCommand1>)}));
 		}
 	}
 }

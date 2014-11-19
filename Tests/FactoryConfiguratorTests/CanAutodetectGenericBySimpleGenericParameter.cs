@@ -4,7 +4,7 @@ using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public class CanAutodetectGenericBySimpleGenericParameter : PreconfiguredContainerTestBase
+	public class CanAutodetectGenericBySimpleGenericParameter : SimpleContainerTestBase
 	{
 		public class SomeOuterService
 		{
@@ -40,7 +40,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var someOuterService = container.Get<SomeOuterService>();
+			var someOuterService = Container().Get<SomeOuterService>();
 			var someService = someOuterService.Create(23);
 			var typedSomeService = someService as SomeOuterService.SomeService<int>;
 			Assert.That(typedSomeService, Is.Not.Null);

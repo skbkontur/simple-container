@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {
-	public class CanConnectGenericComponents : PreconfiguredContainerTestBase
+	public class CanConnectGenericComponents : SimpleContainerTestBase
 	{
 		public abstract class CommandBase
 		{
@@ -47,7 +47,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		[Test]
 		public void Test()
 		{
-			var handlers = container.GetAll<IIHandlerWrapper>().ToArray();
+			var handlers = Container().GetAll<IIHandlerWrapper>().ToArray();
 			Assert.That(handlers.Length, Is.EqualTo(1));
 			Assert.That(handlers[0], Is.TypeOf<HandlerWrapper<GenericCommand<MyCommand>>>());
 			Assert.That(((HandlerWrapper<GenericCommand<MyCommand>>) handlers[0]).handler, Is.TypeOf<GenericHandler<MyCommand>>());
