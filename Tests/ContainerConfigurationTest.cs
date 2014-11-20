@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Tests
 {
@@ -73,6 +74,78 @@ namespace SimpleContainer.Tests
 				{
 					var instance = localContainer.Get<Service>();
 					Assert.That(instance.parameter, Is.EqualTo("abc"));
+				}
+			}
+		}
+
+		public class SettingsLoaderErrors : ContainerConfigurationTest
+		{
+			public class Service
+			{
+				public readonly string parameter;
+
+				public Service(string parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class MySubsystemSettings
+			{
+				public string MyParameter { get; set; }
+			}
+			
+			public class OtherSubsystemSettings
+			{
+			}
+
+			public class ServiceConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			{
+				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.Dependencies(new
+					{
+						parameter = settings.MyParameter
+					});
+				}
+			}
+
+			[Test]
+			public void SettingsLoaderIsNotConfigured()
+			{
+				using (var staticContainer = CreateStaticContainer())
+				{
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					const string expectedMessage =
+						"configurator [ServiceConfigurator] requires settings, but settings loader is not configured;" +
+						"assign delegate to property ContainerFactory.SettingsLoader";
+					Assert.That(error.Message, Is.EqualTo(expectedMessage));
+				}
+			}
+
+			[Test]
+			public void SettingsLoaderRetursNull()
+			{
+				Func<Type, object> loadSettings = t => null;
+				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				{
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					const string expectedMessage = "configurator [ServiceConfigurator] requires settings, " +
+					                               "but settings loader returned null";
+					Assert.That(error.Message, Is.EqualTo(expectedMessage));
+				}
+			}
+
+			[Test]
+			public void SettingsLoaderReturnsObjectOfInvalidType()
+			{
+				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
+				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				{
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					const string expectedMessage = "configurator [ServiceConfigurator] requires settings [MySubsystemSettings], " +
+												   "but settings loader returned [OtherSubsystemSettings]";
+					Assert.That(error.Message, Is.EqualTo(expectedMessage));
 				}
 			}
 		}
