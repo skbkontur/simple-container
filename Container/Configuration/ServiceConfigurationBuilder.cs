@@ -41,7 +41,7 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ServiceConfigurationBuilder<T> Bind(Type type, bool clearOld)
+		public ServiceConfigurationBuilder<T> Bind(Type type, bool clearOld = false)
 		{
 			builder.Bind(typeof (T), type, clearOld);
 			return this;

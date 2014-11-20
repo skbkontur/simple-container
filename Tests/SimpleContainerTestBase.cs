@@ -26,10 +26,12 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected IStaticContainer CreateStaticContainer()
+		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null)
 		{
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
 			var factory = new ContainerFactory(x => x.Name.StartsWith("SimpleContainer"));
+			if (configureContainerFactory != null)
+				configureContainerFactory(factory);
 			return factory.FromTypes(targetTypes);
 		}
 

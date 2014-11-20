@@ -20,6 +20,8 @@ namespace SimpleContainer
 			this.assembliesFilter = name => assembliesFilter(name) || name.Name == "SimpleContainer";
 		}
 
+		public Func<Type, object> SettingsLoader { get; set; }
+
 		public IStaticContainer FromDefaultBinDirectory(bool withExecutables)
 		{
 			return FromDirectory(GetBinDirectory(), withExecutables);
@@ -58,7 +60,7 @@ namespace SimpleContainer
 			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-			return new StaticContainer(configuration, inheritors, assembliesFilter);
+			return new StaticContainer(configuration, inheritors, assembliesFilter, SettingsLoader);
 		}
 
 		private static string GetBinDirectory()

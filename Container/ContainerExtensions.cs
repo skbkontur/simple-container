@@ -76,14 +76,14 @@ namespace SimpleContainer
 				ñ.Run();
 		}
 
-		public static object Run(this IContainer container, Type type, string contract)
+		public static object Run(this IContainer container, Type type, string contract = null)
 		{
 			var result = container.Get(type, contract);
 			container.Run();
 			return result;
 		}
 
-		public static T Run<T>(this IContainer container, string contract)
+		public static T Run<T>(this IContainer container, string contract = null)
 		{
 			return (T) container.Run(typeof (T), contract);
 		}

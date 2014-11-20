@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 
@@ -32,6 +33,47 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<IInterface>(), Is.InstanceOf<Impl2>());
+			}
+		}
+
+		public class ConfiguratorsWithSettings : ContainerConfigurationTest
+		{
+			public class Service
+			{
+				public readonly string parameter;
+
+				public Service(string parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class MySubsystemSettings
+			{
+				public string MyParameter { get; set; }
+			}
+
+			public class ServiceConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			{
+				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.Dependencies(new
+					{
+						parameter = settings.MyParameter
+					});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
+				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				using (var localContainer = LocalContainer(staticContainer, null))
+				{
+					var instance = localContainer.Get<Service>();
+					Assert.That(instance.parameter, Is.EqualTo("abc"));
+				}
 			}
 		}
 

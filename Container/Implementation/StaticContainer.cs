@@ -12,11 +12,16 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private IEnumerable<Type> staticServices;
+		private readonly IContainerConfiguration configuratorsConfiguration;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			Func<AssemblyName, bool> assemblyFilter) : base(configuration, inheritors, null)
+			Func<AssemblyName, bool> assemblyFilter,
+			Func<Type, object> settingsLoader)
+			: base(configuration, inheritors, null)
 		{
 			this.assemblyFilter = assemblyFilter;
+			var configurationContext = new ConfigurationContext { settingsLoader = settingsLoader };
+			configuratorsConfiguration = configuration.Extend(b => b.Bind<ConfigurationContext>(configurationContext));
 		}
 
 		public IContainer CreateLocalContainer(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure)
@@ -24,7 +29,7 @@ namespace SimpleContainer.Implementation
 			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
 			var restrictedHierarchy = new AssembliesRestrictedInheritanceHierarchy(targetAssemblies, inheritors);
 			var configurationBuilder = new ContainerConfigurationBuilder();
-			using (var configurationContainer = new SimpleContainer(configuration, restrictedHierarchy, this))
+			using (var configurationContainer = new SimpleContainer(configuratorsConfiguration, restrictedHierarchy, this))
 				foreach (var configurator in configurationContainer.GetAll<IServiceConfiguratorInvoker>())
 					configurator.Configure(configurationBuilder);
 			if (configure != null)
@@ -69,6 +74,25 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
+		public class ServiceConfiguratorInvoker<TSettings, T> : IServiceConfiguratorInvoker
+		{
+			private readonly ConfigurationContext context;
+			private readonly IEnumerable<IServiceConfigurator<TSettings, T>> configurators;
+
+			public ServiceConfiguratorInvoker(ConfigurationContext context, IEnumerable<IServiceConfigurator<TSettings, T>> configurators)
+			{
+				this.context = context;
+				this.configurators = configurators;
+			}
+
+			public void Configure(ContainerConfigurationBuilder builder)
+			{
+				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(builder);
+				foreach (var configurator in configurators)
+					configurator.Configure((TSettings) context.settingsLoader(typeof (TSettings)), serviceConfigurationBuilder);
+			}
+		}
+
 		private IEnumerable<Assembly> ReferencedAssemblies(Assembly assembly)
 		{
 			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
@@ -77,6 +101,11 @@ namespace SimpleContainer.Implementation
 				.Concat(referencedByAttribute)
 				.Where(assemblyFilter)
 				.Select(Assembly.Load);
+		}
+
+		public class ConfigurationContext
+		{
+			public Func<Type, object> settingsLoader;
 		}
 	}
 }
