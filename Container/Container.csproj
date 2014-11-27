@@ -59,13 +59,12 @@
     <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
+    <Compile Include="Hosting\IComponentLogger.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />
     <Compile Include="Implementation\StaticContainer.cs" />
     <Compile Include="ContainerFactory.cs" />
     <Compile Include="Configuration\IServiceConfigurator.cs" />
-    <Compile Include="Hosting\IShutdownCoordinator.cs" />
     <Compile Include="IStaticContainer.cs" />
-    <Compile Include="Hosting\ShutdownCoordinator.cs" />
     <Compile Include="Implementation\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />

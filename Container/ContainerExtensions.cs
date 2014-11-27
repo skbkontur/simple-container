@@ -72,8 +72,10 @@ namespace SimpleContainer
 
 		public static void Run(this IContainer container)
 		{
-			foreach (var ñ in container.GetInstanceCache<IComponent>())
-				ñ.Run();
+			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
+			foreach (var c in container.GetInstanceCache<IComponent>())
+				using (runLogger != null ? runLogger.OnRunComponent(c.GetType()) : null)
+					c.Run();
 		}
 
 		public static object Run(this IContainer container, Type type, string contract = null)
