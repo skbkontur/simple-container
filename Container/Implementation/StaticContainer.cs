@@ -113,7 +113,7 @@ namespace SimpleContainer.Implementation
 					if (context.SettingsLoader == null)
 					{
 						const string messageFormat = "configurator [{0}] requires settings, but settings loader is not configured;" +
-						                             "assign delegate to property ContainerFactory.SettingsLoader";
+						                             "configure it using ContainerFactory.SetSettingsLoader";
 						throw new SimpleContainerException(string.Format(messageFormat, c.GetType().FormatName()));
 					}
 					var settingsInstance = context.SettingsLoader(typeof (TSettings));

@@ -145,7 +145,7 @@ namespace SimpleContainer.Tests
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
 					const string expectedMessage =
 						"configurator [ServiceConfigurator] requires settings, but settings loader is not configured;" +
-						"assign delegate to property ContainerFactory.SettingsLoader";
+						"configure it using ContainerFactory.SetSettingsLoader";
 					Assert.That(error.Message, Is.EqualTo(expectedMessage));
 				}
 			}
