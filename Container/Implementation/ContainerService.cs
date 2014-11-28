@@ -16,7 +16,7 @@ namespace SimpleContainer.Implementation
 		public bool contractUsed;
 		public object lockObject = new object();
 		public readonly List<object> instances = new List<object>();
-		public bool resolved;
+		public bool instantiated;
 		private IEnumerable<object> typedArray;
 		private static readonly TimeSpan waitTimeout = TimeSpan.FromSeconds(5);
 
@@ -38,18 +38,18 @@ namespace SimpleContainer.Implementation
 
 		public ContainerService WaitForResolve()
 		{
-			if (!resolved)
+			if (!instantiated)
 				lock (lockObject)
-					while (!resolved)
+					while (!instantiated)
 						if (!Monitor.Wait(lockObject, waitTimeout))
 							throw new SimpleContainerException(string.Format("service [{0}] wait for resolve timed out after [{1}] millis",
 								type.FormatName(), waitTimeout.TotalMilliseconds));
 			return this;
 		}
 
-		public void SetResolved()
+		public void SetInstantiated()
 		{
-			resolved = true;
+			instantiated = true;
 			Monitor.PulseAll(lockObject);
 		}
 

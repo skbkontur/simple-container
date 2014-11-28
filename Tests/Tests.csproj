@@ -59,6 +59,7 @@
     <Compile Include="GenericsConfiguratorTests\NonGenericChildOfGenericComponentOverridesTypesDeductionFromConstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\VerifyConstraintsForDependencies.cs" />
     <Compile Include="Helpers\ActionDisposable.cs" />
+    <Compile Include="NotConfiguredGenericsTest.cs" />
     <Compile Include="RunComponentsTest.cs" />
     <Compile Include="DisposeTest.cs" />
     <Compile Include="CloneContainerTest.cs" />

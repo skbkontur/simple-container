@@ -10,10 +10,10 @@ namespace SimpleContainer.Configuration
 {
 	public class ContainerConfigurationBuilder
 	{
-		private readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
+		protected readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
 
-		private readonly IDictionary<string, ContainerConfigurationBuilder> contractConfigurators =
-			new Dictionary<string, ContainerConfigurationBuilder>();
+		private readonly IDictionary<string, ContractConfigurationBuilder> contractConfigurators =
+			new Dictionary<string, ContractConfigurationBuilder>();
 
 		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>(bool clearOld = false)
 			where TImplementation : TInterface
@@ -63,15 +63,23 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder AddContract(Type type, string dependencyName, string contract)
+		public ContainerConfigurationBuilder RequireContract(Type type, string dependencyName, string contract)
 		{
-			ConfigureDependency(type, dependencyName).AddContract(contract);
+			var configuration = ConfigureDependency(type, dependencyName);
+			if (!string.IsNullOrEmpty(configuration.Contract))
+			{
+				const string formatMessage = "contract already required, type [{0}], dependencyName [{1}], contract [{2}]" +
+				                             ", existing contract [{3}]";
+				throw new SimpleContainerException(string.Format(formatMessage, type, dependencyName,
+					contract, configuration.Contract));
+			}
+			configuration.Contract = contract;
 			return this;
 		}
 
-		public ContainerConfigurationBuilder AddContract<T>(string dependencyName, string contract)
+		public ContainerConfigurationBuilder RequireContract<T>(string dependencyName, string contract)
 		{
-			AddContract(typeof (T), dependencyName, contract);
+			RequireContract(typeof (T), dependencyName, contract);
 			return this;
 		}
 
@@ -142,11 +150,11 @@ namespace SimpleContainer.Configuration
 			return Contract(new T().ContractName);
 		}
 
-		public ContainerConfigurationBuilder Contract(string contract)
+		public ContractConfigurationBuilder Contract(string contract)
 		{
 			if (contractConfigurators.ContainsKey(contract))
 				throw new InvalidOperationException(string.Format("contract {0} already defined", contract));
-			var result = new ContainerConfigurationBuilder();
+			var result = new ContractConfigurationBuilder();
 			contractConfigurators[contract] = result;
 			return result;
 		}
@@ -154,11 +162,11 @@ namespace SimpleContainer.Configuration
 		public ContainerConfigurationBuilder InContext(Type type, params string[] dependencies)
 		{
 			var targetType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-			var result = new ContainerConfigurationBuilder();
+			var result = new ContractConfigurationBuilder();
 			foreach (var dependency in dependencies)
 			{
 				var contract = targetType.Name + "." + dependency;
-				AddContract(type, dependency, contract);
+				RequireContract(type, dependency, contract);
 				if (contractConfigurators.ContainsKey(contract))
 					throw new InvalidOperationException(string.Format("context key {0} already defined", contract));
 				contractConfigurators[contract] = result;
@@ -239,29 +247,6 @@ namespace SimpleContainer.Configuration
 			{
 				throw new InvalidOperationException(string.Format("type {0}, existent {1}, required {2}",
 					type.FormatName(), result.GetType().FormatName(), typeof (T).FormatName()), e);
-			}
-		}
-
-		private class ContainerConfiguration : IContainerConfiguration
-		{
-			private readonly IDictionary<Type, object> configurations;
-			private readonly IDictionary<string, IContainerConfiguration> contractsConfigurators;
-
-			public ContainerConfiguration(IDictionary<Type, object> configurations,
-				IDictionary<string, IContainerConfiguration> contractsConfigurators)
-			{
-				this.configurations = configurations;
-				this.contractsConfigurators = contractsConfigurators;
-			}
-
-			public T GetOrNull<T>(Type type) where T : class
-			{
-				return configurations.GetOrDefault(type) as T;
-			}
-
-			public IContainerConfiguration GetByKeyOrNull(string contextKey)
-			{
-				return contractsConfigurators.GetOrDefault(contextKey);
 			}
 		}
 

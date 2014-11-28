@@ -29,13 +29,6 @@ namespace SimpleContainer.Implementation
 				dependency.accessor.Set(target, dependency.value);
 		}
 
-		public void BuildUpWithoutCache(object target)
-		{
-			var dependencies = GetInjections(target.GetType());
-			foreach (var dependency in dependencies)
-				dependency.accessor.Set(target, container.Get(dependency.accessor.MemberType, null));
-		}
-
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			return GetInjections(type).Select(x => x.accessor.MemberType);

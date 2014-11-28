@@ -465,7 +465,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly ServiceWrap[] wraps;
 
-				public AllWrapsHost(IEnumerable<ServiceWrap> wraps)
+				public AllWrapsHost([RequireContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
 				{
 					this.wraps = wraps.ToArray();
 				}
@@ -498,8 +498,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.AddContract<AllWrapsHost>("wraps", "service1Contract");
-					builder.AddContract<AllWrapsHost>("wraps", "service2Contract");
+					builder.Contract("composite-contract").Union("service1Contract", "service2Contract");
 
 					builder.Contract("service1Contract").Bind<IService, Service1>();
 					builder.Contract("service2Contract").Bind<IService, Service2>();
@@ -527,7 +526,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(b => b.AddContract<Service>("dependency", "some-contract"));
+				var container = Container(b => b.RequireContract<Service>("dependency", "some-contract"));
 				var e = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
 				Assert.That(e.Message, Is.EqualTo("contract [some-contract] is not configured\r\nService!"));
 			}
@@ -539,7 +538,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly Service[] wraps;
 
-				public ServiceWrap(IEnumerable<Service> wraps)
+				public ServiceWrap([RequireContract("composite-contract")] IEnumerable<Service> wraps)
 				{
 					this.wraps = wraps.ToArray();
 				}
@@ -564,8 +563,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.AddContract<ServiceWrap>("wraps", "service1Contract");
-					builder.AddContract<ServiceWrap>("wraps", "service2Contract");
+					builder.Contract("composite-contract").Union("service1Contract", "service2Contract");
 
 					builder.Contract("service1Contract").BindDependency<OtherService>("parameter", 1);
 					builder.Contract("service2Contract").BindDependency<OtherService>("parameter", 2);

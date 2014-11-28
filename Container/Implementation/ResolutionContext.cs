@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 
@@ -12,14 +13,14 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public string Contract { get; private set; }
-		private IContainerConfiguration contractConfiguration;
+		public string ContractName { get; private set; }
+		private ContractConfiguration contractConfiguration;
 
-		public ResolutionContext(IContainerConfiguration configuration, string contract)
+		public ResolutionContext(IContainerConfiguration configuration, string contractName)
 		{
 			this.configuration = configuration;
-			if (!string.IsNullOrEmpty(contract))
-				ActivateContract(contract);
+			if (!string.IsNullOrEmpty(contractName))
+				SetContract(contractName);
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -31,15 +32,15 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		public void Resolve(string name, ContainerService containerService, SimpleContainer container)
+		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current.Peek();
 			var item = new ResolutionItem
 			{
 				depth = depth++,
 				name = name,
-				contractName = Contract,
-				contractDeclared = Contract != null && previous != null && previous.contractName == null,
+				contractName = ContractName,
+				contractDeclared = ContractName != null && previous != null && previous.contractName == null,
 				service = containerService
 			};
 			current.Push(item);
@@ -54,23 +55,23 @@ namespace SimpleContainer.Implementation
 			depth--;
 		}
 
-		public void ActivateContract(string contract)
+		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name, string contractName,
+			SimpleContainer container)
 		{
-			var newContextConfiguration = configuration.GetByKeyOrNull(contract);
-			if (newContextConfiguration == null)
-				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contract, Format()));
-			if (Contract != null)
+			if (ContractName != null)
 				throw new SimpleContainerException(
 					string.Format("nested contexts are not supported, outer contract [{0}], inner contract [{1}]\r\n{2}",
-						Contract, contract, Format()));
-			Contract = contract;
-			contractConfiguration = newContextConfiguration;
-		}
-
-		public void DeactivateContract()
-		{
-			Contract = null;
+						ContractName, contractName, Format()));
+			var result = (GetContractConfiguration(contractName).UnionContractNames ?? Enumerable.Repeat(contractName, 1))
+				.Select(delegate(string c)
+				{
+					SetContract(c);
+					return container.ResolveSingleton(type, name, this);
+				})
+				.ToArray();
 			contractConfiguration = null;
+			ContractName = null;
+			return result;
 		}
 
 		public string Format(Type targetType = null)
@@ -130,6 +131,20 @@ namespace SimpleContainer.Implementation
 					writer.WriteMeta("++");
 				writer.WriteNewLine();
 			}
+		}
+
+		private ContractConfiguration GetContractConfiguration(string contractName)
+		{
+			var result = configuration.GetContractConfiguration(contractName);
+			if (result == null)
+				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contractName, Format()));
+			return result;
+		}
+
+		private void SetContract(string contractName)
+		{
+			contractConfiguration = GetContractConfiguration(contractName);
+			ContractName = contractName;
 		}
 
 		private class ResolutionItem

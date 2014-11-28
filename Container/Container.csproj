@@ -39,6 +39,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\ConfigurationRegistry.cs" />
+    <Compile Include="Configuration\ContainerConfiguration.cs" />
+    <Compile Include="Configuration\ContractConfiguration.cs" />
+    <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
@@ -67,7 +72,6 @@
     <Compile Include="IStaticContainer.cs" />
     <Compile Include="Implementation\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
-    <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Implementation\IInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ImplementationConfiguration.cs" />
     <Compile Include="Configuration\ImplentationDependencyConfiguration.cs" />

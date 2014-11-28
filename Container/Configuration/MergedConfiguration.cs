@@ -18,9 +18,9 @@ namespace SimpleContainer.Configuration
 			return child.GetOrNull<T>(type) ?? parent.GetOrNull<T>(type);
 		}
 
-		public IContainerConfiguration GetByKeyOrNull(string contextKey)
+		public ContractConfiguration GetContractConfiguration(string contractName)
 		{
-			return child.GetByKeyOrNull(contextKey) ?? parent.GetByKeyOrNull(contextKey);
+			return child.GetContractConfiguration(contractName) ?? parent.GetContractConfiguration(contractName);
 		}
 	}
 }
