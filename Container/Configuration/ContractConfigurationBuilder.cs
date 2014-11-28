@@ -7,15 +7,15 @@ namespace SimpleContainer.Configuration
 	{
 		private IEnumerable<string> unionContractNames;
 
-		public ContractConfigurationBuilder Union(IEnumerable<string> contractNames)
+		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames)
 		{
 			unionContractNames = contractNames;
 			return this;
 		}
 
-		public ContractConfigurationBuilder Union(params string[] contractNames)
+		public ContractConfigurationBuilder UnionOf(params string[] contractNames)
 		{
-			return Union(contractNames.AsEnumerable());
+			return UnionOf(contractNames.AsEnumerable());
 		}
 
 		public new ContractConfiguration Build()

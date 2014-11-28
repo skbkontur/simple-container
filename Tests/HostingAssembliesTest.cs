@@ -280,7 +280,7 @@ namespace SimpleContainer.Tests
 			{
 				var a1 = CompileAssembly(referencedAssemblycode);
 				var a2 = CompileAssembly(primaryAssemblyCode, a1);
-				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
+				using (var staticContainer = Factory().FromAssemblies(new[] {a2, a1}))
 				using (var localContainer = staticContainer.CreateLocalContainer(a2, null))
 					Assert.That(localContainer.Get<IServiceProvider>().GetType().Name, Is.EqualTo("Impl2"));
 			}

@@ -1,7 +1,11 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
@@ -193,6 +197,59 @@ namespace SimpleContainer.Tests
 				var instance = container.Get<Service>();
 				Assert.That(instance.argument1, Is.EqualTo(1));
 				Assert.That(instance.argument2, Is.EqualTo(2));
+			}
+		}
+
+		public class CanUseConfiguratorNotBoundToService : ContainerConfigurationTest
+		{
+			public interface IInterface
+			{
+				int Value { get; }
+			}
+
+			public class Impl : IInterface
+			{
+				public Impl(int value)
+				{
+					Value = value;
+				}
+
+				public int Value { get; private set; }
+			}
+
+			public class Wrap
+			{
+				public readonly IEnumerable<IInterface> instances;
+
+				public Wrap([RequireContract("composite-contract")] IEnumerable<IInterface> instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			public class CompositeContractConfigurator : IContainerConfigurator
+			{
+				public void Configure(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("composite-contract").UnionOf("c1", "c2");
+				}
+			}
+
+			public class ImplConfigurator : IServiceConfigurator<Impl>
+			{
+				public void Configure(ServiceConfigurationBuilder<Impl> builder)
+				{
+					builder.Contract("c1").Dependencies(new {value = 1});
+					builder.Contract("c2").Dependencies(new {value = 2});
+				}
+			}
+			
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var wrap = container.Get<Wrap>();
+				Assert.That(wrap.instances.Select(x => x.Value), Is.EquivalentTo(new[] {1, 2}));
 			}
 		}
 

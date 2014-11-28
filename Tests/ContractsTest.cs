@@ -498,7 +498,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.Contract("composite-contract").Union("service1Contract", "service2Contract");
+					builder.Contract("composite-contract").UnionOf("service1Contract", "service2Contract");
 
 					builder.Contract("service1Contract").Bind<IService, Service1>();
 					builder.Contract("service2Contract").Bind<IService, Service2>();
@@ -563,7 +563,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.Contract("composite-contract").Union("service1Contract", "service2Contract");
+					builder.Contract("composite-contract").UnionOf("service1Contract", "service2Contract");
 
 					builder.Contract("service1Contract").BindDependency<OtherService>("parameter", 1);
 					builder.Contract("service2Contract").BindDependency<OtherService>("parameter", 2);

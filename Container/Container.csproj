@@ -44,6 +44,7 @@
     <Compile Include="Configuration\ContractConfiguration.cs" />
     <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />
+    <Compile Include="Configuration\IContainerConfigurator.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
