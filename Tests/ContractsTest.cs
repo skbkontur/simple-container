@@ -615,7 +615,7 @@ namespace SimpleContainer.Tests
 				Assert.That(wrap.serviceB, Is.InstanceOf<ServiceB>());
 			}
 		}
-		
+
 		public class CanAttachContractOnClass : ContractsTest
 		{
 			public class Wrap
@@ -628,7 +628,15 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[RequireContract("test-contract")]
+			public class TestContractAttribute : RequireContractAttribute
+			{
+				public TestContractAttribute()
+					: base("test-contract")
+				{
+				}
+			}
+
+			[TestContract]
 			public class Service
 			{
 				public readonly IInterface @interface;
@@ -654,7 +662,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(b => b.Contract("test-contract").Bind<IInterface, Impl2>());
+				var container = Container(b => b.Contract<TestContractAttribute>().Bind<IInterface, Impl2>());
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
 			}

@@ -9,11 +9,11 @@ namespace SimpleContainer.Tests
 
 		public class Hoster
 		{
-			public readonly Func<IContainer> cloneContainer;
+			public readonly IContainer container;
 
-			public Hoster(Func<IContainer> cloneContainer)
+			public Hoster(IContainer container)
 			{
-				this.cloneContainer = cloneContainer;
+				this.container = container;
 			}
 		}
 
@@ -56,7 +56,7 @@ namespace SimpleContainer.Tests
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("Component0.ctor ComponentWrap1.ctor "));
 				LogBuilder.Clear();
 				ComponentWrap clone1;
-				using (var clonedContainer = hoster.cloneContainer())
+				using (var clonedContainer = hoster.container.Clone())
 				{
 					clone1 = clonedContainer.Get<ComponentWrap>();
 					Assert.That(clone1, Is.Not.SameAs(outerWrap));
@@ -66,7 +66,7 @@ namespace SimpleContainer.Tests
 				}
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("Component2.Dispose "));
 				LogBuilder.Clear();
-				using (var clonedContainer = hoster.cloneContainer())
+				using (var clonedContainer = hoster.container.Clone())
 				{
 					Assert.That(clonedContainer.Get<ComponentWrap>(), Is.Not.SameAs(outerWrap));
 					Assert.That(clonedContainer.Get<ComponentWrap>(), Is.Not.SameAs(clone1));

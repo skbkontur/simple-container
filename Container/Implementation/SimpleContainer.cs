@@ -79,8 +79,6 @@ namespace SimpleContainer.Implementation
 
 		public object Create(Type type, string contract, object arguments)
 		{
-			if (type == typeof (IContainer))
-				return new SimpleContainer(configuration, inheritors, staticContainer);
 			var resolutionContext = new ResolutionContext(configuration, contract);
 			var result = new ContainerService
 			{
@@ -128,6 +126,11 @@ namespace SimpleContainer.Implementation
 			var result = new List<ContainerService>(resultServices);
 			result.Sort((a, b) => a.topSortIndex.CompareTo(b.topSortIndex));
 			return result.SelectMany(x => x.instances);
+		}
+
+		public IContainer Clone()
+		{
+			return new SimpleContainer(configuration, inheritors, staticContainer);
 		}
 
 		private ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
