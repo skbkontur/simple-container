@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,13 +15,18 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private readonly Func<AssemblyName, bool> assembliesFilter;
+		private Func<Type, object> settingsLoader;
 
 		public ContainerFactory(Func<AssemblyName, bool> assembliesFilter)
 		{
 			this.assembliesFilter = name => assembliesFilter(name) || name.Name == "SimpleContainer";
 		}
 
-		public Func<Type, object> SettingsLoader { get; set; }
+		public void SetSettingsLoader(Func<Type, object> newLoader)
+		{
+			var cache = new ConcurrentDictionary<Type, object>();
+			settingsLoader = t => cache.GetOrAdd(t, newLoader);
+		}
 
 		public IStaticContainer FromDefaultBinDirectory(bool withExecutables)
 		{
@@ -60,7 +66,7 @@ namespace SimpleContainer
 			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-			return new StaticContainer(configuration, inheritors, assembliesFilter, SettingsLoader);
+			return new StaticContainer(configuration, inheritors, assembliesFilter, settingsLoader);
 		}
 
 		private static string GetBinDirectory()

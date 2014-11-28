@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -69,16 +69,39 @@ namespace SimpleContainer.Tests
 				}
 			}
 
+			public class OtherConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			{
+				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				{
+				}
+			}
+
 			[Test]
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
-				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
 				using (var localContainer = LocalContainer(staticContainer, null))
 				{
 					var instance = localContainer.Get<Service>();
 					Assert.That(instance.parameter, Is.EqualTo("abc"));
 				}
+			}
+
+			[Test]
+			public void LoadSettingsOnce()
+			{
+				var log = new StringBuilder();
+				Func<Type, object> loadSettings = t =>
+				{
+					log.AppendFormat("load {0} ", t.Name);
+					return new MySubsystemSettings {MyParameter = "abc"};
+				};
+				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (LocalContainer(staticContainer, null))
+				{
+				}
+				Assert.That(log.ToString(), Is.EqualTo("load MySubsystemSettings "));
 			}
 		}
 
@@ -98,7 +121,7 @@ namespace SimpleContainer.Tests
 			{
 				public string MyParameter { get; set; }
 			}
-			
+
 			public class OtherSubsystemSettings
 			{
 			}
@@ -131,7 +154,7 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderRetursNull()
 			{
 				Func<Type, object> loadSettings = t => null;
-				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
 					const string expectedMessage = "configurator [ServiceConfigurator] requires settings, " +
@@ -144,11 +167,11 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderReturnsObjectOfInvalidType()
 			{
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
-				using (var staticContainer = CreateStaticContainer(x => x.SettingsLoader = loadSettings))
+				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
 					const string expectedMessage = "configurator [ServiceConfigurator] requires settings [MySubsystemSettings], " +
-												   "but settings loader returned [OtherSubsystemSettings]";
+					                               "but settings loader returned [OtherSubsystemSettings]";
 					Assert.That(error.Message, Is.EqualTo(expectedMessage));
 				}
 			}
@@ -243,7 +266,7 @@ namespace SimpleContainer.Tests
 					builder.Contract("c2").Dependencies(new {value = 2});
 				}
 			}
-			
+
 			[Test]
 			public void Test()
 			{
