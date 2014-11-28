@@ -52,11 +52,5 @@ namespace SimpleContainer.Configuration
 			builder.Bind<T>(factory);
 			return this;
 		}
-
-		public ServiceConfigurationBuilder<T> RequireContract(string dependencyName, string contract)
-		{
-			builder.RequireContract<T>(dependencyName, contract);
-			return this;
-		}
 	}
 }

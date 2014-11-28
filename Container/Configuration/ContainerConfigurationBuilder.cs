@@ -63,26 +63,6 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder RequireContract(Type type, string dependencyName, string contract)
-		{
-			var configuration = ConfigureDependency(type, dependencyName);
-			if (!string.IsNullOrEmpty(configuration.Contract))
-			{
-				const string formatMessage = "contract already required, type [{0}], dependencyName [{1}], contract [{2}]" +
-				                             ", existing contract [{3}]";
-				throw new SimpleContainerException(string.Format(formatMessage, type, dependencyName,
-					contract, configuration.Contract));
-			}
-			configuration.Contract = contract;
-			return this;
-		}
-
-		public ContainerConfigurationBuilder RequireContract<T>(string dependencyName, string contract)
-		{
-			RequireContract(typeof (T), dependencyName, contract);
-			return this;
-		}
-
 		public ContainerConfigurationBuilder BindDependency<T, TDependency>(TDependency value)
 		{
 			BindDependency<T, TDependency>((object) value);
@@ -157,26 +137,6 @@ namespace SimpleContainer.Configuration
 			var result = new ContractConfigurationBuilder();
 			contractConfigurators[contract] = result;
 			return result;
-		}
-
-		public ContainerConfigurationBuilder InContext(Type type, params string[] dependencies)
-		{
-			var targetType = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
-			var result = new ContractConfigurationBuilder();
-			foreach (var dependency in dependencies)
-			{
-				var contract = targetType.Name + "." + dependency;
-				RequireContract(type, dependency, contract);
-				if (contractConfigurators.ContainsKey(contract))
-					throw new InvalidOperationException(string.Format("context key {0} already defined", contract));
-				contractConfigurators[contract] = result;
-			}
-			return result;
-		}
-
-		public ContainerConfigurationBuilder InContext<T>(params string[] dependencies)
-		{
-			return InContext(typeof (T), dependencies);
 		}
 
 		public ContainerConfigurationBuilder UseAutosearch(Type interfaceType, bool useAutosearch)

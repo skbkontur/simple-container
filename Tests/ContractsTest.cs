@@ -16,7 +16,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly OuterClass outerClass;
 
-				public ContainerClass1(OuterClass outerClass)
+				public ContainerClass1([RequireContract("c1")] OuterClass outerClass)
 				{
 					this.outerClass = outerClass;
 				}
@@ -26,7 +26,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly OuterClass outerClass;
 
-				public ContainerClass2(OuterClass outerClass)
+				public ContainerClass2([RequireContract("c2")] OuterClass outerClass)
 				{
 					this.outerClass = outerClass;
 				}
@@ -69,8 +69,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(c =>
 				{
-					c.InContext<ContainerClass1>("outerClass").Bind<IInterface, Impl1>();
-					c.InContext<ContainerClass2>("outerClass").Bind<IInterface, Impl2>();
+					c.Contract("c1").Bind<IInterface, Impl1>();
+					c.Contract("c2").Bind<IInterface, Impl2>();
 				});
 				Assert.That(container.Get<ContainerClass1>().outerClass.innerClass.@interface, Is.InstanceOf<Impl1>());
 				Assert.That(container.Get<ContainerClass2>().outerClass.innerClass.@interface, Is.InstanceOf<Impl2>());
@@ -84,7 +84,7 @@ namespace SimpleContainer.Tests
 				public readonly B bc1;
 				public readonly B bc2;
 
-				public A(B bc1, B bc2)
+				public A([RequireContract("c1")] B bc1, [RequireContract("c2")] B bc2)
 				{
 					this.bc1 = bc1;
 					this.bc2 = bc2;
@@ -118,8 +118,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.InContext<A>("bc1").Bind<IInterface, C>();
-					builder.InContext<A>("bc2").Bind<IInterface, D>();
+					builder.Contract("c1").Bind<IInterface, C>();
+					builder.Contract("c2").Bind<IInterface, D>();
 				});
 				var a = container.Get<A>();
 				Assert.That(a.bc1.getInterface(), Is.InstanceOf<C>());
@@ -134,7 +134,7 @@ namespace SimpleContainer.Tests
 				public readonly B bc1;
 				public readonly B bc2;
 
-				public A(B bc1, B bc2)
+				public A([RequireContract("c1")] B bc1, [RequireContract("c2")] B bc2)
 				{
 					this.bc1 = bc1;
 					this.bc2 = bc2;
@@ -180,8 +180,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.InContext<A>("bc1").Bind<IInterface, C>();
-					builder.InContext<A>("bc2").Bind<IInterface, D>();
+					builder.Contract("c1").Bind<IInterface, C>();
+					builder.Contract("c2").Bind<IInterface, D>();
 				});
 				var a = container.Get<A>();
 				var result1 = a.bc1.getResult(new {value = 1});
@@ -200,7 +200,7 @@ namespace SimpleContainer.Tests
 				public readonly Service service;
 				public readonly SingletonService singletonService;
 
-				public ServiceClient1(Service service, SingletonService singletonService)
+				public ServiceClient1([RequireContract("c1")] Service service, SingletonService singletonService)
 				{
 					this.service = service;
 					this.singletonService = singletonService;
@@ -212,7 +212,7 @@ namespace SimpleContainer.Tests
 				public readonly Service service;
 				public SingletonService singletonService;
 
-				public ServiceClient2(Service service, SingletonService singletonService)
+				public ServiceClient2([RequireContract("c2")] Service service, SingletonService singletonService)
 				{
 					this.service = service;
 					this.singletonService = singletonService;
@@ -250,8 +250,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(c =>
 				{
-					c.InContext<ServiceClient1>("service").Bind<IInterface, Impl1>();
-					c.InContext<ServiceClient2>("service").Bind<IInterface, Impl2>();
+					c.Contract("c1").Bind<IInterface, Impl1>();
+					c.Contract("c2").Bind<IInterface, Impl2>();
 				});
 				var singletonServiceInstance = container.Get<ServiceClient1>().service.singletonService;
 				Assert.That(container.Get<ServiceClient2>().service.singletonService, Is.SameAs(singletonServiceInstance));
@@ -271,14 +271,14 @@ namespace SimpleContainer.Tests
 
 			public class OuterService
 			{
-				public OuterService(InnerService innerService)
+				public OuterService([RequireContract("c1")] InnerService innerService)
 				{
 				}
 			}
 
 			public class InnerService
 			{
-				public InnerService(Service service)
+				public InnerService([RequireContract("c2")] Service service)
 				{
 				}
 			}
@@ -292,13 +292,13 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.InContext<OuterService>("innerService").Bind<InnerService, InnerService>();
-					builder.InContext<InnerService>("service").Bind<Service, Service>();
+					builder.Contract("c1").Bind<InnerService, InnerService>();
+					builder.Contract("c2").Bind<Service, Service>();
 				});
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"nested contexts are not supported, outer contract [OuterService.innerService], inner contract [InnerService.service]\r\n" +
-					"Wrap!\r\n\tOuterService!\r\n\t\tInnerService[OuterService.innerService]->[OuterService.innerService]!";
+					"nested contexts are not supported, outer contract [c1], inner contract [c2]\r\n" +
+					"Wrap!\r\n\tOuterService!\r\n\t\tInnerService[c1]->[c1]!";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -307,7 +307,7 @@ namespace SimpleContainer.Tests
 		{
 			public class Wrap
 			{
-				public Wrap(Service service)
+				public Wrap([RequireContract("c1")] Service service)
 				{
 				}
 			}
@@ -341,10 +341,10 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(c => c.InContext<Wrap>("service").Bind<IInterface, Impl1>());
+				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"no implementations for Wrap\r\nWrap!\r\n\tService[Wrap.service]->[Wrap.service]!\r\n\t\tSingletonService\r\n\t\tIInterface[Wrap.service]!\r\n\t\t\tImpl1!\r\n\t\t\t\tIUnimplemented!";
+					"no implementations for Wrap\r\nWrap!\r\n\tService[c1]->[c1]!\r\n\t\tSingletonService\r\n\t\tIInterface[c1]!\r\n\t\t\tImpl1!\r\n\t\t\t\tIUnimplemented!";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -356,7 +356,7 @@ namespace SimpleContainer.Tests
 				public readonly ServiceWrap wrap;
 				public readonly OtherService otherService;
 
-				public Client(ServiceWrap wrap, OtherService otherService)
+				public Client([RequireContract("c1")] ServiceWrap wrap, OtherService otherService)
 				{
 					this.wrap = wrap;
 					this.otherService = otherService;
@@ -403,7 +403,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(c => c.InContext<Client>("wrap").Bind<IInterface, Impl>());
+				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl>());
 				var client = container.Get<Client>();
 				Assert.That(client.wrap.otherService, Is.Not.SameAs(client.otherService));
 			}
@@ -416,7 +416,7 @@ namespace SimpleContainer.Tests
 				public readonly X first;
 				public readonly X second;
 
-				public Wrap(X first, X second)
+				public Wrap([RequireContract("first")] X first, [RequireContract("second")] X second)
 				{
 					this.first = first;
 					this.second = second;
@@ -450,8 +450,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
-					builder.InContext<Wrap>("first").BindDependency<X, IIntf, Y>();
-					builder.InContext<Wrap>("second").BindDependency<X, IIntf, Z>();
+					builder.Contract("first").BindDependency<X, IIntf, Y>();
+					builder.Contract("second").BindDependency<X, IIntf, Z>();
 				});
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.first.intf, Is.InstanceOf<Y>());
@@ -514,7 +514,7 @@ namespace SimpleContainer.Tests
 		{
 			public class Service
 			{
-				public Service(Dependency dependency)
+				public Service([RequireContract("some-contract")] Dependency dependency)
 				{
 				}
 			}
@@ -526,7 +526,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(b => b.RequireContract<Service>("dependency", "some-contract"));
+				var container = Container();
 				var e = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
 				Assert.That(e.Message, Is.EqualTo("contract [some-contract] is not configured\r\nService!"));
 			}

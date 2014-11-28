@@ -431,7 +431,7 @@ namespace SimpleContainer.Implementation
 			var baseContractName = formalParameter.TryGetCustomAttribute(out requireContractAttribute) ||
 			                       dependencyType.TryGetCustomAttribute(out requireContractAttribute)
 				? requireContractAttribute.ContractName
-				: dependencyConfiguration != null ? dependencyConfiguration.Contract : null;
+				: null;
 
 			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
