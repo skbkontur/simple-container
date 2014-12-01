@@ -8,7 +8,7 @@ namespace SimpleContainer.Implementation
 {
 	public class ContainerService
 	{
-		public int topSortIndex;
+		public int TopSortIndex { get; private set; }
 		public IObjectAccessor arguments;
 		public bool createNew;
 		public Type type;
@@ -47,8 +47,9 @@ namespace SimpleContainer.Implementation
 			return this;
 		}
 
-		public void SetInstantiated()
+		public void SetInstantiated(int topSortIndex)
 		{
+			TopSortIndex = topSortIndex;
 			instantiated = true;
 			Monitor.PulseAll(lockObject);
 		}

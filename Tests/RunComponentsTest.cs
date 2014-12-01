@@ -1,9 +1,12 @@
 using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
+using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -90,6 +93,45 @@ namespace SimpleContainer.Tests
 				LogBuilder.Clear();
 				container.Run();
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("Component0.Run Component1.Run Component2.Run "));
+			}
+		}
+
+		public class CorrectOrderingWhenContractsUsed : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly C c;
+
+				public A([RequireContract("x")] B b, [RequireContract("x")] C c)
+				{
+					this.b = b;
+					this.c = c;
+				}
+			}
+			
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(x => x.Contract("x"));
+				container.Get<A>();
+				var instanceCache = container.GetInstanceCache<object>();
+				Assert.That(instanceCache.Select(x => x.GetType()).ToArray(),
+					Is.EqualTo(new[] {typeof (C), typeof (B), typeof (A)}));
 			}
 		}
 

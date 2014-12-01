@@ -124,8 +124,8 @@ namespace SimpleContainer.Implementation
 		{
 			var resultServices = instanceCache.Values.Where(x => !x.type.IsAbstract && type.IsAssignableFrom(x.type));
 			var result = new List<ContainerService>(resultServices);
-			result.Sort((a, b) => a.topSortIndex.CompareTo(b.topSortIndex));
-			return result.SelectMany(x => x.instances);
+			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
+			return result.SelectMany(x => x.instances).Distinct();
 		}
 
 		public IContainer Clone()
@@ -147,8 +147,7 @@ namespace SimpleContainer.Implementation
 					if (!result.instantiated)
 					{
 						context.Instantiate(name, result, this);
-						result.SetInstantiated();
-						result.topSortIndex = Interlocked.Increment(ref topSortIndex);
+						result.SetInstantiated(Interlocked.Increment(ref topSortIndex));
 					}
 			return result;
 		}
@@ -380,7 +379,7 @@ namespace SimpleContainer.Implementation
 					{
 						serviceWithoutContract.context = service.context;
 						serviceWithoutContract.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));
-						serviceWithoutContract.SetInstantiated();
+						serviceWithoutContract.SetInstantiated(Interlocked.Increment(ref topSortIndex));
 					}
 			service.instances.AddRange(serviceWithoutContract.instances);
 		}
