@@ -45,6 +45,12 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
+		public ContainerConfigurationBuilder WithInstanceFilter<T>(Func<T, bool> filter)
+		{
+			GetOrCreate<ImplementationConfiguration>(typeof (T)).InstanceFilter = o => filter((T) o);
+			return this;
+		}
+
 		public ContainerConfigurationBuilder Bind<T>(Func<FactoryContext, object> creator)
 		{
 			GetOrCreate<InterfaceConfiguration>(typeof (T)).Factory = creator;

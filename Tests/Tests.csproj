@@ -60,6 +60,7 @@
     <Compile Include="GenericsConfiguratorTests\VerifyConstraintsForDependencies.cs" />
     <Compile Include="Helpers\ActionDisposable.cs" />
     <Compile Include="Helpers\TestHelpers.cs" />
+    <Compile Include="InstanceFilter.cs" />
     <Compile Include="NotConfiguredGenericsTest.cs" />
     <Compile Include="RunComponentsTest.cs" />
     <Compile Include="DisposeTest.cs" />

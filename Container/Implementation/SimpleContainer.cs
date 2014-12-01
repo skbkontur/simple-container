@@ -237,13 +237,15 @@ namespace SimpleContainer.Implementation
 				return;
 			var factoryMethod = GetFactoryOrNull(implementationType);
 			if (factoryMethod == null)
-			{
 				DefaultInstantiateImplementation(implementationType, service);
-				return;
+			else
+			{
+				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
+				if (factory.instances.Count == 1)
+					service.instances.Add(InvokeConstructor(factoryMethod, factory.instances[0], new object[0], service.context));
 			}
-			var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
-			if (factory.instances.Count == 1)
-				service.instances.Add(InvokeConstructor(factoryMethod, factory.instances[0], new object[0], service.context));
+			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
+				service.instances.RemoveAll(o => !implementationConfiguration.InstanceFilter(o));
 		}
 
 		private static MethodInfo GetFactoryOrNull(Type type)

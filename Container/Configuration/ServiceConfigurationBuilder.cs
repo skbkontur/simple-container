@@ -52,5 +52,11 @@ namespace SimpleContainer.Configuration
 			builder.Bind<T>(factory);
 			return this;
 		}
+
+		public ServiceConfigurationBuilder<T> WithInstanceFilter(Func<T, bool> filter)
+		{
+			builder.WithInstanceFilter(filter);
+			return this;
+		}
 	}
 }

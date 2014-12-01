@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -29,5 +30,7 @@ namespace SimpleContainer.Configuration
 				dependencies.Add(result = new ImplentationDependencyConfiguration {Key = key});
 			return result;
 		}
+
+		public Func<object, bool> InstanceFilter { get; set; }
 	}
 }
