@@ -79,7 +79,24 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public class ContainerConfiguratorInvoker: IServiceConfiguratorInvoker
+		public class ServiceConfiguratorWithSettingsInvoker<TSettings, T> : IServiceConfiguratorInvoker
+		{
+			private readonly IEnumerable<IServiceConfigurator<TSettings, T>> configurators;
+
+			public ServiceConfiguratorWithSettingsInvoker(IEnumerable<IServiceConfigurator<TSettings, T>> configurators)
+			{
+				this.configurators = configurators;
+			}
+
+			public void Configure(ConfigurationContext context)
+			{
+				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
+				foreach (var c in context.Filter(configurators))
+					c.Configure(context.GetSettings<TSettings>(c.GetType()), serviceConfigurationBuilder);
+			}
+		}
+
+		public class ContainerConfiguratorInvoker : IServiceConfiguratorInvoker
 		{
 			private readonly IEnumerable<IContainerConfigurator> configurators;
 
@@ -95,41 +112,19 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public class ServiceConfiguratorWithSettingsInvoker<TSettings, T> : IServiceConfiguratorInvoker
+		public class ContainerConfiguratorWithSettingsInvoker<TSettings> : IServiceConfiguratorInvoker
 		{
-			private readonly IEnumerable<IServiceConfigurator<TSettings, T>> configurators;
+			private readonly IEnumerable<IContainerConfigurator<TSettings>> configurators;
 
-			public ServiceConfiguratorWithSettingsInvoker(IEnumerable<IServiceConfigurator<TSettings, T>> configurators)
+			public ContainerConfiguratorWithSettingsInvoker(IEnumerable<IContainerConfigurator<TSettings>> configurators)
 			{
 				this.configurators = configurators;
 			}
 
 			public void Configure(ConfigurationContext context)
 			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
 				foreach (var c in context.Filter(configurators))
-				{
-					if (context.SettingsLoader == null)
-					{
-						const string messageFormat = "configurator [{0}] requires settings, but settings loader is not configured;" +
-						                             "configure it using ContainerFactory.SetSettingsLoader";
-						throw new SimpleContainerException(string.Format(messageFormat, c.GetType().FormatName()));
-					}
-					var settingsInstance = context.SettingsLoader(typeof (TSettings));
-					if (settingsInstance == null)
-					{
-						const string messageFormat = "configurator [{0}] requires settings, but settings loader returned null";
-						throw new SimpleContainerException(string.Format(messageFormat, c.GetType().FormatName()));
-					}
-					if (settingsInstance is TSettings == false)
-					{
-						const string messageFormat = "configurator [{0}] requires settings [{1}], " +
-						                             "but settings loader returned [{2}]";
-						throw new SimpleContainerException(string.Format(messageFormat, c.GetType().FormatName(),
-							typeof (TSettings).FormatName(), settingsInstance.GetType().FormatName()));
-					}
-					c.Configure((TSettings) settingsInstance, serviceConfigurationBuilder);
-				}
+					c.Configure(context.GetSettings<TSettings>(c.GetType()), context.Builder);
 			}
 		}
 
@@ -165,6 +160,30 @@ namespace SimpleContainer.Implementation
 			private bool IsLocal(object o)
 			{
 				return o.GetType().Assembly == primaryAssembly;
+			}
+
+			public TSettings GetSettings<TSettings>(Type configuratorType)
+			{
+				if (SettingsLoader == null)
+				{
+					const string messageFormat = "configurator [{0}] requires settings, but settings loader is not configured;" +
+												 "configure it using ContainerFactory.SetSettingsLoader";
+					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
+				}
+				var settingsInstance = SettingsLoader(typeof(TSettings));
+				if (settingsInstance == null)
+				{
+					const string messageFormat = "configurator [{0}] requires settings, but settings loader returned null";
+					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
+				}
+				if (settingsInstance is TSettings == false)
+				{
+					const string messageFormat = "configurator [{0}] requires settings [{1}], " +
+												 "but settings loader returned [{2}]";
+					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName(),
+						typeof(TSettings).FormatName(), settingsInstance.GetType().FormatName()));
+				}
+				return (TSettings) settingsInstance;
 			}
 		}
 	}

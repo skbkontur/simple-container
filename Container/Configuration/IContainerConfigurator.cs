@@ -4,4 +4,9 @@ namespace SimpleContainer.Configuration
 	{
 		void Configure(ContainerConfigurationBuilder builder);
 	}
+
+	public interface IContainerConfigurator<in TSettings>
+	{
+		void Configure(TSettings settings, ContainerConfigurationBuilder builder);
+	}
 }

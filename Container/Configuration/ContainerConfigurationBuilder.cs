@@ -124,7 +124,7 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder Contract<T>()
+		public ContractConfigurationBuilder Contract<T>()
 			where T : RequireContractAttribute, new()
 		{
 			return Contract(new T().ContractName);

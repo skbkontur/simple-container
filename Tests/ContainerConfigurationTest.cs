@@ -276,6 +276,40 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ContainerConfiguratorWithSettings : ContainerConfigurationTest
+		{
+			public class MySettings
+			{
+				public int value;
+			}
+
+			public class SomeService
+			{
+				public SomeService(int value)
+				{
+					Value = value;
+				}
+
+				public int Value { get; private set; }
+			}
+
+			public class MyConfigurator : IContainerConfigurator<MySettings>
+			{
+				public void Configure(MySettings settings, ContainerConfigurationBuilder builder)
+				{
+					builder.BindDependency<SomeService>("value", settings.value);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Func<Type, object> loadSettings = t => new MySettings {value = 87};
+				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+					Assert.That(LocalContainer(staticContainer, null).Get<SomeService>().Value, Is.EqualTo(87));
+			}
+		}
+
 		public class CanBindDependenciesViaAnonymousType : ContainerConfigurationTest
 		{
 			public class TestService
