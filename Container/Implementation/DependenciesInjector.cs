@@ -9,7 +9,7 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
-	public class DependenciesInjector
+	internal class DependenciesInjector
 	{
 		private readonly IContainer container;
 		private readonly ConcurrentDictionary<Type, Injection[]> injections = new ConcurrentDictionary<Type, Injection[]>();

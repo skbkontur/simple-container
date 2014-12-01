@@ -6,7 +6,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
-	public class ResolutionContext
+	internal class ResolutionContext
 	{
 		private readonly IContainerConfiguration configuration;
 		private readonly Stack<ResolutionItem> current = new Stack<ResolutionItem>();

@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public abstract class Caster
+	internal abstract class Caster
 	{
 		protected readonly Type memberType;
 		protected readonly Type outputType;

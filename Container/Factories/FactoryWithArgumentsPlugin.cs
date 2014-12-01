@@ -3,7 +3,7 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {
-	public class FactoryWithArgumentsPlugin : IFactoryPlugin
+	internal class FactoryWithArgumentsPlugin : IFactoryPlugin
 	{
 		public bool TryInstantiate(IContainer container, ContainerService containerService)
 		{

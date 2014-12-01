@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace SimpleContainer.Helpers
 {
-	public static class EnumerableHelpers
+	internal static class EnumerableHelpers
 	{
 		public static bool IsEmpty(this IEnumerable source)
 		{

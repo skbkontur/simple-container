@@ -7,7 +7,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Generics
 {
-	public class GenericComponent
+	internal class GenericComponent
 	{
 		public GenericComponent(Type owner, IEnumerable<Type> genericDependencies, Type[] genericConstraint)
 		{

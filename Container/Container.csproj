@@ -111,7 +111,6 @@
     <Compile Include="Implementation\ResolutionRequest.cs" />
     <Compile Include="Implementation\AssembliesRestrictedInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ServiceConfigurationBuilder.cs" />
-    <Compile Include="Implementation\ServiceName.cs" />
     <Compile Include="Implementation\SimpleContainer.cs" />
     <Compile Include="Implementation\SimpleContainerException.cs" />
     <Compile Include="ContainerExtensions.cs" />

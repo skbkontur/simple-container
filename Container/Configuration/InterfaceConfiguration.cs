@@ -4,7 +4,7 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
 {
-	public class InterfaceConfiguration
+	internal class InterfaceConfiguration
 	{
 		public List<Type> ImplementationTypes { get; private set; }
 		public object Implementation { get; set; }

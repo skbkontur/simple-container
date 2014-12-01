@@ -3,7 +3,7 @@ using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Helpers
 {
-	public static class InternalHelpers
+	internal static class InternalHelpers
 	{
 		public static IContainerConfiguration Extend(this IContainerConfiguration configuration,
 			Action<ContainerConfigurationBuilder> action)

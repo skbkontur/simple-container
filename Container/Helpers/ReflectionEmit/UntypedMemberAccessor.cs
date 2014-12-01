@@ -2,7 +2,7 @@
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class UntypedMemberAccessor
+	internal class UntypedMemberAccessor
 	{
 		public static IMemberAccessor Create(MemberInfo memberInfo)
 		{

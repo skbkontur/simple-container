@@ -8,7 +8,7 @@ using SimpleContainer.Helpers.ReflectionEmit;
 
 namespace SimpleContainer.Helpers
 {
-	public static class ReflectionHelpers
+	internal static class ReflectionHelpers
 	{
 		private static readonly IDictionary<Type, object> defaultValues =
 			new Dictionary<Type, object>

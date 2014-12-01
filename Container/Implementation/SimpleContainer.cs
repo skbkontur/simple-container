@@ -17,7 +17,7 @@ namespace SimpleContainer.Implementation
 	//todo заинлайнить GenericConfigurator
 	//todo обработка запросов на явные generic-и
 	//todo логировать значения simple-типов, заюзанные через конфигурирование
-	public class SimpleContainer : IContainer
+	internal class SimpleContainer : IContainer
 	{
 		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
 			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();

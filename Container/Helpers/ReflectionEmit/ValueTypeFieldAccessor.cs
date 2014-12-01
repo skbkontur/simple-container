@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class ValueTypeFieldAccessor
+	internal class ValueTypeFieldAccessor
 	{
 		private readonly Func<object, object, object> setMethod;
 		private readonly Func<object, object> getMethod;

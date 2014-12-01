@@ -8,12 +8,11 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
-	public class StaticContainer : SimpleContainer, IStaticContainer
+	internal class StaticContainer : SimpleContainer, IStaticContainer
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly Func<Type, object> settingsLoader;
 		private IEnumerable<Type> staticServices;
-
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter,

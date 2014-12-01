@@ -6,7 +6,7 @@ using SimpleContainer.Helpers.ReflectionEmit;
 
 namespace SimpleContainer.Helpers
 {
-	public static class ObjectAccessor
+	internal static class ObjectAccessor
 	{
 		private static readonly ConcurrentDictionary<Type, TypeAccessor> typeAccessors =
 			new ConcurrentDictionary<Type, TypeAccessor>();

@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleContainer.Generics
 {
-	public class GenericOverrideInfo
+	internal class GenericOverrideInfo
 	{
 		public Type GenericType { get; set; }
 		public Type TypeArgument { get; set; }

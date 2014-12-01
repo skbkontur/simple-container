@@ -8,7 +8,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Factories
 {
-	public class FactoryConfigurationProcessor
+	internal class FactoryConfigurationProcessor
 	{
 		private readonly ConcurrentDictionary<Type, Func<object, object>> genericFactories = new ConcurrentDictionary<Type, Func<object, object>>();
 

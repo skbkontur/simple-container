@@ -7,6 +7,7 @@ using NUnit.Framework;
 using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {

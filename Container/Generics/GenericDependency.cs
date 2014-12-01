@@ -4,7 +4,7 @@ using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Generics
 {
-	public class GenericDependency
+	internal class GenericDependency
 	{
 		public Type Type { get; set; }
 		public GenericComponent Owner { get; set; }

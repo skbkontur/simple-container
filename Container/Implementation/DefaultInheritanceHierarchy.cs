@@ -5,7 +5,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
-	public class DefaultInheritanceHierarchy : IInheritanceHierarchy
+	internal class DefaultInheritanceHierarchy : IInheritanceHierarchy
 	{
 		private readonly IDictionary<Type, List<Type>> inheritors;
 

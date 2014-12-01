@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class MemberAccessor<TOutput>: IMemberAccessor
+	internal class MemberAccessor<TOutput> : IMemberAccessor
 	{
 		private readonly Func<object, TOutput> getter;
 		private readonly Action<object, TOutput> setter;

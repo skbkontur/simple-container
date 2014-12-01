@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public abstract class MemberAccessorFactory<TOutput>
+	internal abstract class MemberAccessorFactory<TOutput>
 	{
 		private readonly MemberInfo member;
 

@@ -8,7 +8,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Generics
 {
-	public class GenericsConfigurationProcessor
+	internal class GenericsConfigurationProcessor
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly List<GenericComponent> configurators = new List<GenericComponent>();

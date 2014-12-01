@@ -1,14 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace SimpleContainer.Helpers
 {
-	public static class Utils
+	internal static class Utils
 	{
-		public static readonly Encoding utf8WithoutPreamble = new UTF8Encoding(false);
-
 		public static IEnumerable<T> Closure<T>(T root, Func<T, IEnumerable<T>> children)
 		{
 			return EnumerableHelpers.Return(root).Closure(children);
@@ -45,33 +41,10 @@ namespace SimpleContainer.Helpers
 			}
 		}
 
-		public static string[] Split(this string s, string separator, StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
+		public static string[] Split(this string s, string separator,
+			StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
 		{
-			return s.Split(new[] { separator }, options);
-		}
-
-		public static string ReadUtf8String(this Stream stream)
-		{
-			return stream.ReadString(utf8WithoutPreamble);
-		}
-
-		public static string ReadString(this Stream stream, Encoding encoding)
-		{
-			return encoding.GetString(stream.ReadToEnd());
-		}
-
-		public static byte[] ReadToEnd(this Stream stream)
-		{
-			const int bufferSize = 1024;
-			var buffer = new byte[bufferSize];
-			var result = new MemoryStream();
-			int size;
-			do
-			{
-				size = stream.Read(buffer, 0, bufferSize);
-				result.Write(buffer, 0, size);
-			} while (size > 0);
-			return result.ToArray();
+			return s.Split(new[] {separator}, options);
 		}
 	}
 }

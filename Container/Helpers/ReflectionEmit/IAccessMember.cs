@@ -1,6 +1,6 @@
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public interface IAccessMember
+	internal interface IAccessMember
 	{
 		void Set(object entity, object value);
 		object Get(object entity);

@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleContainer.Factories
 {
-	public static class DelegateCaster
+	internal static class DelegateCaster
 	{
 		public static IDelegateCaster Create(Type resultType)
 		{

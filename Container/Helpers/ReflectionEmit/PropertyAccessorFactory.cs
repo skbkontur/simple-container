@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class PropertyAccessorFactory<TOutput>: MemberAccessorFactory<TOutput>
+	internal class PropertyAccessorFactory<TOutput> : MemberAccessorFactory<TOutput>
 	{
 		private readonly PropertyInfo propertyInfo;
 

@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleContainer.Configuration
 {
-	public class ImplentationDependencyConfiguration
+	internal class ImplentationDependencyConfiguration
 	{
 		public string Key { get; set; }
 		public object Value { get; private set; }

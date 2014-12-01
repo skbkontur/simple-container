@@ -2,7 +2,7 @@
 
 namespace SimpleContainer.Helpers
 {
-	public static class DictionaryExtensions
+	internal static class DictionaryExtensions
 	{
 		public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> source, TKey key,
 			TValue defaultValue = default(TValue))

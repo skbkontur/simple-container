@@ -6,7 +6,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
-	public class ContainerService
+	internal class ContainerService
 	{
 		public int TopSortIndex { get; private set; }
 		public IObjectAccessor arguments;

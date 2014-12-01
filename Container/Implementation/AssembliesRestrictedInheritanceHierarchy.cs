@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Implementation
 {
-	public class AssembliesRestrictedInheritanceHierarchy : IInheritanceHierarchy
+	internal class AssembliesRestrictedInheritanceHierarchy : IInheritanceHierarchy
 	{
 		private readonly ISet<Assembly> assemblies;
 		private readonly IInheritanceHierarchy baseHierarchy;

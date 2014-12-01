@@ -2,7 +2,7 @@
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public interface IMemberAccessor: IAccessMember
+	internal interface IMemberAccessor : IAccessMember
 	{
 		bool CanGet { get; }
 		bool CanSet { get; }

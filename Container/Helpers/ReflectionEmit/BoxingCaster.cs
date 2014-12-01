@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class BoxingCaster : Caster
+	internal class BoxingCaster : Caster
 	{
 		public BoxingCaster(Type outputType, Type memberType)
 			: base(outputType, memberType) {}

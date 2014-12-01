@@ -5,7 +5,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Configuration
 {
-	public class ImplementationConfiguration
+	internal class ImplementationConfiguration
 	{
 		private readonly List<ImplentationDependencyConfiguration> dependencies =
 			new List<ImplentationDependencyConfiguration>();

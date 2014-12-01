@@ -4,7 +4,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Configuration
 {
-	public class ContainerConfiguration : ConfigurationRegistry, IContainerConfiguration
+	internal class ContainerConfiguration : ConfigurationRegistry, IContainerConfiguration
 	{
 		private readonly IDictionary<string, ContractConfiguration> contractsConfigurators;
 

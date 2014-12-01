@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -392,7 +394,7 @@ namespace SimpleContainer.Tests
 
 				public string GetContent()
 				{
-					return stream.ReadUtf8String();
+					return stream.ReadString(new UTF8Encoding(false));
 				}
 			}
 		}

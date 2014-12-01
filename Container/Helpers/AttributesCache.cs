@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Helpers
 {
-	public class AttributesCache
+	internal class AttributesCache
 	{
 		public static readonly AttributesCache instance = new AttributesCache();
 		private readonly ConcurrentDictionary<Key, object> cache = new ConcurrentDictionary<Key, object>();

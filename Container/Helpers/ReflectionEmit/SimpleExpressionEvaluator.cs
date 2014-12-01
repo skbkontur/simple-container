@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public class SimpleExpressionEvaluator
+	internal class SimpleExpressionEvaluator
 	{
 		private readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> methods =
 			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();

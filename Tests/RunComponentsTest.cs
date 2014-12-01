@@ -1,11 +1,8 @@
 using System;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using NUnit.Framework;
-using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
@@ -149,8 +146,8 @@ namespace SimpleContainer.Tests
 			{
 				public IDisposable OnRunComponent(Type componentType)
 				{
-					log.Append(componentType.FormatName() + ".start\r\n");
-					return new ActionDisposable(() => log.Append(componentType.FormatName() + ".finish\r\n"));
+					log.Append(componentType.Name + ".start\r\n");
+					return new ActionDisposable(() => log.Append(componentType.Name + ".finish\r\n"));
 				}
 			}
 

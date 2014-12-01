@@ -6,7 +6,7 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Generics
 {
-	public static class TypeHelpers
+	internal static class TypeHelpers
 	{
 		public static bool HasEquivalentParameters(Type dependency, Type definition)
 		{

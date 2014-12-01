@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleContainer.Configuration
 {
-	public class MergedConfiguration : IContainerConfiguration
+	internal class MergedConfiguration : IContainerConfiguration
 	{
 		private readonly IContainerConfiguration parent;
 		private readonly IContainerConfiguration child;
