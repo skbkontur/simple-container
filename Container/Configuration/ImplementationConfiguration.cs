@@ -20,7 +20,11 @@ namespace SimpleContainer.Configuration
 
 		public ImplentationDependencyConfiguration GetOrNull(ParameterInfo parameter)
 		{
-			return GetByKeyOrNull(parameter.Name + " name") ?? GetByKeyOrNull(parameter.ParameterType.FormatName() + " type");
+			var result = GetByKeyOrNull(parameter.Name + " name") ??
+			             GetByKeyOrNull(parameter.ParameterType.FormatName() + " type");
+			if (result != null)
+				result.Used = true;
+			return result;
 		}
 
 		public ImplentationDependencyConfiguration GetOrCreateByKey(string key)
@@ -29,6 +33,11 @@ namespace SimpleContainer.Configuration
 			if (result == null)
 				dependencies.Add(result = new ImplentationDependencyConfiguration {Key = key});
 			return result;
+		}
+
+		public IEnumerable<string> GetUnusedDependencyConfigurationKeys()
+		{
+			return dependencies.Where(x => !x.Used).Select(x => x.Key);
 		}
 
 		public Func<object, bool> InstanceFilter { get; set; }

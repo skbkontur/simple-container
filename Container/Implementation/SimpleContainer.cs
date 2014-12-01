@@ -339,6 +339,13 @@ namespace SimpleContainer.Implementation
 					dependencyConfiguration = definitionConfiguration.GetOrNull(formalParameter);
 				return dependencyConfiguration;
 			}
+
+			public IEnumerable<string> GetUnusedDependencyConfigurationNames()
+			{
+				return implementationConfiguration != null
+					? implementationConfiguration.GetUnusedDependencyConfigurationKeys()
+					: Enumerable.Empty<string>();
+			}
 		}
 
 		private void DefaultInstantiateImplementation(Type type, ContainerService service)
@@ -361,14 +368,16 @@ namespace SimpleContainer.Implementation
 					return;
 				var dependencyValue = dependencyService.SingleInstance();
 				if (dependencyValue != null && !formalParameter.ParameterType.IsInstanceOfType(dependencyValue))
-					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]\r\n{4}",
+					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
 						dependencyValue.GetType().FormatName(),
 						formalParameter.ParameterType.FormatName(),
 						formalParameter.Name,
-						dependencyValue,
-						service.context.Format());
+						dependencyValue);
 				actualArguments[i] = dependencyValue;
 			}
+			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
+			if (unusedDependencyConfigurations.Length > 0)
+				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
 			if (service.context.ContractName == null || service.contractUsed)
 			{
 				service.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));

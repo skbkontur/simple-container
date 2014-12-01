@@ -10,6 +10,8 @@ namespace SimpleContainer.Configuration
 		public Type ImplementationType { get; set; }
 		public Func<IContainer, object> Factory { get; set; }
 
+		public bool Used { get; set; }
+
 		public void UseValue(object o)
 		{
 			Value = o;

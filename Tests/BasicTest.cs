@@ -1439,6 +1439,21 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DependencyConfigurationNotUsed_FrienldyCrash : BasicTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(c => c.BindDependency<A>("inexistent", 42));
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message, Is.EqualTo("unused dependency configurations [inexistent name]\r\nA! - <---------------"));
+			}
+		}
+
 		public class UseValueCreatedBy : BasicTest
 		{
 			[Test]
