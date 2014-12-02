@@ -436,6 +436,7 @@ namespace SimpleContainer.Implementation
 				catch
 				{
 					serviceForUsedContracts.InstantiatedUnsuccessfully();
+					throw;
 				}
 				finally
 				{
