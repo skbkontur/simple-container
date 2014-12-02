@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using NUnit.Framework;
 
-namespace SimpleContainer.Tests
+namespace SimpleContainer.Tests.LongRunning
 {
 	public abstract class SimpleContainerConcurrentTest: SimpleContainerTestBase
 	{
