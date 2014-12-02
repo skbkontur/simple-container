@@ -220,6 +220,14 @@ namespace SimpleContainer.Implementation
 				service.context.Report("has open generic arguments");
 				return;
 			}
+			if (service.type.IsAbstract)
+				InstantiateInterface(service, implementationTypes, useAutosearch);
+			else
+				InstantiateImplementation(service);
+		}
+
+		private void InstantiateInterface(ContainerService service, IEnumerable<Type> implementationTypes, bool useAutosearch)
+		{
 			IEnumerable<Type> localTypes;
 			if (implementationTypes == null)
 				localTypes = GetInheritors(service.type);
@@ -233,13 +241,7 @@ namespace SimpleContainer.Implementation
 				service.context.Report("has no implementations");
 				return;
 			}
-			foreach (var type in localTypesArray)
-				InstantiateImplementation(service, type);
-		}
-
-		private void InstantiateImplementation(ContainerService service, Type implementationType)
-		{
-			if (service.type != implementationType)
+			foreach (var implementationType in localTypesArray)
 			{
 				ContainerService childService;
 				if (service.createNew)
@@ -253,17 +255,21 @@ namespace SimpleContainer.Implementation
 				}
 				else
 					childService = ResolveSingleton(implementationType, null, service.context);
-				service.Union(childService);
-				return;
+				service.UnionFrom(childService);
 			}
-			if (implementationType.IsDefined<IgnoreImplementationAttribute>())
+			service.EndResolveDependencies();
+		}
+
+		private void InstantiateImplementation(ContainerService service)
+		{
+			if (service.type.IsDefined<IgnoreImplementationAttribute>())
 				return;
-			var implementationConfiguration = service.context.GetConfiguration<ImplementationConfiguration>(implementationType);
+			var implementationConfiguration = service.context.GetConfiguration<ImplementationConfiguration>(service.type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 				return;
-			var factoryMethod = GetFactoryOrNull(implementationType);
+			var factoryMethod = GetFactoryOrNull(service.type);
 			if (factoryMethod == null)
-				DefaultInstantiateImplementation(implementationType, service);
+				DefaultInstantiateImplementation(service.type, service);
 			else
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
@@ -517,7 +523,7 @@ namespace SimpleContainer.Implementation
 					baseContractName, this);
 				result = new ContainerService {type = dependencyType, context = service.context};
 				foreach (var contractService in contractServices)
-					result.Union(contractService);
+					result.UnionFrom(contractService);
 			}
 			else
 				result = ResolveSingleton(dependencyType, formalParameter.Name, service.context);

@@ -62,7 +62,7 @@ namespace SimpleContainer.Implementation
 					usedContractIndexes.Add(otherIndex);
 		}
 
-		public void Union(ContainerService other)
+		public void UnionFrom(ContainerService other)
 		{
 			foreach (var instance in other.instances)
 				if (!instances.Contains(instance))
