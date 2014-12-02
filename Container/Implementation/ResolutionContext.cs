@@ -13,23 +13,33 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public string ContractName { get; private set; }
-		private ContractConfiguration contractConfiguration;
+		public readonly Stack<RequiredContract> requiredContracts = new Stack<RequiredContract>();
+		public string ContractsKey { get; private set; }
+
+		public struct RequiredContract
+		{
+			public string name;
+			public ContractConfiguration configuration;
+		}
 
 		public ResolutionContext(IContainerConfiguration configuration, string contractName)
 		{
 			this.configuration = configuration;
 			if (!string.IsNullOrEmpty(contractName))
-				SetContract(contractName);
+				PushContract(contractName);
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
 		{
-			T result;
-			if (contractConfiguration == null || (result = contractConfiguration.GetOrNull<T>(type)) == null)
-				return configuration.GetOrNull<T>(type);
-			current.Peek().service.contractUsed = true;
-			return result;
+			foreach (var requiredContract in requiredContracts)
+			{
+				var result = requiredContract.configuration.GetOrNull<T>(type);
+				if (result == null)
+					continue;
+				current.Peek().service.usedContractName = requiredContract.name;
+				return result;
+			}
+			return configuration.GetOrNull<T>(type);
 		}
 
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
@@ -39,8 +49,9 @@ namespace SimpleContainer.Implementation
 			{
 				depth = depth++,
 				name = name,
-				contractName = ContractName,
-				contractDeclared = ContractName != null && previous != null && previous.contractName == null,
+				contractName = ContractsKey,
+				contractDeclared = ContractsKey != null && previous != null &&
+				                   (previous.contractName ?? "").Length < ContractsKey.Length,
 				service = containerService
 			};
 			current.Push(item);
@@ -58,20 +69,15 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name, string contractName,
 			SimpleContainer container)
 		{
-			if (ContractName != null)
-				throw new SimpleContainerException(
-					string.Format("nested contexts are not supported, outer contract [{0}], inner contract [{1}]\r\n{2}",
-						ContractName, contractName, Format()));
-			var result = (GetContractConfiguration(contractName).UnionContractNames ?? Enumerable.Repeat(contractName, 1))
+			return (GetContractConfiguration(contractName).UnionContractNames ?? Enumerable.Repeat(contractName, 1))
 				.Select(delegate(string c)
 				{
-					SetContract(c);
-					return container.ResolveSingleton(type, name, this);
+					PushContract(c);
+					var result = container.ResolveSingleton(type, name, this);
+					PopContract();
+					return result;
 				})
 				.ToArray();
-			contractConfiguration = null;
-			ContractName = null;
-			return result;
 		}
 
 		public string Format(Type targetType = null)
@@ -110,7 +116,7 @@ namespace SimpleContainer.Implementation
 				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.type)
 					? state.name
 					: state.service.type.FormatName());
-				if (state.contractName != null && state.service.contractUsed)
+				if (state.contractName != null && state.service.usedContractName != null)
 					writer.WriteUsedContract(state.contractName);
 				if (state.contractName != null && state.contractDeclared)
 				{
@@ -141,10 +147,22 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private void SetContract(string contractName)
+		private void PushContract(string contractName)
 		{
-			contractConfiguration = GetContractConfiguration(contractName);
-			ContractName = contractName;
+			requiredContracts.Push(new RequiredContract
+			{
+				name = contractName,
+				configuration = GetContractConfiguration(contractName)
+			});
+			ContractsKey += ContractsKey == null ? contractName : "->" + contractName;
+		}
+
+		private void PopContract()
+		{
+			var popped = requiredContracts.Pop();
+			ContractsKey = ContractsKey.Length == popped.name.Length
+				? null
+				: ContractsKey.Substring(0, ContractsKey.Length - popped.name.Length - 2);
 		}
 
 		private class ResolutionItem

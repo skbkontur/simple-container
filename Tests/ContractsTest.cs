@@ -260,49 +260,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class NestedContractsAreProhibited : ContractsTest
-		{
-			public class Wrap
-			{
-				public Wrap(OuterService outerService)
-				{
-				}
-			}
-
-			public class OuterService
-			{
-				public OuterService([RequireContract("c1")] InnerService innerService)
-				{
-				}
-			}
-
-			public class InnerService
-			{
-				public InnerService([RequireContract("c2")] Service service)
-				{
-				}
-			}
-
-			public class Service
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(delegate(ContainerConfigurationBuilder builder)
-				{
-					builder.Contract("c1").Bind<InnerService, InnerService>();
-					builder.Contract("c2").Bind<Service, Service>();
-				});
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				const string expectedMessage =
-					"nested contexts are not supported, outer contract [c1], inner contract [c2]\r\n" +
-					"Wrap!\r\n\tOuterService!\r\n\t\tInnerService[c1]->[c1]!";
-				Assert.That(error.Message, Is.EqualTo(expectedMessage));
-			}
-		}
-
 		public class ContractFormatting : ContractsTest
 		{
 			public class Wrap
@@ -696,6 +653,72 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("a").Bind<ISomeInterface, Impl2>());
 				Assert.That(container.Get<A>().someInterface, Is.InstanceOf<Impl2>());
+			}
+		}
+
+		public class SimpleNestedContracts : ContractsTest
+		{
+			public class Wrap
+			{
+				public readonly IInterface1 s1;
+				public readonly IInterface1 s2;
+
+				public Wrap([RequireContract("a1")] IInterface1 s1, [RequireContract("a2")] IInterface1 s2)
+				{
+					this.s1 = s1;
+					this.s2 = s2;
+				}
+			}
+
+			public interface IInterface1
+			{
+			}
+
+			public class Impl1 : IInterface1
+			{
+				public readonly IInterface2 s1;
+				public readonly IInterface2 s2;
+
+				public Impl1([RequireContract("b1")] IInterface2 s1, [RequireContract("b2")] IInterface2 s2)
+				{
+					this.s1 = s1;
+					this.s2 = s2;
+				}
+			}
+
+			public class Impl2 : IInterface1
+			{
+			}
+
+			public interface IInterface2
+			{
+			}
+
+			public class Impl3 : IInterface2
+			{
+			}
+			
+			public class Impl4 : IInterface2
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("a1").Bind<IInterface1, Impl1>();
+					builder.Contract("a2").Bind<IInterface1, Impl2>();
+					builder.Contract("b1").Bind<IInterface2, Impl3>();
+					builder.Contract("b2").Bind<IInterface2, Impl4>();
+				});
+				var instance = container.Get<Wrap>();
+				Assert.That(instance.s1, Is.InstanceOf<Impl1>());
+				Assert.That(instance.s2, Is.InstanceOf<Impl2>());
+
+				var impl = (Impl1) instance.s1;
+				Assert.That(impl.s1, Is.InstanceOf<Impl3>());
+				Assert.That(impl.s2, Is.InstanceOf<Impl4>());
 			}
 		}
 	}

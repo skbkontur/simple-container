@@ -13,7 +13,7 @@ namespace SimpleContainer.Implementation
 		public bool createNew;
 		public Type type;
 		public ResolutionContext context;
-		public bool contractUsed;
+		public string usedContractName;
 		public object lockObject = new object();
 		public readonly List<object> instances = new List<object>();
 		public bool instantiated;

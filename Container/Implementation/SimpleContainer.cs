@@ -146,7 +146,7 @@ namespace SimpleContainer.Implementation
 				return staticContainer.ResolveSingleton(type, name, context);
 			if (serviceCacheLevel == CacheLevel.Local && cacheLevel == CacheLevel.Static)
 				context.Throw("local service [{0}] can't be resolved in static context", type.FormatName());
-			var cacheKey = new CacheKey(type, context.ContractName);
+			var cacheKey = new CacheKey(type, context.ContractsKey);
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
 			if (!result.instantiated)
 				lock (result.lockObject)
@@ -190,7 +190,7 @@ namespace SimpleContainer.Implementation
 					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext
 					{
 						container = this,
-						contract = service.context.ContractName
+						contract = service.context.ContractsKey
 					}));
 					return;
 				}
@@ -375,7 +375,8 @@ namespace SimpleContainer.Implementation
 			{
 				var formalParameter = formalParameters[i];
 				var dependencyService = InstantiateDependency(formalParameter, implementation, service);
-				service.contractUsed |= dependencyService.contractUsed;
+				if (service.usedContractName == null)
+					service.usedContractName = dependencyService.usedContractName;
 				if (dependencyService.instances.Count == 0)
 					return;
 				var dependencyValue = dependencyService.SingleInstance();
@@ -390,7 +391,7 @@ namespace SimpleContainer.Implementation
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
 				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
-			if (service.context.ContractName == null || service.contractUsed)
+			if (service.context.ContractsKey == null || service.usedContractName != null)
 			{
 				service.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));
 				return;
@@ -407,9 +408,9 @@ namespace SimpleContainer.Implementation
 			service.instances.AddRange(serviceWithoutContract.instances);
 		}
 
-		public ContainerService ResolvedService(object instance, bool contractUsed = false)
+		public ContainerService ResolvedService(object instance, string usedContractName = null)
 		{
-			var result = new ContainerService {contractUsed = contractUsed};
+			var result = new ContainerService {usedContractName = usedContractName};
 			result.instances.Add(instance);
 			return result;
 		}
@@ -478,7 +479,7 @@ namespace SimpleContainer.Implementation
 			else
 				result = ResolveSingleton(dependencyType, formalParameter.Name, service.context);
 			if (isEnumerable)
-				return ResolvedService(result.AsEnumerable(), result.contractUsed);
+				return ResolvedService(result.AsEnumerable(), result.usedContractName);
 			if (result.instances.Count == 0 && formalParameter.HasDefaultValue)
 				result.instances.Add(formalParameter.DefaultValue);
 			if (result.instances.Count == 0 && formalParameter.IsDefined<OptionalAttribute>())

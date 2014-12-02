@@ -16,10 +16,10 @@ namespace SimpleContainer.Factories
 			if (typeArguments[0] != typeof (object))
 				return false;
 			var type = typeArguments[1];
-			var contract = containerService.context.ContractName;
+			var contract = containerService.context.ContractsKey;
 			Func<object, object> factory = arguments => container.Create(type, contract, arguments);
 			containerService.instances.Add(DelegateCaster.Create(type).Cast(factory));
-			containerService.contractUsed = true;
+			containerService.usedContractName = contract;
 			return true;
 		}
 	}

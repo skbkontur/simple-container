@@ -12,10 +12,10 @@ namespace SimpleContainer.Factories
 			if (containerService.type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
 			var type = containerService.type.GetGenericArguments()[0];
-			var contract = containerService.context.ContractName;
+			var contract = containerService.context.ContractsKey;
 			Func<object> factory = () => container.Create(type, contract, null);
 			containerService.instances.Add(DelegateCaster.Create(type).Cast(factory));
-			containerService.contractUsed = true;
+			containerService.usedContractName = contract;
 			return true;
 		}
 	}
