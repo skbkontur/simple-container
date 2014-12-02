@@ -723,6 +723,65 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ContractOnClassAndParameter : ContractsTest
+		{
+			public class Wrap
+			{
+				public readonly A a;
+
+				public Wrap([RequireContract("a")] A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[RequireContract("b")]
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int dependency;
+				public readonly C c;
+
+				public B(int dependency, C c)
+				{
+					this.dependency = dependency;
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly int dependency;
+
+				public C(int dependency)
+				{
+					this.dependency = dependency;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("a").BindDependency<B>("dependency", 1);
+					builder.Contract("b").BindDependency<C>("dependency", 2);
+				});
+				var wrap = container.Get<Wrap>();
+				Assert.That(wrap.a.b.dependency, Is.EqualTo(1));
+				Assert.That(wrap.a.b.c.dependency, Is.EqualTo(2));
+			}
+		}
+
 		public class ContractsFlowViaDependenciesWithRequireContract : ContractsTest
 		{
 			public class H

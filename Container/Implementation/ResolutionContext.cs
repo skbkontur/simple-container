@@ -78,15 +78,24 @@ namespace SimpleContainer.Implementation
 			depth--;
 		}
 
-		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name, string contractName,
-			SimpleContainer container)
+		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name,
+			string dependencyContract, string serviceContract, SimpleContainer container)
 		{
-			return (GetContractConfiguration(contractName).UnionContractNames ?? Enumerable.Repeat(contractName, 1))
+			var dependencyContracts = dependencyContract == null
+				? new string[] {null}
+				: GetContractConfiguration(dependencyContract).UnionContractNames ?? Enumerable.Repeat(dependencyContract, 1);
+			return dependencyContracts
 				.Select(delegate(string c)
 				{
-					PushContract(c);
+					if (c != null)
+						PushContract(c);
+					if (serviceContract != null)
+						PushContract(serviceContract);
 					var result = container.ResolveSingleton(type, name, this);
-					PopContract();
+					if (serviceContract != null)
+						PopContract();
+					if (c != null)
+						PopContract();
 					return result;
 				})
 				.ToArray();

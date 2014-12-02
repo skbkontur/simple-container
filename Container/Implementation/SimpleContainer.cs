@@ -495,18 +495,18 @@ namespace SimpleContainer.Implementation
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
 			var dependencyType = isEnumerable ? enumerableItem : implementationType;
 
-			RequireContractAttribute requireContractAttribute;
-			var baseContractName = formalParameter.TryGetCustomAttribute(out requireContractAttribute) ||
-			                       dependencyType.TryGetCustomAttribute(out requireContractAttribute)
-				? requireContractAttribute.ContractName
-				: null;
+
+			var parameterContract = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
+			var dependencyTypeContract = dependencyType.GetCustomAttributeOrNull<RequireContractAttribute>();
 
 			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
 				var contacts = new List<string>(service.context.RequiredContractNames());
-				if (baseContractName != null)
-					contacts.Add(baseContractName);
+				if (parameterContract != null)
+					contacts.Add(parameterContract.ContractName);
+				if (dependencyTypeContract != null)
+					contacts.Add(dependencyTypeContract.ContractName);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
 				{
 					container = this,
@@ -517,10 +517,11 @@ namespace SimpleContainer.Implementation
 			}
 
 			ContainerService result;
-			if (baseContractName != null)
+			if (parameterContract != null || dependencyTypeContract != null)
 			{
 				var contractServices = service.context.ResolveUsingContract(dependencyType, formalParameter.Name,
-					baseContractName, this);
+					parameterContract == null ? null : parameterContract.ContractName,
+					dependencyTypeContract == null ? null : dependencyTypeContract.ContractName, this);
 				result = new ContainerService {type = dependencyType, context = service.context};
 				foreach (var contractService in contractServices)
 					result.UnionFrom(contractService);
