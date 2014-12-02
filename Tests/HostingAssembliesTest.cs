@@ -4,7 +4,6 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Helpers;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 using SimpleContainer.Tests.Helpers;

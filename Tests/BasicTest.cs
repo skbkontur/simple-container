@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
@@ -652,28 +653,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : BasicTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container(c => c.DontUse(typeof (B)));
-				Assert.That(container.GetImplementationsOf<IIntf>(), Is.EquivalentTo(new[] {typeof (A)}));
-			}
-
-			public class A : IIntf
-			{
-			}
-
-			public class B : IIntf
-			{
-			}
-
-			public interface IIntf
-			{
-			}
-		}
-
 		public class EnumerableDependenciesAreRequired : BasicTest
 		{
 			[Test]
@@ -808,7 +787,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				const string message =
-					"no implementations for OuterOuterService\r\nOuterOuterService!\r\n\tOuterService!\r\n\t\tIInterface!";
+					"no implementations for OuterOuterService\r\nOuterOuterService!\r\n\tOuterService!\r\n\t\tIInterface! - has no implementations";
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
@@ -1395,7 +1374,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				const string message2 = "no implementations for Child2\r\nChild2!\r\n\tIOtherService!";
+				const string message2 = "no implementations for Child2\r\nChild2!\r\n\tIOtherService! - has no implementations";
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<Child2>());
 				Assert.That(error.Message, Is.EqualTo(message2));
 			}
@@ -1490,6 +1469,92 @@ namespace SimpleContainer.Tests
 				}
 
 				public ServiceA ServiceA { get; private set; }
+			}
+		}
+
+		public class NoImplementations_Crash : SimpleContainerTestBase
+		{
+			public interface IInterface
+			{
+			}
+
+			public class Wrap
+			{
+				public readonly IEnumerable<IInterface> instances;
+
+				public Wrap(IEnumerable<IInterface> instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<Wrap>().instances.Count(), Is.EqualTo(0));
+				Assert.That(container.GetConstructionLog(typeof (Wrap)),
+					Is.EqualTo("Wrap\r\n\tIInterface! - has no implementations"));
+			}
+		}
+
+		public class CanExplicitlyBindIterfaceToNull : SimpleContainerTestBase
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Bind<B>((object) null));
+				var instance = container.Get<A>();
+				Assert.That(instance.b, Is.Null);
+			}
+		}
+
+		public class OptionalAttributeTest : SimpleContainerTestBase
+		{
+			public class WrapWithOptionalDependency
+			{
+				public readonly A a;
+
+				public WrapWithOptionalDependency([Optional] A a)
+				{
+					this.a = a;
+				}
+			}
+			
+			public class WrapWithRequiredDependency
+			{
+				public readonly A a;
+
+				public WrapWithRequiredDependency(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<A>());
+				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
+				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
 			}
 		}
 	}

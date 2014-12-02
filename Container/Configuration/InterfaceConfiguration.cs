@@ -7,7 +7,8 @@ namespace SimpleContainer.Configuration
 	internal class InterfaceConfiguration
 	{
 		public List<Type> ImplementationTypes { get; private set; }
-		public object Implementation { get; set; }
+		public object Implementation { get; private set; }
+		public bool ImplementationAssigned { get; private set; }
 		public Func<FactoryContext, object> Factory { get; set; }
 		public bool UseAutosearch { get; set; }
 		public CacheLevel? CacheLevel { get; set; }
@@ -20,6 +21,12 @@ namespace SimpleContainer.Configuration
 				ImplementationTypes.Clear();
 			if (!ImplementationTypes.Contains(type))
 				ImplementationTypes.Add(type);
+		}
+
+		public void UseInstance(object instance)
+		{
+			Implementation = instance;
+			ImplementationAssigned = true;
 		}
 	}
 }

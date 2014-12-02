@@ -41,7 +41,7 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format("value {0} can't be casted to required type [{1}]",
 					DumpValue(value),
 					interfaceType.FormatName()));
-			GetOrCreate<InterfaceConfiguration>(interfaceType).Implementation = value;
+			GetOrCreate<InterfaceConfiguration>(interfaceType).UseInstance(value);
 			return this;
 		}
 

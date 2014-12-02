@@ -46,7 +46,7 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 
-		internal SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
+		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			SimpleContainer staticContainer)
 		{
 			this.configuration = configuration;
@@ -98,6 +98,9 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
 		{
+			var interfaceConfiguration = configuration.GetOrNull<InterfaceConfiguration>(interfaceType);
+			if (interfaceConfiguration != null && interfaceConfiguration.ImplementationTypes != null)
+				return interfaceConfiguration.ImplementationTypes;
 			var result = inheritors.GetOrNull(interfaceType);
 			return result != null
 				? result.Where(delegate(Type type)
@@ -133,7 +136,7 @@ namespace SimpleContainer.Implementation
 			return new SimpleContainer(configuration, inheritors, staticContainer);
 		}
 
-		internal ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
+		public ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
 		{
 			var serviceCacheLevel = GetCacheLevel(type, context);
 			if (serviceCacheLevel == CacheLevel.Static && cacheLevel == CacheLevel.Local)
@@ -160,7 +163,7 @@ namespace SimpleContainer.Implementation
 			return type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
-		internal void Instantiate(ContainerService service)
+		public void Instantiate(ContainerService service)
 		{
 			if (ReflectionHelpers.simpleTypes.Contains(service.type))
 				service.Throw("can't create simple type");
@@ -174,7 +177,7 @@ namespace SimpleContainer.Implementation
 			var useAutosearch = false;
 			if (interfaceConfiguration != null)
 			{
-				if (interfaceConfiguration.Implementation != null)
+				if (interfaceConfiguration.ImplementationAssigned)
 				{
 					service.instances.Add(interfaceConfiguration.Implementation);
 					return;
@@ -207,7 +210,13 @@ namespace SimpleContainer.Implementation
 				localTypes = implementationTypes.Union(GetInheritors(service.type));
 			else
 				localTypes = implementationTypes;
-			foreach (var type in localTypes)
+			var localTypesArray = localTypes.ToArray();
+			if (localTypesArray.Length == 0)
+			{
+				service.context.Report("has no implementations");
+				return;
+			}
+			foreach (var type in localTypesArray)
 				InstantiateImplementation(service, type);
 		}
 
@@ -469,6 +478,8 @@ namespace SimpleContainer.Implementation
 				return ResolvedService(result.AsEnumerable(), result.contractUsed);
 			if (result.instances.Count == 0 && formalParameter.HasDefaultValue)
 				result.instances.Add(formalParameter.DefaultValue);
+			if (result.instances.Count == 0 && formalParameter.IsDefined<OptionalAttribute>())
+				result.instances.Add(null);
 			return result;
 		}
 

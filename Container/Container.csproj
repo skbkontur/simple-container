@@ -70,6 +70,7 @@
     <Compile Include="Implementation\StaticContainer.cs" />
     <Compile Include="ContainerFactory.cs" />
     <Compile Include="Configuration\IServiceConfigurator.cs" />
+    <Compile Include="Infection\OptionalAttribute.cs" />
     <Compile Include="IStaticContainer.cs" />
     <Compile Include="Implementation\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
