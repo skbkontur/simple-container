@@ -70,15 +70,19 @@ namespace SimpleContainer.Implementation
 			RequireContractAttribute requireContractAttribute;
 			if (serviceType.TryGetCustomAttribute(out requireContractAttribute))
 				targetContracts = targetContracts.Concat(requireContractAttribute.ContractName);
-			var key = new CacheKey(serviceType, targetContracts);
-			return instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve().SingleInstance();
+			return GetInternal(new CacheKey(serviceType, targetContracts)).SingleInstance();
+		}
+
+		private ContainerService GetInternal(CacheKey cacheKey)
+		{
+			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
+			result.WaitForResolve();
+			return result.Failed ? createInstanceDelegate(cacheKey) : result;
 		}
 
 		public IEnumerable<object> GetAll(Type serviceType)
 		{
-			return instanceCache.GetOrAdd(new CacheKey(serviceType, null), createInstanceDelegate)
-				.WaitForResolve()
-				.AsEnumerable();
+			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
@@ -120,7 +124,8 @@ namespace SimpleContainer.Implementation
 			dependenciesInjector.BuildUp(target);
 		}
 
-		public void DumpConstructionLog(Type type,  IEnumerable<string> contracts, bool entireResolutionContext, ISimpleLogWriter writer)
+		public void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
+			ISimpleLogWriter writer)
 		{
 			ContainerService containerService;
 			if (instanceCache.TryGetValue(new CacheKey(type, contracts), out containerService))
@@ -154,6 +159,11 @@ namespace SimpleContainer.Implementation
 				{
 					context.Instantiate(name, result, this);
 					result.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
+				}
+				catch
+				{
+					result.InstantiatedUnsuccessfully();
+					throw;
 				}
 				finally
 				{
@@ -417,6 +427,10 @@ namespace SimpleContainer.Implementation
 					serviceForUsedContracts.AddInstance(instance);
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
+				catch
+				{
+					serviceForUsedContracts.InstantiatedUnsuccessfully();
+				}
 				finally
 				{
 					serviceForUsedContracts.ReleaseInstantiateLock();
@@ -431,7 +445,7 @@ namespace SimpleContainer.Implementation
 			result.AddInstance(instance);
 			return result;
 		}
-		
+
 		public ContainerService DependentService(object instance, ContainerService dependency)
 		{
 			var result = new ContainerService();
@@ -561,7 +575,7 @@ namespace SimpleContainer.Implementation
 			{
 				unchecked
 				{
-					return (type.GetHashCode() * 397) ^ contractsKey.GetHashCode();
+					return (type.GetHashCode()*397) ^ contractsKey.GetHashCode();
 				}
 			}
 

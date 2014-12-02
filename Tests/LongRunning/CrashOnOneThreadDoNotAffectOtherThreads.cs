@@ -44,8 +44,9 @@ namespace SimpleContainer.Tests.LongRunning
 				Thread.Sleep(20);
 				container.Get<A>();
 			});
-			Assert.That(error.Message, Is.StringStarting("can't create simple type\r\nA!\r\n\tServiceWithDelay\r\n\tparameter!"));
-			Assert.That(otherThreadTask.Exception.InnerExceptions.Single().ToString(), Is.EqualTo(error.ToString()));
+			Assert.That(error.Message, Is.StringStarting("can't create simple type\r\nA!\r\n\tparameter!"));
+			Assert.That(otherThreadTask.Exception.InnerExceptions.Single().Message,
+				Is.StringStarting("can't create simple type\r\nA!\r\n\tServiceWithDelay\r\n\tparameter!"));
 		}
 	}
 }

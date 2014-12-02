@@ -24,6 +24,7 @@ namespace SimpleContainer.Implementation
 		public Type type;
 		public ResolutionContext context;
 		public string[] FinalUsedContracts { get; private set; }
+		public bool Failed { get; private set; }
 
 		public IEnumerable<object> AsEnumerable()
 		{
@@ -105,15 +106,14 @@ namespace SimpleContainer.Implementation
 			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, context.Format(type)));
 		}
 
-		public ContainerService WaitForResolve()
+		public void WaitForResolve()
 		{
-			if (!instantiated)
+			if (!instantiated && !Failed)
 				lock (lockObject)
-					while (!instantiated)
+					while (!instantiated && !Failed)
 						if (!Monitor.Wait(lockObject, waitTimeout))
 							throw new SimpleContainerException(string.Format("service [{0}] wait for resolve timed out after [{1}] millis",
 								type.FormatName(), waitTimeout.TotalMilliseconds));
-			return this;
 		}
 
 		public bool AcquireInstantiateLock()
@@ -130,7 +130,13 @@ namespace SimpleContainer.Implementation
 		public void InstantiatedSuccessfully(int topSortIndex)
 		{
 			TopSortIndex = topSortIndex;
-			Volatile.Write(ref instantiated, true);
+			Failed = false;
+			instantiated = true;
+		}
+
+		public void InstantiatedUnsuccessfully()
+		{
+			Failed = true;
 		}
 
 		public void ReleaseInstantiateLock()
