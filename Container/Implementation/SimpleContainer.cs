@@ -66,6 +66,9 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			if (TryUnwrapEnumerable(serviceType, out enumerableItem))
 				return GetAll(enumerableItem);
+			RequireContractAttribute requireContractAttribute;
+			if (string.IsNullOrEmpty(contract) && serviceType.TryGetCustomAttribute(out requireContractAttribute))
+				contract = requireContractAttribute.ContractName;
 			var key = new CacheKey(serviceType, contract);
 			return instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve().SingleInstance();
 		}

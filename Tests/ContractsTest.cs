@@ -665,5 +665,38 @@ namespace SimpleContainer.Tests
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
 			}
 		}
+
+		public class ContractAttachedOnClassIsUsedOnGet : ContractsTest
+		{
+			[RequireContract("a")]
+			public class A
+			{
+				public readonly ISomeInterface someInterface;
+
+				public A(ISomeInterface someInterface)
+				{
+					this.someInterface = someInterface;
+				}
+			}
+
+			public interface ISomeInterface
+			{
+			}
+
+			public class Impl1 : ISomeInterface
+			{
+			}
+
+			public class Impl2 : ISomeInterface
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("a").Bind<ISomeInterface, Impl2>());
+				Assert.That(container.Get<A>().someInterface, Is.InstanceOf<Impl2>());
+			}
+		}
 	}
 }
