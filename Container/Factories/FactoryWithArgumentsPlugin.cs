@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
@@ -17,7 +16,7 @@ namespace SimpleContainer.Factories
 			if (typeArguments[0] != typeof (object))
 				return false;
 			var type = typeArguments[1];
-			var requiredContractNames = containerService.context.requiredContracts.Select(x => x.name).ToArray();
+			var requiredContractNames = containerService.context.RequiredContractNames();
 			Func<object, object> factory = arguments => container.Create(type, requiredContractNames, arguments);
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
 			containerService.UseAllContracts(requiredContractNames.Length);

@@ -15,9 +15,9 @@ namespace SimpleContainer.Implementation
 		private int depth;
 		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
 
-		public IEnumerable<string> RequiredContractNames()
+		public string[] RequiredContractNames()
 		{
-			return requiredContracts.Select(x => x.name);
+			return requiredContracts.Select(x => x.name).ToArray();
 		}
 
 		public struct RequiredContract
@@ -55,7 +55,7 @@ namespace SimpleContainer.Implementation
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current.Peek();
-			var requiredContractNames = RequiredContractNames().ToArray();
+			var requiredContractNames = RequiredContractNames();
 			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
 			var item = new ResolutionItem
 			{

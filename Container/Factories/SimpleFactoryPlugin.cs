@@ -13,7 +13,7 @@ namespace SimpleContainer.Factories
 			if (containerService.type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
 			var type = containerService.type.GetGenericArguments()[0];
-			var requiredContractNames = containerService.context.requiredContracts.Select(x => x.name).ToArray();
+			var requiredContractNames = containerService.context.RequiredContractNames();
 			Func<object> factory = () => container.Create(type, requiredContractNames, null);
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
 			containerService.UseAllContracts(requiredContractNames.Length);
