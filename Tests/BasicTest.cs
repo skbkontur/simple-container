@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
-using SimpleContainer.Configuration;
-using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
@@ -1534,7 +1532,7 @@ namespace SimpleContainer.Tests
 					this.a = a;
 				}
 			}
-			
+
 			public class WrapWithRequiredDependency
 			{
 				public readonly A a;

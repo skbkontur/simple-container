@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SimpleContainer.Implementation
 {
@@ -6,6 +7,6 @@ namespace SimpleContainer.Implementation
 	{
 		public IContainer container;
 		public Type target;
-		public string contract;
+		public IEnumerable<string> contracts;
 	}
 }

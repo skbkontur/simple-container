@@ -56,20 +56,21 @@ namespace SimpleContainer.Implementation
 			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
-				var context = new ResolutionContext(configuration, key.contract);
+				var context = new ResolutionContext(configuration, key.contracts);
 				return ResolveSingleton(key.type, null, context);
 			};
 		}
 
-		public object Get(Type serviceType, string contract)
+		public object Get(Type serviceType, IEnumerable<string> contracts)
 		{
 			Type enumerableItem;
 			if (TryUnwrapEnumerable(serviceType, out enumerableItem))
 				return GetAll(enumerableItem);
+			var targetContracts = contracts;
 			RequireContractAttribute requireContractAttribute;
-			if (string.IsNullOrEmpty(contract) && serviceType.TryGetCustomAttribute(out requireContractAttribute))
-				contract = requireContractAttribute.ContractName;
-			var key = new CacheKey(serviceType, contract);
+			if (serviceType.TryGetCustomAttribute(out requireContractAttribute))
+				targetContracts = targetContracts.Concat(requireContractAttribute.ContractName);
+			var key = new CacheKey(serviceType, targetContracts);
 			return instanceCache.GetOrAdd(key, createInstanceDelegate).WaitForResolve().SingleInstance();
 		}
 
@@ -80,9 +81,9 @@ namespace SimpleContainer.Implementation
 				.AsEnumerable();
 		}
 
-		public object Create(Type type, string contract, object arguments)
+		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
-			var resolutionContext = new ResolutionContext(configuration, contract);
+			var resolutionContext = new ResolutionContext(configuration, contracts);
 			var result = new ContainerService
 			{
 				type = type,
@@ -119,10 +120,10 @@ namespace SimpleContainer.Implementation
 			dependenciesInjector.BuildUp(target);
 		}
 
-		public void DumpConstructionLog(Type type, string contractName, bool entireResolutionContext, ISimpleLogWriter writer)
+		public void DumpConstructionLog(Type type,  IEnumerable<string> contracts, bool entireResolutionContext, ISimpleLogWriter writer)
 		{
 			ContainerService containerService;
-			if (instanceCache.TryGetValue(new CacheKey(type, contractName), out containerService))
+			if (instanceCache.TryGetValue(new CacheKey(type, contracts), out containerService))
 				containerService.context.Format(entireResolutionContext ? null : type, writer);
 		}
 
@@ -131,7 +132,7 @@ namespace SimpleContainer.Implementation
 			var resultServices = instanceCache.Values.Where(x => !x.type.IsAbstract && type.IsAssignableFrom(x.type));
 			var result = new List<ContainerService>(resultServices);
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
-			return result.SelectMany(x => x.instances).Distinct();
+			return result.SelectMany(x => x.Instances).Distinct();
 		}
 
 		public IContainer Clone()
@@ -146,21 +147,24 @@ namespace SimpleContainer.Implementation
 				return staticContainer.ResolveSingleton(type, name, context);
 			if (serviceCacheLevel == CacheLevel.Local && cacheLevel == CacheLevel.Static)
 				context.Throw("local service [{0}] can't be resolved in static context", type.FormatName());
-			var cacheKey = new CacheKey(type, context.ContractsKey);
+			var cacheKey = new CacheKey(type, context.RequiredContractNames());
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
-			if (!result.instantiated)
-				lock (result.lockObject)
-					if (!result.instantiated)
-					{
-						context.Instantiate(name, result, this);
-						result.SetInstantiated(Interlocked.Increment(ref topSortIndex));
-					}
+			if (result.AcquireInstantiateLock())
+				try
+				{
+					context.Instantiate(name, result, this);
+					result.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
+				}
+				finally
+				{
+					result.ReleaseInstantiateLock();
+				}
 			return result;
 		}
 
-		private static CacheLevel GetCacheLevel(Type type, ResolutionContext context)
+		private static CacheLevel GetCacheLevel(Type type, ResolutionContext resolutionContext)
 		{
-			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(type);
+			var interfaceConfiguration = resolutionContext.GetInitialContainerConfiguration<InterfaceConfiguration>(type);
 			if (interfaceConfiguration != null && interfaceConfiguration.CacheLevel.HasValue)
 				return interfaceConfiguration.CacheLevel.Value;
 			return type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
@@ -172,7 +176,7 @@ namespace SimpleContainer.Implementation
 				service.Throw("can't create simple type");
 			if (service.type == typeof (IContainer))
 			{
-				service.instances.Add(this);
+				service.AddInstance(this);
 				return;
 			}
 			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(service.type);
@@ -182,15 +186,15 @@ namespace SimpleContainer.Implementation
 			{
 				if (interfaceConfiguration.ImplementationAssigned)
 				{
-					service.instances.Add(interfaceConfiguration.Implementation);
+					service.AddInstance(interfaceConfiguration.Implementation);
 					return;
 				}
 				if (interfaceConfiguration.Factory != null)
 				{
-					service.instances.Add(interfaceConfiguration.Factory(new FactoryContext
+					service.AddInstance(interfaceConfiguration.Factory(new FactoryContext
 					{
 						container = this,
-						contract = service.context.ContractsKey
+						contracts = service.context.RequiredContractNames()
 					}));
 					return;
 				}
@@ -239,7 +243,7 @@ namespace SimpleContainer.Implementation
 				}
 				else
 					childService = ResolveSingleton(implementationType, null, service.context);
-				service.instances.AddRange(childService.instances);
+				service.Union(childService);
 				return;
 			}
 			if (implementationType.IsDefined<IgnoreImplementationAttribute>())
@@ -253,11 +257,14 @@ namespace SimpleContainer.Implementation
 			else
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
-				if (factory.instances.Count == 1)
-					service.instances.Add(InvokeConstructor(factoryMethod, factory.instances[0], new object[0], service.context));
+				if (factory.Instances.Count == 1)
+				{
+					var instance = InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service.context);
+					service.AddInstance(instance);
+				}
 			}
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
-				service.instances.RemoveAll(o => !implementationConfiguration.InstanceFilter(o));
+				service.FilterInstances(implementationConfiguration.InstanceFilter);
 		}
 
 		private static MethodInfo GetFactoryOrNull(Type type)
@@ -375,10 +382,12 @@ namespace SimpleContainer.Implementation
 			{
 				var formalParameter = formalParameters[i];
 				var dependencyService = InstantiateDependency(formalParameter, implementation, service);
-				if (service.usedContractName == null)
-					service.usedContractName = dependencyService.usedContractName;
-				if (dependencyService.instances.Count == 0)
+				service.UnionUsedContracts(dependencyService);
+				if (dependencyService.Instances.Count == 0)
+				{
+					service.EndResolveDependencies();
 					return;
+				}
 				var dependencyValue = dependencyService.SingleInstance();
 				if (dependencyValue != null && !formalParameter.ParameterType.IsInstanceOfType(dependencyValue))
 					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
@@ -388,30 +397,46 @@ namespace SimpleContainer.Implementation
 						dependencyValue);
 				actualArguments[i] = dependencyValue;
 			}
+			service.EndResolveDependencies();
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
 				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
-			if (service.context.ContractsKey == null || service.usedContractName != null)
+			if (service.FinalUsedContracts.Length == service.context.requiredContracts.Count)
 			{
-				service.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));
+				var instance = InvokeConstructor(constructor, null, actualArguments, service.context);
+				service.AddInstance(instance);
 				return;
 			}
-			var serviceWithoutContract = instanceCache.GetOrAdd(new CacheKey(type, null), createContainerServiceDelegate);
-			if (!serviceWithoutContract.instantiated)
-				lock (serviceWithoutContract.lockObject)
-					if (!serviceWithoutContract.instantiated)
-					{
-						serviceWithoutContract.context = service.context;
-						serviceWithoutContract.instances.Add(InvokeConstructor(constructor, null, actualArguments, service.context));
-						serviceWithoutContract.SetInstantiated(Interlocked.Increment(ref topSortIndex));
-					}
-			service.instances.AddRange(serviceWithoutContract.instances);
+			var usedContactsCacheKey = new CacheKey(type, service.FinalUsedContracts);
+			var serviceForUsedContracts = instanceCache.GetOrAdd(usedContactsCacheKey, createContainerServiceDelegate);
+			if (serviceForUsedContracts.AcquireInstantiateLock())
+				try
+				{
+					serviceForUsedContracts.context = service.context;
+					var instance = InvokeConstructor(constructor, null, actualArguments, service.context);
+					serviceForUsedContracts.AddInstance(instance);
+					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
+				}
+				finally
+				{
+					serviceForUsedContracts.ReleaseInstantiateLock();
+				}
+			foreach (var instance in serviceForUsedContracts.Instances)
+				service.AddInstance(instance);
 		}
 
-		public ContainerService ResolvedService(object instance, string usedContractName = null)
+		public ContainerService IndependentService(object instance)
 		{
-			var result = new ContainerService {usedContractName = usedContractName};
-			result.instances.Add(instance);
+			var result = new ContainerService();
+			result.AddInstance(instance);
+			return result;
+		}
+		
+		public ContainerService DependentService(object instance, ContainerService dependency)
+		{
+			var result = new ContainerService();
+			result.AddInstance(instance);
+			result.UnionUsedContracts(dependency);
 			return result;
 		}
 
@@ -420,20 +445,20 @@ namespace SimpleContainer.Implementation
 		{
 			object actualArgument;
 			if (service.arguments != null && service.arguments.TryGet(formalParameter.Name, out actualArgument))
-				return ResolvedService(actualArgument);
+				return IndependentService(actualArgument);
 			var dependencyConfiguration = implementation.GetDependencyConfiguration(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
 			{
 				if (dependencyConfiguration.ValueAssigned)
-					return ResolvedService(dependencyConfiguration.Value);
+					return IndependentService(dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
-					return ResolvedService(dependencyConfiguration.Factory(this));
+					return IndependentService(dependencyConfiguration.Factory(this));
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
 			implementationType = implementationType ?? formalParameter.ParameterType;
 			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
-				return ResolvedService(formalParameter.DefaultValue);
+				return IndependentService(formalParameter.DefaultValue);
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
@@ -444,7 +469,7 @@ namespace SimpleContainer.Implementation
 						string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
 							resourceAttribute.Name, implementation.type,
 							implementation.type.Assembly.GetName().Name, service.context.Format()));
-				return ResolvedService(resourceStream);
+				return IndependentService(resourceStream);
 			}
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
@@ -459,31 +484,35 @@ namespace SimpleContainer.Implementation
 			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
+				var contacts = new List<string>(service.context.RequiredContractNames());
+				if (baseContractName != null)
+					contacts.Add(baseContractName);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
 				{
 					container = this,
 					target = implementation.type,
-					contract = baseContractName
+					contracts = contacts
 				});
-				return ResolvedService(instance);
+				return IndependentService(instance);
 			}
 
 			ContainerService result;
 			if (baseContractName != null)
 			{
-				result = new ContainerService {type = dependencyType};
 				var contractServices = service.context.ResolveUsingContract(dependencyType, formalParameter.Name,
 					baseContractName, this);
-				result.instances.AddRange(contractServices.SelectMany(x => x.instances).Distinct());
+				result = new ContainerService {type = dependencyType, context = service.context};
+				foreach (var contractService in contractServices)
+					result.Union(contractService);
 			}
 			else
 				result = ResolveSingleton(dependencyType, formalParameter.Name, service.context);
 			if (isEnumerable)
-				return ResolvedService(result.AsEnumerable(), result.usedContractName);
-			if (result.instances.Count == 0 && formalParameter.HasDefaultValue)
-				result.instances.Add(formalParameter.DefaultValue);
-			if (result.instances.Count == 0 && formalParameter.IsDefined<OptionalAttribute>())
-				result.instances.Add(null);
+				return DependentService(result.AsEnumerable(), result);
+			if (result.Instances.Count == 0 && formalParameter.HasDefaultValue)
+				result.AddInstance(formalParameter.DefaultValue);
+			if (result.Instances.Count == 0 && formalParameter.IsDefined<OptionalAttribute>())
+				result.AddInstance(null);
 			return result;
 		}
 
@@ -507,17 +536,19 @@ namespace SimpleContainer.Implementation
 		private struct CacheKey : IEquatable<CacheKey>
 		{
 			public readonly Type type;
-			public readonly string contract;
+			public readonly string[] contracts;
+			private readonly string contractsKey;
 
-			public CacheKey(Type type, string contract)
+			public CacheKey(Type type, IEnumerable<string> contracts)
 			{
 				this.type = type;
-				this.contract = contract ?? "";
+				this.contracts = (contracts ?? new string[0]).ToArray();
+				contractsKey = InternalHelpers.FormatContractsKey(this.contracts);
 			}
 
 			public bool Equals(CacheKey other)
 			{
-				return type == other.type && contract == other.contract;
+				return type == other.type && contractsKey == other.contractsKey;
 			}
 
 			public override bool Equals(object obj)
@@ -530,7 +561,7 @@ namespace SimpleContainer.Implementation
 			{
 				unchecked
 				{
-					return (type.GetHashCode()*397) ^ contract.GetHashCode();
+					return (type.GetHashCode() * 397) ^ contractsKey.GetHashCode();
 				}
 			}
 

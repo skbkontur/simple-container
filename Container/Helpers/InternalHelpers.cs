@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Helpers
@@ -11,6 +12,12 @@ namespace SimpleContainer.Helpers
 			var builder = new ContainerConfigurationBuilder();
 			action(builder);
 			return new MergedConfiguration(configuration, builder.Build());
+		}
+
+		//todo утащить во что-нить типа ContractsSet
+		public static string FormatContractsKey(IEnumerable<string> contracts)
+		{
+			return string.Join("->", contracts);
 		}
 	}
 }

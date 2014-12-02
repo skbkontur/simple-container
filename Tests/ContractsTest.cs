@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -719,6 +720,160 @@ namespace SimpleContainer.Tests
 				var impl = (Impl1) instance.s1;
 				Assert.That(impl.s1, Is.InstanceOf<Impl3>());
 				Assert.That(impl.s2, Is.InstanceOf<Impl4>());
+			}
+		}
+
+		public class ContractsFlowViaDependenciesWithRequireContract : ContractsTest
+		{
+			public class H
+			{
+				public readonly A a1;
+				public readonly A a2;
+
+				public H([RequireContract("x")] A a1, A a2)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+				}
+			}
+
+			public class A
+			{
+				public readonly B b;
+
+				public A([RequireContract("y")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("y");
+					builder.BindDependency<B>("parameter", 1);
+					builder.Contract("x").BindDependency<B>("parameter", 2);
+				});
+				var h = container.Get<H>();
+				Assert.That(h.a1.b.parameter, Is.EqualTo(2));
+				Assert.That(h.a2.b.parameter, Is.EqualTo(1));
+			}
+		}
+
+		public class ContractsFlowViaInterfaces : ContractsTest
+		{
+			public class A
+			{
+				public readonly Wrap s1;
+				public readonly Wrap s2;
+
+				public A([RequireContract("a")] Wrap s1, Wrap s2)
+				{
+					this.s1 = s1;
+					this.s2 = s2;
+				}
+			}
+
+			public class Wrap
+			{
+				public readonly IInterface wrapped;
+
+				public Wrap(IInterface wrapped)
+				{
+					this.wrapped = wrapped;
+				}
+			}
+
+			public interface IInterface
+			{
+				int GetParameter();
+			}
+
+			public class Impl1 : IInterface
+			{
+				public readonly int parameter;
+
+				public Impl1(int parameter)
+				{
+					this.parameter = parameter;
+				}
+
+				public int GetParameter()
+				{
+					return parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.BindDependency<Impl1>("parameter", 1);
+					builder.Contract("a").BindDependency<Impl1>("parameter", 2);
+				});
+				var a = container.Get<A>();
+				Assert.That(a.s1.wrapped.GetParameter(), Is.EqualTo(2));
+				Assert.That(a.s2.wrapped.GetParameter(), Is.EqualTo(1));
+			}
+		}
+
+		public class ServicesAreBoundToUsedContractPath : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly C c;
+
+				public A([RequireContract("x1")] B b, [RequireContract("x2")] C c)
+				{
+					this.b = b;
+					this.c = c;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B([RequireContract("x2")] C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly int p;
+
+				public C(int p)
+				{
+					this.p = p;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b =>
+				{
+					b.Contract("x1");
+					b.Contract("x2").BindDependency<C>("p", 42);
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b.c, Is.SameAs(a.c));
 			}
 		}
 	}

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
@@ -12,10 +13,10 @@ namespace SimpleContainer.Factories
 			if (containerService.type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
 			var type = containerService.type.GetGenericArguments()[0];
-			var contract = containerService.context.ContractsKey;
-			Func<object> factory = () => container.Create(type, contract, null);
-			containerService.instances.Add(DelegateCaster.Create(type).Cast(factory));
-			containerService.usedContractName = contract;
+			var requiredContractNames = containerService.context.requiredContracts.Select(x => x.name).ToArray();
+			Func<object> factory = () => container.Create(type, requiredContractNames, null);
+			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
+			containerService.UseAllContracts(requiredContractNames.Length);
 			return true;
 		}
 	}

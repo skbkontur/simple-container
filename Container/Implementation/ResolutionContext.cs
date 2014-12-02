@@ -13,8 +13,12 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public readonly Stack<RequiredContract> requiredContracts = new Stack<RequiredContract>();
-		public string ContractsKey { get; private set; }
+		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
+
+		public IEnumerable<string> RequiredContractNames()
+		{
+			return requiredContracts.Select(x => x.name);
+		}
 
 		public struct RequiredContract
 		{
@@ -22,36 +26,44 @@ namespace SimpleContainer.Implementation
 			public ContractConfiguration configuration;
 		}
 
-		public ResolutionContext(IContainerConfiguration configuration, string contractName)
+		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contractNames)
 		{
 			this.configuration = configuration;
-			if (!string.IsNullOrEmpty(contractName))
-				PushContract(contractName);
+			foreach (var c in contractNames)
+				PushContract(c);
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
 		{
-			foreach (var requiredContract in requiredContracts)
+			for (var i = requiredContracts.Count - 1; i >= 0; i--)
 			{
+				var requiredContract = requiredContracts[i];
 				var result = requiredContract.configuration.GetOrNull<T>(type);
 				if (result == null)
 					continue;
-				current.Peek().service.usedContractName = requiredContract.name;
+				current.Peek().service.UseContractWithIndex(i);
 				return result;
 			}
+			return configuration.GetOrNull<T>(type);
+		}
+
+		public T GetInitialContainerConfiguration<T>(Type type) where T : class
+		{
 			return configuration.GetOrNull<T>(type);
 		}
 
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current.Peek();
+			var requiredContractNames = RequiredContractNames().ToArray();
+			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
 			var item = new ResolutionItem
 			{
 				depth = depth++,
 				name = name,
-				contractName = ContractsKey,
-				contractDeclared = ContractsKey != null && previous != null &&
-				                   (previous.contractName ?? "").Length < ContractsKey.Length,
+				allContactsKey = allContractsKey,
+				contractDeclared = requiredContractNames.Length > 0 && previous != null &&
+				                   (previous.allContactsKey ?? "").Length < allContractsKey.Length,
 				service = containerService
 			};
 			current.Push(item);
@@ -116,15 +128,16 @@ namespace SimpleContainer.Implementation
 				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.type)
 					? state.name
 					: state.service.type.FormatName());
-				if (state.contractName != null && state.service.usedContractName != null)
-					writer.WriteUsedContract(state.contractName);
-				if (state.contractName != null && state.contractDeclared)
+				var usedContractNames = state.service.GetUsedContractNames();
+				if (usedContractNames.Length > 0)
+					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContractNames));
+				if (state.allContactsKey != null && state.contractDeclared)
 				{
 					writer.WriteMeta("->[");
-					writer.WriteMeta(state.contractName);
+					writer.WriteMeta(state.allContactsKey);
 					writer.WriteMeta("]");
 				}
-				if (state.service.instances.Count == 0)
+				if (state.service.Instances.Count == 0)
 				{
 					writer.WriteMeta("!");
 					if (state.message != null)
@@ -133,7 +146,7 @@ namespace SimpleContainer.Implementation
 						writer.WriteMeta(state.message);
 					}
 				}
-				else if (state.service.instances.Count > 1)
+				else if (state.service.Instances.Count > 1)
 					writer.WriteMeta("++");
 				writer.WriteNewLine();
 			}
@@ -149,20 +162,16 @@ namespace SimpleContainer.Implementation
 
 		private void PushContract(string contractName)
 		{
-			requiredContracts.Push(new RequiredContract
+			requiredContracts.Add(new RequiredContract
 			{
 				name = contractName,
 				configuration = GetContractConfiguration(contractName)
 			});
-			ContractsKey += ContractsKey == null ? contractName : "->" + contractName;
 		}
 
 		private void PopContract()
 		{
-			var popped = requiredContracts.Pop();
-			ContractsKey = ContractsKey.Length == popped.name.Length
-				? null
-				: ContractsKey.Substring(0, ContractsKey.Length - popped.name.Length - 2);
+			requiredContracts.RemoveAt(requiredContracts.Count - 1);
 		}
 
 		private class ResolutionItem
@@ -170,7 +179,7 @@ namespace SimpleContainer.Implementation
 			public int depth;
 			public string name;
 			public string message;
-			public string contractName;
+			public string allContactsKey;
 			public bool contractDeclared;
 			public ContainerService service;
 		}

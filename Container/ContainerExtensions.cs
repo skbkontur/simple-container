@@ -11,12 +11,12 @@ namespace SimpleContainer
 	{
 		public static T Get<T>(this IContainer container)
 		{
-			return (T) container.Get(typeof (T), null);
+			return (T) container.Get(typeof (T), new string[0]);
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
 		{
-			return (T) container.Create(typeof (T), contract, arguments);
+			return (T) container.Create(typeof (T), contract == null ? new string[0] : new[] {contract}, arguments);
 		}
 
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)
@@ -61,7 +61,8 @@ namespace SimpleContainer
 			bool entireResolutionContext = false)
 		{
 			var logWriter = new SimpleTextLogWriter();
-			container.DumpConstructionLog(type, contractName, entireResolutionContext, logWriter);
+			container.DumpConstructionLog(type, contractName == null ? new string[0] : new[] { contractName },
+				entireResolutionContext, logWriter);
 			return logWriter.GetText();
 		}
 
@@ -80,7 +81,7 @@ namespace SimpleContainer
 
 		public static object Run(this IContainer container, Type type, string contract = null)
 		{
-			var result = container.Get(type, contract);
+			var result = container.Get(type, contract == null ? new string[0] : new[] {contract});
 			container.Run();
 			return result;
 		}
