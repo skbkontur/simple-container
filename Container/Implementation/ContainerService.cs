@@ -10,8 +10,6 @@ namespace SimpleContainer.Implementation
 	//todo придумать нормальную абстракцию над стеком контрактов + usedContracts
 	internal class ContainerService
 	{
-		private static readonly TimeSpan waitTimeout = TimeSpan.FromSeconds(5);
-
 		private List<int> usedContractIndexes;
 		private readonly List<object> instances = new List<object>();
 		private IEnumerable<object> typedArray;
@@ -111,9 +109,7 @@ namespace SimpleContainer.Implementation
 			if (!instantiated && !Failed)
 				lock (lockObject)
 					while (!instantiated && !Failed)
-						if (!Monitor.Wait(lockObject, waitTimeout))
-							throw new SimpleContainerException(string.Format("service [{0}] wait for resolve timed out after [{1}] millis",
-								type.FormatName(), waitTimeout.TotalMilliseconds));
+						Monitor.Wait(lockObject);
 		}
 
 		public bool AcquireInstantiateLock()
