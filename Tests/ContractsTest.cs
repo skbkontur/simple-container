@@ -571,6 +571,69 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class UsedContractsForServiceCreatedUsingFinalContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly Wrap wrap;
+				public readonly C c1;
+				public readonly C c2;
+
+				public A([RequireContract("x")] Wrap wrap, [RequireContract("x")] C c1, C c2)
+				{
+					this.wrap = wrap;
+					this.c1 = c1;
+					this.c2 = c2;
+				}
+			}
+
+			[RequireContract("not-used")]
+			public class Wrap
+			{
+				public readonly B b;
+
+				public Wrap(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class C
+			{
+				public readonly B b;
+
+				public C(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("not-used");
+					builder.BindDependency<B>("parameter", 1);
+					builder.Contract("x").BindDependency<B>("parameter", 2);
+				});
+				var a = container.Get<A>();
+				Assert.That(a.wrap.b.parameter, Is.EqualTo(2));
+				Assert.That(a.c1.b.parameter, Is.EqualTo(2));
+				Assert.That(a.c2.b.parameter, Is.EqualTo(1));
+			}
+		}
+
 		public class CanAttachContractOnClass : ContractsTest
 		{
 			public class Wrap

@@ -430,6 +430,7 @@ namespace SimpleContainer.Implementation
 				{
 					serviceForUsedContracts.context = service.context;
 					var instance = InvokeConstructor(constructor, null, actualArguments, service.context);
+					serviceForUsedContracts.UnionUsedContracts(service);
 					serviceForUsedContracts.AddInstance(instance);
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
