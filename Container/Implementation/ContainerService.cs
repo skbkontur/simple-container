@@ -15,6 +15,7 @@ namespace SimpleContainer.Implementation
 		private IEnumerable<object> typedArray;
 		private readonly object lockObject = new object();
 		private bool instantiated;
+		public bool failed;
 
 		public int TopSortIndex { get; private set; }
 		public IObjectAccessor arguments;
@@ -22,7 +23,7 @@ namespace SimpleContainer.Implementation
 		public Type type;
 		public ResolutionContext context;
 		public string[] FinalUsedContracts { get; private set; }
-		public bool Failed { get; private set; }
+
 
 		public IEnumerable<object> AsEnumerable()
 		{
@@ -104,12 +105,13 @@ namespace SimpleContainer.Implementation
 			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, context.Format(type)));
 		}
 
-		public void WaitForResolve()
+		public bool WaitForResolve()
 		{
-			if (!instantiated && !Failed)
+			if (!instantiated && !failed)
 				lock (lockObject)
-					while (!instantiated && !Failed)
+					while (!instantiated && !failed)
 						Monitor.Wait(lockObject);
+			return !failed;
 		}
 
 		public bool AcquireInstantiateLock()
@@ -126,13 +128,13 @@ namespace SimpleContainer.Implementation
 		public void InstantiatedSuccessfully(int topSortIndex)
 		{
 			TopSortIndex = topSortIndex;
-			Failed = false;
+			failed = false;
 			instantiated = true;
 		}
 
 		public void InstantiatedUnsuccessfully()
 		{
-			Failed = true;
+			failed = true;
 		}
 
 		public void ReleaseInstantiateLock()

@@ -76,8 +76,7 @@ namespace SimpleContainer.Implementation
 		private ContainerService GetInternal(CacheKey cacheKey)
 		{
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
-			result.WaitForResolve();
-			return result.Failed ? createInstanceDelegate(cacheKey) : result;
+			return result.WaitForResolve() ? result : createInstanceDelegate(cacheKey);
 		}
 
 		public IEnumerable<object> GetAll(Type serviceType)
@@ -134,7 +133,8 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetInstanceCache(Type type)
 		{
-			var resultServices = instanceCache.Values.Where(x => !x.type.IsAbstract && type.IsAssignableFrom(x.type));
+			var resultServices = instanceCache.Values
+				.Where(x => x.WaitForResolve() && !x.type.IsAbstract && type.IsAssignableFrom(x.type));
 			var result = new List<ContainerService>(resultServices);
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
 			return result.SelectMany(x => x.Instances).Distinct();
