@@ -72,7 +72,7 @@ namespace SimpleContainer.Implementation
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
 					containerService.Type.FormatName(), previous == null ? "null" : previous.service.Type.FormatName(), Format()));
 			currentTypes.Add(containerService.Type);
-			containerService.context = this;
+			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
 			currentTypes.Remove(current.Pop().service.Type);
 			depth--;

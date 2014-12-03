@@ -16,17 +16,32 @@ namespace SimpleContainer.Implementation
 		private readonly object lockObject = new object();
 		private bool instantiated;
 		private bool failed;
-
 		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
 		public string[] FinalUsedContracts { get; private set; }
-		public IObjectAccessor arguments;
-		public bool createNew;
-		public ResolutionContext context;
+		public IObjectAccessor Arguments { get; private set; }
+		public bool CreateNew { get; private set; }
+		public ResolutionContext Context { get; private set; }
 
 		public ContainerService(Type type)
 		{
 			Type = type;
+		}
+
+		public static ContainerService ForFactory(Type type, object arguments)
+		{
+			return new ContainerService(type) {CreateNew = true}.WithArguments(ObjectAccessor.Get(arguments));
+		}
+
+		public ContainerService WithArguments(IObjectAccessor arguments)
+		{
+			Arguments = arguments;
+			return this;
+		}
+
+		public void AttachToContext(ResolutionContext context)
+		{
+			Context = context;
 		}
 
 		public IEnumerable<object> AsEnumerable()
@@ -61,7 +76,7 @@ namespace SimpleContainer.Implementation
 			if (usedContractIndexes == null)
 				usedContractIndexes = new List<int>();
 			foreach (var otherIndex in dependency.usedContractIndexes)
-				if (otherIndex < context.requiredContracts.Count && !usedContractIndexes.Contains(otherIndex))
+				if (otherIndex < Context.requiredContracts.Count && !usedContractIndexes.Contains(otherIndex))
 					usedContractIndexes.Add(otherIndex);
 		}
 
@@ -95,7 +110,7 @@ namespace SimpleContainer.Implementation
 		{
 			return usedContractIndexes == null
 				? new string[0]
-				: usedContractIndexes.OrderBy(x => x).Select(i => context.requiredContracts[i].name).ToArray();
+				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].name).ToArray();
 		}
 
 		public object SingleInstance()
@@ -106,16 +121,16 @@ namespace SimpleContainer.Implementation
 				? "no implementations for " + Type.Name
 				: string.Format("many implementations for {0}\r\n{1}", Type.Name,
 					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, context.Format(Type)));
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format(Type)));
 		}
 
-		public bool WaitForResolve()
+		public bool WaitForSuccessfullResolve()
 		{
 			if (!instantiated && !failed)
 				lock (lockObject)
 					while (!instantiated && !failed)
 						Monitor.Wait(lockObject);
-			return !failed;
+			return instantiated;
 		}
 
 		public bool AcquireInstantiateLock()
@@ -132,8 +147,8 @@ namespace SimpleContainer.Implementation
 		public void InstantiatedSuccessfully(int topSortIndex)
 		{
 			TopSortIndex = topSortIndex;
-			failed = false;
 			instantiated = true;
+			failed = false;
 		}
 
 		public void InstantiatedUnsuccessfully()
@@ -149,8 +164,8 @@ namespace SimpleContainer.Implementation
 
 		public void Throw(string format, params object[] args)
 		{
-			context.Report("<---------------");
-			context.Throw(format, args);
+			Context.Report("<---------------");
+			Context.Throw(format, args);
 		}
 	}
 }
