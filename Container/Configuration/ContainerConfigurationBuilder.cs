@@ -138,10 +138,9 @@ namespace SimpleContainer.Configuration
 
 		public ContractConfigurationBuilder Contract(string contract)
 		{
-			if (contractConfigurators.ContainsKey(contract))
-				throw new InvalidOperationException(string.Format("contract {0} already defined", contract));
-			var result = new ContractConfigurationBuilder();
-			contractConfigurators[contract] = result;
+			ContractConfigurationBuilder result;
+			if (!contractConfigurators.TryGetValue(contract, out result))
+				contractConfigurators.Add(contract, result = new ContractConfigurationBuilder());
 			return result;
 		}
 

@@ -310,6 +310,46 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanAppendContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly int p1;
+				public readonly int p2;
+
+				public A(int p1, int p2)
+				{
+					this.p1 = p1;
+					this.p2 = p2;
+				}
+			}
+
+			public class AConfigurator1 : IServiceConfigurator<A>
+			{
+				public void Configure(ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Contract("a").Dependencies(new {p1 = 1});
+				}
+			}
+
+			public class AConfigurator2 : IServiceConfigurator<A>
+			{
+				public void Configure(ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Contract("a").Dependencies(new { p2 = 2 });
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Create<A>("a");
+				Assert.That(a.p1, Is.EqualTo(1));
+				Assert.That(a.p2, Is.EqualTo(2));
+			}
+		}
+
 		public class CanBindDependenciesViaAnonymousType : ContainerConfigurationTest
 		{
 			public class TestService
