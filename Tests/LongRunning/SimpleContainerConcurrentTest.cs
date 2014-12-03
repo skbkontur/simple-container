@@ -6,9 +6,9 @@ using NUnit.Framework;
 
 namespace SimpleContainer.Tests.LongRunning
 {
-	public abstract class SimpleContainerConcurrentTest: SimpleContainerTestBase
+	public abstract class SimpleContainerConcurrentTest : SimpleContainerTestBase
 	{
-		public class ConstructorsOfSingletonServicesAreCalledExactlyOnce: SimpleContainerConcurrentTest
+		public class ConstructorsOfSingletonServicesAreCalledExactlyOnce : SimpleContainerConcurrentTest
 		{
 			private static int generation;
 			private static ConcurrentDictionary<string, bool> createdServices;
@@ -23,15 +23,15 @@ namespace SimpleContainer.Tests.LongRunning
 				}
 			}
 
-			public class A: ServiceBase
+			public class A : ServiceBase
 			{
 			}
 
-			public class B: ServiceBase
+			public class B : ServiceBase
 			{
 			}
 
-			public class C: ServiceBase
+			public class C : ServiceBase
 			{
 			}
 
@@ -54,42 +54,42 @@ namespace SimpleContainer.Tests.LongRunning
 				const int threadCount = 6;
 				var testContainer = Container();
 				var barrier = new Barrier(threadCount, _ =>
-													   {
-														   testContainer = Container();
-														   generation++;
-													   });
+				{
+					testContainer = Container();
+					generation++;
+				});
 				Exception failure = null;
 				var threads = Enumerable
 					.Range(0, threadCount)
 					.Select(_ => new Thread(delegate(object __)
-											{
-												try
-												{
-													for (var myGeneration = 0; myGeneration < 1000; myGeneration++)
-													{
-														try
-														{
-															for (var j = 0; j < 100; j++)
-															{
-																testContainer.GetAll<ServiceBase>();
-																var implTypes = testContainer.GetImplementationsOf<ServiceBase>();
-																foreach (var implType in implTypes)
-																	testContainer.Get(implType, null);
-															}
-														}
-														finally
-														{
-															barrier.SignalAndWait();
-														}
-														if (failure != null)
-															return;
-													}
-												}
-												catch (Exception e)
-												{
-													failure = e;
-												}
-											}))
+					{
+						try
+						{
+							for (var myGeneration = 0; myGeneration < 1000; myGeneration++)
+							{
+								try
+								{
+									for (var j = 0; j < 100; j++)
+									{
+										testContainer.GetAll<ServiceBase>();
+										var implTypes = testContainer.GetImplementationsOf<ServiceBase>();
+										foreach (var implType in implTypes)
+											testContainer.Get(implType, null);
+									}
+								}
+								finally
+								{
+									barrier.SignalAndWait();
+								}
+								if (failure != null)
+									return;
+							}
+						}
+						catch (Exception e)
+						{
+							failure = e;
+						}
+					}))
 					.ToArray();
 				foreach (var thread in threads)
 					thread.Start();

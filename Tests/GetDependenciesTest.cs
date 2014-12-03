@@ -5,9 +5,9 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class GetDependenciesTest: SimpleContainerTestBase
+	public abstract class GetDependenciesTest : SimpleContainerTestBase
 	{
-		public class NoConstructors_NoDependencies: GetDependenciesTest
+		public class NoConstructors_NoDependencies : GetDependenciesTest
 		{
 			public class A
 			{
@@ -21,7 +21,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class Simple: GetDependenciesTest
+		public class Simple : GetDependenciesTest
 		{
 			public class A
 			{
@@ -38,11 +38,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencies(typeof (A)), Is.EqualTo(new[] { typeof (B) }));
+				Assert.That(container.GetDependencies(typeof (A)), Is.EqualTo(new[] {typeof (B)}));
 			}
 		}
 
-		public class GetDependenciesForInjections: GetDependenciesTest
+		public class GetDependenciesForInjections : GetDependenciesTest
 		{
 			public class A
 			{
@@ -59,7 +59,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencies(typeof(A)), Is.EqualTo(new[] { typeof(B) }));
+				Assert.That(container.GetDependencies(typeof (A)), Is.EqualTo(new[] {typeof (B)}));
 			}
 		}
 
@@ -80,11 +80,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencies(typeof(A)), Is.EqualTo(new[] { typeof(IIntf) }));
+				Assert.That(container.GetDependencies(typeof (A)), Is.EqualTo(new[] {typeof (IIntf)}));
 			}
 		}
 
-		public class DependencyValues: GetDependenciesTest
+		public class DependencyValues : GetDependenciesTest
 		{
 			public class A
 			{
@@ -101,11 +101,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencyValues(typeof (A)), Is.EqualTo(new object[] { container.Get<B>() }));
+				Assert.That(container.GetDependencyValues(typeof (A)), Is.EqualTo(new object[] {container.Get<B>()}));
 			}
 		}
 
-		public class Recursive: GetDependenciesTest
+		public class Recursive : GetDependenciesTest
 		{
 			public class A
 			{
@@ -129,11 +129,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependenciesRecursive(typeof (A)), Is.EquivalentTo(new[] { typeof (B), typeof (C) }));
+				Assert.That(container.GetDependenciesRecursive(typeof (A)), Is.EquivalentTo(new[] {typeof (B), typeof (C)}));
 			}
 		}
-		
-		public class GetDependencyValuesRecursive: GetDependenciesTest
+
+		public class GetDependencyValuesRecursive : GetDependenciesTest
 		{
 			public class A
 			{
@@ -158,11 +158,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.GetDependencyValuesRecursive(typeof (A)),
-							Is.EquivalentTo(new object[] { container.Get<B>(), container.Get<C>() }));
+					Is.EquivalentTo(new object[] {container.Get<B>(), container.Get<C>()}));
 			}
 		}
 
-		public class Uniqueness: GetDependenciesTest
+		public class Uniqueness : GetDependenciesTest
 		{
 			public class A
 			{
@@ -180,18 +180,17 @@ namespace SimpleContainer.Tests
 
 			public class C
 			{
-				
 			}
 
 			[Test]
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependenciesRecursive(typeof(A)), Is.EquivalentTo(new[] { typeof(B), typeof(C) }));
+				Assert.That(container.GetDependenciesRecursive(typeof (A)), Is.EquivalentTo(new[] {typeof (B), typeof (C)}));
 			}
 		}
 
-		public class ManyDependenciesInOneClass: GetDependenciesTest
+		public class ManyDependenciesInOneClass : GetDependenciesTest
 		{
 			public class A
 			{
@@ -206,18 +205,17 @@ namespace SimpleContainer.Tests
 
 			public class C
 			{
-
 			}
 
 			[Test]
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependenciesRecursive(typeof(A)), Is.EquivalentTo(new[] { typeof(B), typeof(C) }));
+				Assert.That(container.GetDependenciesRecursive(typeof (A)), Is.EquivalentTo(new[] {typeof (B), typeof (C)}));
 			}
 		}
 
-		public class InterfacesCannotContainInjections: GetDependenciesTest
+		public class InterfacesCannotContainInjections : GetDependenciesTest
 		{
 			public class Class
 			{
@@ -230,7 +228,7 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class A: IA
+			public class A : IA
 			{
 			}
 
@@ -238,11 +236,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EqualTo(new object[] { container.Get<A>() }));
+				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EqualTo(new object[] {container.Get<A>()}));
 			}
 		}
 
-		public class SkipFuncs: GetDependenciesTest
+		public class SkipFuncs : GetDependenciesTest
 		{
 			public class Class
 			{
@@ -263,15 +261,15 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EqualTo(new object[] { container.Get<A>() }));
+				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EqualTo(new object[] {container.Get<A>()}));
 			}
 		}
 
-		public class SkipSimpleTypes: GetDependenciesTest
+		public class SkipSimpleTypes : GetDependenciesTest
 		{
 			public class Class
 			{
-				public Class(B b, int a, string []strs)
+				public Class(B b, int a, string[] strs)
 				{
 				}
 			}
@@ -284,7 +282,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencyValuesRecursive(typeof(Class)), Is.EqualTo(new object[] { container.Get<B>() }));
+				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EqualTo(new object[] {container.Get<B>()}));
 			}
 		}
 
@@ -312,7 +310,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SkipExplicitlyConfiguredServices: GetDependenciesTest
+		public class SkipExplicitlyConfiguredServices : GetDependenciesTest
 		{
 			public class X
 			{
@@ -335,7 +333,7 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetDependencies(typeof (X)), Is.Empty);
 			}
 		}
-		
+
 		public class SkipDependenciesWithFactories : GetDependenciesTest
 		{
 			public class X
@@ -359,8 +357,8 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetDependencies(typeof (X)), Is.Empty);
 			}
 		}
-		
-		public class Enumerable: GetDependenciesTest
+
+		public class Enumerable : GetDependenciesTest
 		{
 			public class Class
 			{
@@ -373,11 +371,11 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class B1: IB
+			public class B1 : IB
 			{
 			}
 
-			public class B2: IB
+			public class B2 : IB
 			{
 			}
 
@@ -385,7 +383,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)), Is.EquivalentTo(new object[] { container.Get<B1>(), container.Get<B2>() }));
+				Assert.That(container.GetDependencyValuesRecursive(typeof (Class)),
+					Is.EquivalentTo(new object[] {container.Get<B1>(), container.Get<B2>()}));
 			}
 		}
 	}

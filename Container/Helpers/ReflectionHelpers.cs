@@ -13,18 +13,18 @@ namespace SimpleContainer.Helpers
 		private static readonly IDictionary<Type, object> defaultValues =
 			new Dictionary<Type, object>
 			{
-				{ typeof (byte), default(byte) },
-				{ typeof (short), default(short) },
-				{ typeof (ushort), default(ushort) },
-				{ typeof (int), default(int) },
-				{ typeof (uint), default(uint) },
-				{ typeof (long), default(long) },
-				{ typeof (ulong), default(ulong) },
-				{ typeof (double), default(double) },
-				{ typeof (float), default(float) },
-				{ typeof (Guid), default(Guid) },
-				{ typeof (bool), default(bool) },
-				{ typeof (DateTime), default(DateTime) }
+				{typeof (byte), default(byte)},
+				{typeof (short), default(short)},
+				{typeof (ushort), default(ushort)},
+				{typeof (int), default(int)},
+				{typeof (uint), default(uint)},
+				{typeof (long), default(long)},
+				{typeof (ulong), default(ulong)},
+				{typeof (double), default(double)},
+				{typeof (float), default(float)},
+				{typeof (Guid), default(Guid)},
+				{typeof (bool), default(bool)},
+				{typeof (DateTime), default(DateTime)}
 			};
 
 		public static object GetDefaultValue(Type type)
@@ -47,16 +47,20 @@ namespace SimpleContainer.Helpers
 		public static Type ArgumentOf(this Type type, Type definition)
 		{
 			if (!definition.IsGenericTypeDefinition)
-				throw new InvalidOperationException(string.Format("type [{0}] is not a generic type definition", definition.FormatName()));
+				throw new InvalidOperationException(string.Format("type [{0}] is not a generic type definition",
+					definition.FormatName()));
 			if (definition.GetGenericArguments().Length != 1)
-				throw new InvalidOperationException(string.Format("type [{0}] has more than one generic argument", definition.FormatName()));
-			var closedDefinitions = type.GetInterfaces().Union(type.ParentsOrSelf()).Where(x => x.GetDefinition() == definition).ToArray();
+				throw new InvalidOperationException(string.Format("type [{0}] has more than one generic argument",
+					definition.FormatName()));
+			var closedDefinitions =
+				type.GetInterfaces().Union(type.ParentsOrSelf()).Where(x => x.GetDefinition() == definition).ToArray();
 			if (closedDefinitions.Length == 0)
-				throw new InvalidOperationException(string.Format("type [{0}] has no implementations of [{1}]", type.FormatName(), definition.FormatName()));
+				throw new InvalidOperationException(string.Format("type [{0}] has no implementations of [{1}]", type.FormatName(),
+					definition.FormatName()));
 			if (closedDefinitions.Length > 1)
 				throw new InvalidOperationException(string.Format("type [{0}] has many implementations of [{1}]: [{2}]",
-																  type.FormatName(), definition.FormatName(),
-																  closedDefinitions.Select(x => x.FormatName()).JoinStrings(",")));
+					type.FormatName(), definition.FormatName(),
+					closedDefinitions.Select(x => x.FormatName()).JoinStrings(",")));
 			return closedDefinitions[0].GetGenericArguments()[0];
 		}
 
@@ -93,7 +97,7 @@ namespace SimpleContainer.Helpers
 		public static IEnumerable<MemberInfo> Members(this Type type)
 		{
 			return type.GetProperties()
-					   .Concat(type.GetFields().Cast<MemberInfo>());
+				.Concat(type.GetFields().Cast<MemberInfo>());
 		}
 
 		public static IEnumerable<MemberInfo> AllInstanceMembers(this Type type)
@@ -101,15 +105,17 @@ namespace SimpleContainer.Helpers
 			const BindingFlags bindingFlags =
 				BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy;
 			return type.GetProperties(bindingFlags)
-					   .Concat(type.GetFields(bindingFlags).Cast<MemberInfo>());
+				.Concat(type.GetFields(bindingFlags).Cast<MemberInfo>());
 		}
 
-		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider, bool inherit = true)
+		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider,
+			bool inherit = true)
 		{
 			return attributeProvider.GetCustomAttributesCached(typeof (TAttribute), inherit).Cast<TAttribute>();
 		}
 
-		public static IEnumerable<Attribute> GetCustomAttributesCached(this ICustomAttributeProvider attributeProvider, Type type, bool inherit = true)
+		public static IEnumerable<Attribute> GetCustomAttributesCached(this ICustomAttributeProvider attributeProvider,
+			Type type, bool inherit = true)
 		{
 			return (IEnumerable<Attribute>) AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
 		}
@@ -130,7 +136,7 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static MemberInfo[] MembersWithAttribute<TAttr>(this Type entityType)
-			where TAttr: Attribute
+			where TAttr : Attribute
 		{
 			return entityType.GetAllInstanceMembers().Where(x => x.IsDefined<TAttr>()).ToArray();
 		}
@@ -141,13 +147,13 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static bool IsDefined<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
-			where TAttribute: Attribute
+			where TAttribute : Attribute
 		{
 			return type.GetCustomAttributes<TAttribute>(inherit).Any();
 		}
 
 		public static TAttribute GetLastAttribute<TAttribute>(this Type targetType)
-			where TAttribute: Attribute
+			where TAttribute : Attribute
 		{
 			TAttribute attribute;
 			if (TryGetLastAttribute(targetType, out attribute))
@@ -156,7 +162,7 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static bool TryGetLastAttribute<TAttribute>(Type targetType, out TAttribute attribute)
-			where TAttribute: Attribute
+			where TAttribute : Attribute
 		{
 			Type type;
 			if (!targetType.ParentsOrSelf().Where(t => t.IsDefined(typeof (TAttribute), false)).TryFirst(out type))
@@ -188,11 +194,11 @@ namespace SimpleContainer.Helpers
 		public static IEnumerable<MemberInfo> GetAllInstanceMembers(this Type type)
 		{
 			return type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance |
-								  BindingFlags.FlattenHierarchy)
-					   .Where(x => !x.IsInitOnly).Concat(
-														 type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance |
-																			BindingFlags.FlattenHierarchy)
-															 .Cast<MemberInfo>());
+			                      BindingFlags.FlattenHierarchy)
+				.Where(x => !x.IsInitOnly).Concat(
+					type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance |
+					                   BindingFlags.FlattenHierarchy)
+						.Cast<MemberInfo>());
 		}
 
 		public static bool IsAutoProperty(this PropertyInfo propertyInfo)
@@ -200,16 +206,17 @@ namespace SimpleContainer.Helpers
 			var getMethod = propertyInfo.GetGetMethod(true);
 			var setMethod = propertyInfo.GetSetMethod(true);
 			return getMethod != null &&
-				   setMethod != null &&
-				   getMethod.IsDefined<CompilerGeneratedAttribute>() &&
-				   setMethod.IsDefined<CompilerGeneratedAttribute>();
+			       setMethod != null &&
+			       getMethod.IsDefined<CompilerGeneratedAttribute>() &&
+			       setMethod.IsDefined<CompilerGeneratedAttribute>();
 		}
 
 		public static MemberInfo ToDeclaring(this MemberInfo memberInfo)
 		{
 			return memberInfo.DeclaringType
-							 .GetMember(memberInfo.Name, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-							 .Single(x => x.DeclaringType == memberInfo.DeclaringType);
+				.GetMember(memberInfo.Name,
+					BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+				.Single(x => x.DeclaringType == memberInfo.DeclaringType);
 		}
 
 		public static IEnumerable<Type> Parents(this Type type)
@@ -230,10 +237,10 @@ namespace SimpleContainer.Helpers
 		public static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
 		{
 			var dynamicMethod = new DynamicMethod("",
-												  typeof (object),
-												  new[] { typeof (object), typeof (object[]) },
-												  typeof (SimpleExpressionEvaluator),
-												  true);
+				typeof (object),
+				new[] {typeof (object), typeof (object[])},
+				typeof (SimpleExpressionEvaluator),
+				true);
 			var il = dynamicMethod.GetILGenerator();
 			if (!targetMethod.IsStatic && !targetMethod.IsConstructor)
 			{
@@ -328,10 +335,13 @@ namespace SimpleContainer.Helpers
 			if (definition == null)
 				return null;
 			if (!definition.IsGenericType)
-				throw new InvalidOperationException(string.Format("invalid type name {0}: type {1} is not generic", name, definitionPart));
+				throw new InvalidOperationException(string.Format("invalid type name {0}: type {1} is not generic", name,
+					definitionPart));
 			if (definition.GetGenericArguments().Length != argumentTypes.Length)
-				throw new InvalidOperationException(string.Format("invalid type name {0}: number of generic arguments {1} is not equal to number of actual parameters {2}",
-																  name, definition.GetGenericArguments().Length, argumentTypes.Length));
+				throw new InvalidOperationException(
+					string.Format(
+						"invalid type name {0}: number of generic arguments {1} is not equal to number of actual parameters {2}",
+						name, definition.GetGenericArguments().Length, argumentTypes.Length));
 			return definition.MakeGenericType(argumentTypes);
 		}
 
@@ -356,20 +366,20 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static readonly ISet<Type> simpleTypes = new HashSet<Type>
-														{
-															typeof (byte),
-															typeof (short),
-															typeof (ushort),
-															typeof (int),
-															typeof (uint),
-															typeof (long),
-															typeof (ulong),
-															typeof (double),
-															typeof (float),
-															typeof (string),
-															typeof (Guid),
-															typeof (bool),
-															typeof (DateTime)
-														};
+		{
+			typeof (byte),
+			typeof (short),
+			typeof (ushort),
+			typeof (int),
+			typeof (uint),
+			typeof (long),
+			typeof (ulong),
+			typeof (double),
+			typeof (float),
+			typeof (string),
+			typeof (Guid),
+			typeof (bool),
+			typeof (DateTime)
+		};
 	}
 }

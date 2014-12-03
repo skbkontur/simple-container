@@ -7,7 +7,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 	{
 		private readonly FieldInfo fieldInfo;
 
-		public FieldAccessorFactory(FieldInfo fieldInfo): base(fieldInfo)
+		public FieldAccessorFactory(FieldInfo fieldInfo) : base(fieldInfo)
 		{
 			this.fieldInfo = fieldInfo;
 		}

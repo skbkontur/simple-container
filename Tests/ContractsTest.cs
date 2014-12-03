@@ -1037,10 +1037,10 @@ namespace SimpleContainer.Tests
 
 				var a = container.Get<A>();
 				Assert.That(a.b.u.s, Is.InstanceOf<Impl1>());
-				Assert.That(((Impl1)a.b.u.s).parameter, Is.EqualTo(1));
+				Assert.That(((Impl1) a.b.u.s).parameter, Is.EqualTo(1));
 
 				Assert.That(a.c.u.s, Is.InstanceOf<Impl2>());
-				Assert.That(((Impl2)a.c.u.s).parameter, Is.EqualTo(2));
+				Assert.That(((Impl2) a.c.u.s).parameter, Is.EqualTo(2));
 			}
 		}
 

@@ -1,6 +1,5 @@
 using System;
 using NUnit.Framework;
-using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
@@ -36,8 +35,8 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		public void Test()
 		{
 			var factory = Container().Get<ServiceC>().factory;
-			Assert.That(factory.Invoke(new { someValue = "x" }).serviceA,
-			            Is.SameAs(factory.Invoke(new { someValue = "y" }).serviceA));
+			Assert.That(factory.Invoke(new {someValue = "x"}).serviceA,
+				Is.SameAs(factory.Invoke(new {someValue = "y"}).serviceA));
 		}
 	}
 }

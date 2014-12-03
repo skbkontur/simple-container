@@ -336,7 +336,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ServiceConfigurationBuilder<A> builder)
 				{
-					builder.Contract("a").Dependencies(new { p2 = 2 });
+					builder.Contract("a").Dependencies(new {p2 = 2});
 				}
 			}
 

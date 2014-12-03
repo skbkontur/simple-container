@@ -1,6 +1,5 @@
 ﻿using System;
 using NUnit.Framework;
-using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
@@ -17,7 +16,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 
 			public ISomeService Create(object item)
 			{
-				return factory(new { item });
+				return factory(new {item});
 			}
 
 			public class SomeService<T> : ISomeService
@@ -34,7 +33,6 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		public interface ISomeService
 		{
 		}
-		
 
 
 		[Test]

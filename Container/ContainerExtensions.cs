@@ -61,7 +61,7 @@ namespace SimpleContainer
 			bool entireResolutionContext = false)
 		{
 			var logWriter = new SimpleTextLogWriter();
-			container.DumpConstructionLog(type, contractName == null ? new string[0] : new[] { contractName },
+			container.DumpConstructionLog(type, contractName == null ? new string[0] : new[] {contractName},
 				entireResolutionContext, logWriter);
 			return logWriter.GetText();
 		}

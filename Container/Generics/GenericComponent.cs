@@ -13,7 +13,7 @@ namespace SimpleContainer.Generics
 		{
 			Owner = owner;
 			GenericConstraint = genericConstraint;
-			GenericDependencies = genericDependencies.Select(x => new GenericDependency { Type = x, Owner = this }).ToArray();
+			GenericDependencies = genericDependencies.Select(x => new GenericDependency {Type = x, Owner = this}).ToArray();
 			Overrides = new List<GenericOverrideInfo>();
 			BoundDependencies = new List<GenericDependency>();
 		}
@@ -29,7 +29,8 @@ namespace SimpleContainer.Generics
 			if (GenericConstraint.Any(c => !c.IsAssignableFrom(type)))
 				return false;
 			var genericArgument = Owner.GetGenericArguments()[0];
-			var needDefaultConstructor = (genericArgument.GenericParameterAttributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0;
+			var needDefaultConstructor = (genericArgument.GenericParameterAttributes &
+			                              GenericParameterAttributes.DefaultConstructorConstraint) != 0;
 			return !needDefaultConstructor || type.GetConstructor(Type.EmptyTypes) != null;
 		}
 
@@ -54,7 +55,8 @@ namespace SimpleContainer.Generics
 			closedImplementations.Add(closedOwner);
 		}
 
-		private void CloseInternal(Type closedOwner, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
+		private void CloseInternal(Type closedOwner, ContainerConfigurationBuilder builder,
+			ICollection<Type> closedImplementations)
 		{
 			var closedInterfaces = closedOwner.GetInterfaces().ToArray();
 			builder.DontUse(Owner);

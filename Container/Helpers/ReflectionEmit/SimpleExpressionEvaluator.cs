@@ -12,7 +12,8 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 		private readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> methods =
 			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
 
-		private static readonly MethodInfo objectEqualsMethod = typeof (object).GetMethod("Equals", new[] { typeof (object), typeof (object) });
+		private static readonly MethodInfo objectEqualsMethod = typeof (object).GetMethod("Equals",
+			new[] {typeof (object), typeof (object)});
 
 		public object Evaluate(Expression expression)
 		{
@@ -51,7 +52,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 				if (operatorMethod == null)
 					throw new InvalidOperationException("can't evaluate operator " + xBinary.NodeType);
 				var method = methods.GetOrAdd(operatorMethod, ReflectionHelpers.EmitCallOf);
-				return method.Invoke(null, new[] { leftObj, rightObj });
+				return method.Invoke(null, new[] {leftObj, rightObj});
 			}
 			var xNew = expression as NewExpression;
 			if (xNew != null)
@@ -63,9 +64,11 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 				foreach (var xBinding in xMemberInit.Bindings)
 				{
 					if (xBinding.BindingType != MemberBindingType.Assignment)
-						throw new InvalidOperationException(string.Format("expression [{0}], member init type [{1}] is not supported", xBinding, xBinding.BindingType));
+						throw new InvalidOperationException(string.Format("expression [{0}], member init type [{1}] is not supported",
+							xBinding, xBinding.BindingType));
 					var xAssignment = (MemberAssignment) xBinding;
-					Invoke(((PropertyInfo) xAssignment.Member).GetSetMethod(), instance, EnumerableHelpers.Return(xAssignment.Expression));
+					Invoke(((PropertyInfo) xAssignment.Member).GetSetMethod(), instance,
+						EnumerableHelpers.Return(xAssignment.Expression));
 				}
 				return instance;
 			}

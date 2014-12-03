@@ -47,7 +47,8 @@ namespace SimpleContainer.Implementation
 		private int topSortIndex;
 		private bool disposed;
 
-		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors, StaticContainer staticContainer, CacheLevel cacheLevel)
+		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
+			StaticContainer staticContainer, CacheLevel cacheLevel)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
@@ -184,7 +185,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (ReflectionHelpers.simpleTypes.Contains(service.Type))
 				service.Throw("can't create simple type");
-			if (service.Type == typeof(IContainer))
+			if (service.Type == typeof (IContainer))
 			{
 				service.AddInstance(this);
 				return;
@@ -424,7 +425,7 @@ namespace SimpleContainer.Implementation
 			var serviceForUsedContracts = instanceCache.GetOrAdd(usedContactsCacheKey, createContainerServiceDelegate);
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
-				{					
+				{
 					var instance = InvokeConstructor(constructor, null, actualArguments, service.Context);
 					serviceForUsedContracts.AttachToContext(service.Context);
 					serviceForUsedContracts.UnionUsedContracts(service);

@@ -87,19 +87,19 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 		private static DynamicMethod CreateSettingMethod()
 		{
 			return new DynamicMethod("",
-									 null,
-									 new[] { typeof (object), typeof (TOutput) },
-									 typeof (MemberAccessor<TOutput>),
-									 true);
+				null,
+				new[] {typeof (object), typeof (TOutput)},
+				typeof (MemberAccessor<TOutput>),
+				true);
 		}
 
 		private static DynamicMethod CreateGettingMethod()
 		{
 			return new DynamicMethod("",
-									 typeof (TOutput),
-									 new[] { typeof (object) },
-									 typeof (MemberAccessor<TOutput>),
-									 true);
+				typeof (TOutput),
+				new[] {typeof (object)},
+				typeof (MemberAccessor<TOutput>),
+				true);
 		}
 
 		#endregion

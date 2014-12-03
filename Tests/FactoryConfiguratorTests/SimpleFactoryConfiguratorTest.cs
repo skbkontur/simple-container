@@ -126,7 +126,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 					this.dependency = dependency;
 				}
 			}
-			
+
 			public class Dependency
 			{
 				public readonly string argument;
@@ -143,7 +143,8 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
-				Assert.That(error.Message, Is.EqualTo("can't create simple type\r\nService!\r\n\tDependency!\r\n\t\targument! - <---------------"));
+				Assert.That(error.Message,
+					Is.EqualTo("can't create simple type\r\nService!\r\n\tDependency!\r\n\t\targument! - <---------------"));
 			}
 		}
 	}

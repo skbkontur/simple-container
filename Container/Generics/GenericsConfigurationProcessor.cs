@@ -32,8 +32,8 @@ namespace SimpleContainer.Generics
 				.GetParameters()
 				.Select(x => x.ParameterType.IsGenericType && (x.ParameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
 				                                               || x.ParameterType.GetGenericTypeDefinition() == typeof (Func<>))
-					             ? x.ParameterType.GetGenericArguments()[0]
-					             : x.ParameterType)
+					? x.ParameterType.GetGenericArguments()[0]
+					: x.ParameterType)
 				.Where(t => assemblyFilter(t.Assembly.GetName()))
 				.Where(t => t.IsGenericType && t.ContainsGenericParameters && TypeHelpers.HasEquivalentParameters(t, definition));
 		}
@@ -82,10 +82,10 @@ namespace SimpleContainer.Generics
 			if (genericArguments.Length != 1)
 				return;
 			genericOverrides.Add(new GenericOverrideInfo
-				{
-					GenericType = baseType.GetGenericTypeDefinition(),
-					TypeArgument = genericArguments[0]
-				});
+			{
+				GenericType = baseType.GetGenericTypeDefinition(),
+				TypeArgument = genericArguments[0]
+			});
 		}
 
 		private static bool IsConcrete(Type type)
@@ -145,7 +145,7 @@ namespace SimpleContainer.Generics
 		{
 			componentsWithConstraints
 				.Where(x => x.SatisfyConstraints(type))
-				.ForEach(component => component.Close(new[] { type }, builder, processedClosedTypes));
+				.ForEach(component => component.Close(new[] {type}, builder, processedClosedTypes));
 		}
 	}
 }

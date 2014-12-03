@@ -106,7 +106,7 @@ namespace SimpleContainer.Tests
 					this.c = c;
 				}
 			}
-			
+
 			public class B
 			{
 				public readonly C c;
@@ -151,7 +151,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class ComponentA:IComponent
+			public class ComponentA : IComponent
 			{
 				public readonly ComponentB componentB;
 

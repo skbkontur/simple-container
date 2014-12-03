@@ -44,7 +44,8 @@ namespace SimpleContainer.Tests
 			return result;
 		}
 
-		protected static IContainer LocalContainer(IStaticContainer staticContainer, Action<ContainerConfigurationBuilder> configure)
+		protected static IContainer LocalContainer(IStaticContainer staticContainer,
+			Action<ContainerConfigurationBuilder> configure)
 		{
 			return staticContainer.CreateLocalContainer(Assembly.GetExecutingAssembly(), configure);
 		}

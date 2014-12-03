@@ -8,7 +8,8 @@ namespace SimpleContainer.Configuration
 	{
 		private IEnumerable<string> unionContractNames;
 
-		public ContractConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration) : base(staticServices, isStaticConfiguration)
+		public ContractConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
+			: base(staticServices, isStaticConfiguration)
 		{
 		}
 

@@ -52,7 +52,7 @@ namespace SimpleContainer.Helpers
 
 		public static object[] CastToObjectArrayOf(this IEnumerable source, Type itemType)
 		{
-			return (object[])source.CastToArrayOf(itemType);
+			return (object[]) source.CastToArrayOf(itemType);
 		}
 
 		public static Array CastToArrayOf(this IEnumerable source, Type itemType)
@@ -114,7 +114,7 @@ namespace SimpleContainer.Helpers
 
 		public static IEnumerable<T> Prepend<T>(this IEnumerable<T> source, T value)
 		{
-			return new[] { value }.Concat(source);
+			return new[] {value}.Concat(source);
 		}
 
 		public static IEnumerable<T> NotNull<T>(this IEnumerable<T> source)

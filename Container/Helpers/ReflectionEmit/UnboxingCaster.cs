@@ -5,7 +5,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 {
 	internal class UnboxingCaster : Caster
 	{
-		public UnboxingCaster(Type outputType, Type memberType): base(outputType, memberType)
+		public UnboxingCaster(Type outputType, Type memberType) : base(outputType, memberType)
 		{
 		}
 

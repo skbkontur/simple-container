@@ -26,7 +26,8 @@ namespace SimpleContainer.Generics
 		{
 			if (parameter.GetGenericParameterConstraints().Any(c => !c.IsAssignableFrom(by)))
 				return false;
-			var needDefaultConstructor = (parameter.GenericParameterAttributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0;
+			var needDefaultConstructor = (parameter.GenericParameterAttributes &
+			                              GenericParameterAttributes.DefaultConstructorConstraint) != 0;
 			return !needDefaultConstructor || by.GetConstructor(Type.EmptyTypes) != null;
 		}
 

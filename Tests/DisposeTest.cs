@@ -2,7 +2,6 @@ using System;
 using System.Reflection;
 using System.Text;
 using NUnit.Framework;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests

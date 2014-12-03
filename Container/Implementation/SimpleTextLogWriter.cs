@@ -2,7 +2,7 @@ using System.Text;
 
 namespace SimpleContainer.Implementation
 {
-	public class SimpleTextLogWriter: ISimpleLogWriter
+	public class SimpleTextLogWriter : ISimpleLogWriter
 	{
 		private readonly StringBuilder builder = new StringBuilder();
 

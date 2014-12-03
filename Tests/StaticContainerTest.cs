@@ -221,8 +221,8 @@ namespace SimpleContainer.Tests
 					this.parameter = parameter;
 				}
 			}
-			
-			
+
+
 			public class B
 			{
 				public readonly int parameter;
@@ -241,7 +241,7 @@ namespace SimpleContainer.Tests
 					builder.Dependencies(new {parameter = 42});
 				}
 			}
-			
+
 			[Static]
 			public class BConfigurator : IServiceConfigurator<B>
 			{
@@ -310,7 +310,7 @@ namespace SimpleContainer.Tests
 				Assert.That(error.Message, Is.EqualTo("can't configure non static service [A] using static configurator"));
 			}
 		}
-		
+
 		public class CannotConfigureStaticServiceUsingNonStaticConfigurator : StaticContainerTest
 		{
 			[Static]

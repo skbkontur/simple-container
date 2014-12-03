@@ -33,16 +33,16 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 		private static Func<object, object> CreateGetMethod(FieldInfo fieldInfo)
 		{
 			var dynamicMethod = new DynamicMethod("", typeof (object),
-			                                      new[] {typeof (object)},
-			                                      typeof (ValueTypeFieldAccessor), true);
+				new[] {typeof (object)},
+				typeof (ValueTypeFieldAccessor), true);
 			EmitGet(fieldInfo, dynamicMethod.GetILGenerator());
 			return (Func<object, object>) dynamicMethod.CreateDelegate(typeof (Func<object, object>));
 		}
 
 		private static void EmitGet(FieldInfo fieldInfo, ILGenerator ilGenerator)
 		{
-			Type targetType = fieldInfo.DeclaringType;
-			Type fieldType = fieldInfo.FieldType;
+			var targetType = fieldInfo.DeclaringType;
+			var fieldType = fieldInfo.FieldType;
 
 			ilGenerator.Emit(OpCodes.Ldarg_0);
 			ilGenerator.Emit(OpCodes.Unbox_Any, targetType);
@@ -55,16 +55,16 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 		private static Func<object, object, object> CreateSetMethod(FieldInfo fieldInfo)
 		{
 			var dynamicMethod = new DynamicMethod("", typeof (object),
-			                                      new[] {typeof (object), typeof (object)},
-			                                      typeof (ValueTypeFieldAccessor), true);
+				new[] {typeof (object), typeof (object)},
+				typeof (ValueTypeFieldAccessor), true);
 			EmitSet(fieldInfo, dynamicMethod.GetILGenerator());
 			return (Func<object, object, object>) dynamicMethod.CreateDelegate(typeof (Func<object, object, object>));
 		}
 
 		private static void EmitSet(FieldInfo fieldInfo, ILGenerator ilGenerator)
 		{
-			Type targetType = fieldInfo.DeclaringType;
-			Type fieldType = fieldInfo.FieldType;
+			var targetType = fieldInfo.DeclaringType;
+			var fieldType = fieldInfo.FieldType;
 
 			ilGenerator.DeclareLocal(targetType);
 			ilGenerator.Emit(OpCodes.Ldarg_0);
@@ -73,7 +73,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 			ilGenerator.Emit(OpCodes.Ldloca, 0);
 			ilGenerator.Emit(OpCodes.Ldarg_1);
 			if (fieldType.IsValueType)
-			    ilGenerator.Emit(OpCodes.Unbox_Any, fieldType);
+				ilGenerator.Emit(OpCodes.Unbox_Any, fieldType);
 			ilGenerator.Emit(OpCodes.Stfld, fieldInfo);
 			ilGenerator.Emit(OpCodes.Ldloc_0);
 			ilGenerator.Emit(OpCodes.Box, targetType);

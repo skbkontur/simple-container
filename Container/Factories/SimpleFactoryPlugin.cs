@@ -9,7 +9,7 @@ namespace SimpleContainer.Factories
 		{
 			if (!containerService.Type.IsGenericType)
 				return false;
-			if (containerService.Type.GetGenericTypeDefinition() != typeof(Func<>))
+			if (containerService.Type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
 			var type = containerService.Type.GetGenericArguments()[0];
 			var requiredContractNames = containerService.Context.RequiredContractNames();

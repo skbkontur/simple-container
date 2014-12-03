@@ -42,13 +42,14 @@ namespace SimpleContainer.Helpers
 			private bool Equals(Key other)
 			{
 				var localInherit = inherit;
-				return attributeProvider.Equals(other.attributeProvider) && attributeType == other.attributeType && localInherit.Equals(other.inherit);
+				return attributeProvider.Equals(other.attributeProvider) && attributeType == other.attributeType &&
+				       localInherit.Equals(other.inherit);
 			}
 
 			public override bool Equals(object obj)
 			{
 				if (ReferenceEquals(null, obj)) return false;
-				return obj is Key && Equals((Key)obj);
+				return obj is Key && Equals((Key) obj);
 			}
 
 			public override int GetHashCode()
@@ -56,9 +57,9 @@ namespace SimpleContainer.Helpers
 				unchecked
 				{
 					var hashCode = (attributeProvider != null ? attributeProvider.GetHashCode() : 0);
-					hashCode = (hashCode * 397) ^ (attributeType != null ? attributeType.GetHashCode() : 0);
+					hashCode = (hashCode*397) ^ (attributeType != null ? attributeType.GetHashCode() : 0);
 					var localInherit = inherit;
-					hashCode = (hashCode * 397) ^ localInherit.GetHashCode();
+					hashCode = (hashCode*397) ^ localInherit.GetHashCode();
 					return hashCode;
 				}
 			}

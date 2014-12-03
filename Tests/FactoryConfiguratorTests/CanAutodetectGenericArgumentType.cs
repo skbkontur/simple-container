@@ -1,6 +1,5 @@
 using System;
 using NUnit.Framework;
-using SimpleContainer.Tests.GenericsConfiguratorTests;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
@@ -17,7 +16,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 
 			public string Run(object genericService, string parameter)
 			{
-				return getDecorator(new { genericService, parameter }).DoSomething();
+				return getDecorator(new {genericService, parameter}).DoSomething();
 			}
 
 			public class GenericServiceDecorator<T> : IGenericServiceDecorator
