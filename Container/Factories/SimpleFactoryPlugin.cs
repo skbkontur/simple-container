@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
@@ -8,11 +7,11 @@ namespace SimpleContainer.Factories
 	{
 		public bool TryInstantiate(IContainer container, ContainerService containerService)
 		{
-			if (!containerService.type.IsGenericType)
+			if (!containerService.Type.IsGenericType)
 				return false;
-			if (containerService.type.GetGenericTypeDefinition() != typeof (Func<>))
+			if (containerService.Type.GetGenericTypeDefinition() != typeof(Func<>))
 				return false;
-			var type = containerService.type.GetGenericArguments()[0];
+			var type = containerService.Type.GetGenericArguments()[0];
 			var requiredContractNames = containerService.context.RequiredContractNames();
 			Func<object> factory = () => container.Create(type, requiredContractNames, null);
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));

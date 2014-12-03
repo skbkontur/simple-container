@@ -68,13 +68,13 @@ namespace SimpleContainer.Implementation
 			};
 			current.Push(item);
 			log.Add(item);
-			if (currentTypes.Contains(containerService.type))
+			if (currentTypes.Contains(containerService.Type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
-					containerService.type.FormatName(), previous == null ? "null" : previous.service.type.FormatName(), Format()));
-			currentTypes.Add(containerService.type);
+					containerService.Type.FormatName(), previous == null ? "null" : previous.service.Type.FormatName(), Format()));
+			currentTypes.Add(containerService.Type);
 			containerService.context = this;
 			container.Instantiate(containerService);
-			currentTypes.Remove(current.Pop().service.type);
+			currentTypes.Remove(current.Pop().service.Type);
 			depth--;
 		}
 
@@ -124,7 +124,7 @@ namespace SimpleContainer.Implementation
 			var targetTypeFound = false;
 			foreach (var state in log)
 			{
-				if (targetType != null && state.service.type != targetType && !targetTypeFound)
+				if (targetType != null && state.service.Type != targetType && !targetTypeFound)
 					continue;
 				if (targetTypeFound && state.depth <= startDepth)
 					break;
@@ -134,9 +134,9 @@ namespace SimpleContainer.Implementation
 					startDepth = state.depth;
 				}
 				writer.WriteIndent(state.depth - startDepth);
-				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.type)
+				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.Type)
 					? state.name
-					: state.service.type.FormatName());
+					: state.service.Type.FormatName());
 				var usedContractNames = state.service.GetUsedContractNames();
 				if (usedContractNames.Length > 0)
 					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContractNames));

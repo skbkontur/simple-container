@@ -15,19 +15,23 @@ namespace SimpleContainer.Implementation
 		private IEnumerable<object> typedArray;
 		private readonly object lockObject = new object();
 		private bool instantiated;
-		public bool failed;
+		private bool failed;
 
+		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
+		public string[] FinalUsedContracts { get; private set; }
 		public IObjectAccessor arguments;
 		public bool createNew;
-		public Type type;
 		public ResolutionContext context;
-		public string[] FinalUsedContracts { get; private set; }
 
+		public ContainerService(Type type)
+		{
+			Type = type;
+		}
 
 		public IEnumerable<object> AsEnumerable()
 		{
-			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(type));
+			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
 		}
 
 		public void AddInstance(object instance)
@@ -99,10 +103,10 @@ namespace SimpleContainer.Implementation
 			if (instances.Count == 1)
 				return instances[0];
 			var prefix = instances.Count == 0
-				? "no implementations for " + type.Name
-				: string.Format("many implementations for {0}\r\n{1}", type.Name,
+				? "no implementations for " + Type.Name
+				: string.Format("many implementations for {0}\r\n{1}", Type.Name,
 					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, context.Format(type)));
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, context.Format(Type)));
 		}
 
 		public bool WaitForResolve()

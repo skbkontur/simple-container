@@ -7,7 +7,7 @@ namespace SimpleContainer.Factories
 	{
 		public bool TryInstantiate(IContainer container, ContainerService containerService)
 		{
-			var funcType = containerService.type;
+			var funcType = containerService.Type;
 			if (!funcType.IsGenericType)
 				return false;
 			if (funcType.GetGenericTypeDefinition() != typeof (Func<,>))

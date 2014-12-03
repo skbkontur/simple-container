@@ -26,7 +26,7 @@ namespace SimpleContainer.Implementation
 			ReflectionHelpers.EmitCallOf;
 
 		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
-			k => new ContainerService {type = k.type};
+			k => new ContainerService(k.type);
 
 		private static readonly IFactoryPlugin[] factoryPlugins =
 		{
@@ -87,9 +87,8 @@ namespace SimpleContainer.Implementation
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
 			var resolutionContext = new ResolutionContext(configuration, contracts);
-			var result = new ContainerService
+			var result = new ContainerService(type)
 			{
-				type = type,
 				arguments = ObjectAccessor.Get(arguments),
 				createNew = true
 			};
@@ -134,7 +133,7 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<object> GetInstanceCache(Type type)
 		{
 			var resultServices = instanceCache.Values
-				.Where(x => x.WaitForResolve() && !x.type.IsAbstract && type.IsAssignableFrom(x.type));
+				.Where(x => x.WaitForResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type));
 			var result = new List<ContainerService>(resultServices);
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
 			return result.SelectMany(x => x.Instances).Distinct();
@@ -182,14 +181,14 @@ namespace SimpleContainer.Implementation
 
 		public void Instantiate(ContainerService service)
 		{
-			if (ReflectionHelpers.simpleTypes.Contains(service.type))
+			if (ReflectionHelpers.simpleTypes.Contains(service.Type))
 				service.Throw("can't create simple type");
-			if (service.type == typeof (IContainer))
+			if (service.Type == typeof(IContainer))
 			{
 				service.AddInstance(this);
 				return;
 			}
-			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(service.type);
+			var interfaceConfiguration = service.context.GetConfiguration<InterfaceConfiguration>(service.Type);
 			IEnumerable<Type> implementationTypes = null;
 			var useAutosearch = false;
 			if (interfaceConfiguration != null)
@@ -211,16 +210,16 @@ namespace SimpleContainer.Implementation
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
 				useAutosearch = interfaceConfiguration.UseAutosearch;
 			}
-			if (service.type.IsValueType)
+			if (service.Type.IsValueType)
 				service.Throw("can't create value type");
 			if (factoryPlugins.Any(p => p.TryInstantiate(this, service)))
 				return;
-			if (service.type.IsGenericType && service.type.ContainsGenericParameters)
+			if (service.Type.IsGenericType && service.Type.ContainsGenericParameters)
 			{
 				service.context.Report("has open generic arguments");
 				return;
 			}
-			if (service.type.IsAbstract)
+			if (service.Type.IsAbstract)
 				InstantiateInterface(service, implementationTypes, useAutosearch);
 			else
 				InstantiateImplementation(service);
@@ -230,9 +229,9 @@ namespace SimpleContainer.Implementation
 		{
 			IEnumerable<Type> localTypes;
 			if (implementationTypes == null)
-				localTypes = GetInheritors(service.type);
+				localTypes = GetInheritors(service.Type);
 			else if (useAutosearch)
-				localTypes = implementationTypes.Union(GetInheritors(service.type));
+				localTypes = implementationTypes.Union(GetInheritors(service.Type));
 			else
 				localTypes = implementationTypes;
 			var localTypesArray = localTypes.ToArray();
@@ -246,11 +245,7 @@ namespace SimpleContainer.Implementation
 				ContainerService childService;
 				if (service.createNew)
 				{
-					childService = new ContainerService
-					{
-						type = implementationType,
-						arguments = service.arguments
-					};
+					childService = new ContainerService(implementationType) {arguments = service.arguments};
 					service.context.Instantiate(null, childService, this);
 				}
 				else
@@ -262,14 +257,14 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateImplementation(ContainerService service)
 		{
-			if (service.type.IsDefined<IgnoreImplementationAttribute>())
+			if (service.Type.IsDefined<IgnoreImplementationAttribute>())
 				return;
-			var implementationConfiguration = service.context.GetConfiguration<ImplementationConfiguration>(service.type);
+			var implementationConfiguration = service.context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 				return;
-			var factoryMethod = GetFactoryOrNull(service.type);
+			var factoryMethod = GetFactoryOrNull(service.Type);
 			if (factoryMethod == null)
-				DefaultInstantiateImplementation(service.type, service);
+				DefaultInstantiateImplementation(service.Type, service);
 			else
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.context);
@@ -449,14 +444,14 @@ namespace SimpleContainer.Implementation
 
 		public ContainerService IndependentService(object instance)
 		{
-			var result = new ContainerService();
+			var result = new ContainerService(null);
 			result.AddInstance(instance);
 			return result;
 		}
 
 		public ContainerService DependentService(object instance, ContainerService dependency)
 		{
-			var result = new ContainerService();
+			var result = new ContainerService(null);
 			result.AddInstance(instance);
 			result.UnionUsedContracts(dependency);
 			return result;
@@ -524,7 +519,7 @@ namespace SimpleContainer.Implementation
 				var contractServices = service.context.ResolveUsingContract(dependencyType, formalParameter.Name,
 					parameterContract == null ? null : parameterContract.ContractName,
 					dependencyTypeContract == null ? null : dependencyTypeContract.ContractName, this);
-				result = new ContainerService {type = dependencyType, context = service.context};
+				result = new ContainerService(dependencyType) {context = service.context};
 				foreach (var contractService in contractServices)
 					result.UnionFrom(contractService);
 			}
