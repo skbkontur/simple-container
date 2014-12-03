@@ -90,7 +90,7 @@ namespace SimpleContainer.Implementation
 		{
 			return usedContractIndexes == null
 				? new string[0]
-				: usedContractIndexes.Select(i => context.requiredContracts[i].name).ToArray();
+				: usedContractIndexes.OrderBy(x => x).Select(i => context.requiredContracts[i].name).ToArray();
 		}
 
 		public object SingleInstance()

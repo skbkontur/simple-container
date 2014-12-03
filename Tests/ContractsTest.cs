@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -698,7 +697,7 @@ namespace SimpleContainer.Tests
 			public class Impl3 : IInterface2
 			{
 			}
-			
+
 			public class Impl4 : IInterface2
 			{
 			}
@@ -886,6 +885,99 @@ namespace SimpleContainer.Tests
 				var a = container.Get<A>();
 				Assert.That(a.s1.wrapped.GetParameter(), Is.EqualTo(2));
 				Assert.That(a.s2.wrapped.GetParameter(), Is.EqualTo(1));
+			}
+		}
+
+		public class ContractsSequenceIsImportant : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly C c;
+
+				public A([RequireContract("x")] B b, [RequireContract("y")] C c)
+				{
+					this.b = b;
+					this.c = c;
+				}
+			}
+
+			[RequireContract("not-used")]
+			public class B
+			{
+				public readonly U u;
+
+				public B([RequireContract("y")] U u)
+				{
+					this.u = u;
+				}
+			}
+
+			public class C
+			{
+				public readonly U u;
+
+				public C([RequireContract("x")] U u)
+				{
+					this.u = u;
+				}
+			}
+
+			public class U
+			{
+				public readonly IInterface s;
+
+				public U(IInterface s)
+				{
+					this.s = s;
+				}
+			}
+
+			public interface IInterface
+			{
+			}
+
+			public class Impl1 : IInterface
+			{
+				public readonly int parameter;
+
+				public Impl1(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class Impl2 : IInterface
+			{
+				public readonly int parameter;
+
+				public Impl2(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("not-used");
+					builder.Contract("x")
+						.Bind<IInterface, Impl2>()
+						.BindDependency<Impl1>("parameter", 1);
+
+					builder.Contract("y")
+						.BindDependency<Impl2>("parameter", 2)
+						.Bind<IInterface, Impl1>();
+				});
+
+				var a = container.Get<A>();
+				Assert.That(a.b.u.s, Is.InstanceOf<Impl1>());
+				Assert.That(((Impl1)a.b.u.s).parameter, Is.EqualTo(1));
+
+				Assert.That(a.c.u.s, Is.InstanceOf<Impl2>());
+				Assert.That(((Impl2)a.c.u.s).parameter, Is.EqualTo(2));
 			}
 		}
 
