@@ -47,11 +47,6 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
-		public T GetInitialContainerConfiguration<T>(Type type) where T : class
-		{
-			return configuration.GetOrNull<T>(type);
-		}
-
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current.Peek();

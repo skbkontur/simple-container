@@ -1,25 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace SimpleContainer.Implementation
 {
-	internal class AssembliesRestrictedInheritanceHierarchy : IInheritanceHierarchy
+	internal class FilteredInheritanceHierarchy : IInheritanceHierarchy
 	{
-		private readonly ISet<Assembly> assemblies;
-		private readonly IInheritanceHierarchy baseHierarchy;
+		private readonly IInheritanceHierarchy decorated;
+		private readonly Func<Type, bool> filter;
 
-		public AssembliesRestrictedInheritanceHierarchy(ISet<Assembly> assemblies, IInheritanceHierarchy baseHierarchy)
+		public FilteredInheritanceHierarchy(IInheritanceHierarchy decorated, Func<Type, bool> filter)
 		{
-			this.assemblies = assemblies;
-			this.baseHierarchy = baseHierarchy;
+			this.decorated = decorated;
+			this.filter = filter;
 		}
 
 		public IEnumerable<Type> GetOrNull(Type type)
 		{
-			var result = baseHierarchy.GetOrNull(type);
-			return result == null ? null : result.Where(x => assemblies.Contains(x.Assembly));
+			var result = decorated.GetOrNull(type);
+			return result == null ? null : result.Where(filter);
 		}
 	}
 }

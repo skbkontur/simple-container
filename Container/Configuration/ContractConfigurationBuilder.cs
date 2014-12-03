@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,6 +7,10 @@ namespace SimpleContainer.Configuration
 	public class ContractConfigurationBuilder : ContainerConfigurationBuilder
 	{
 		private IEnumerable<string> unionContractNames;
+
+		public ContractConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration) : base(staticServices, isStaticConfiguration)
+		{
+		}
 
 		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames)
 		{

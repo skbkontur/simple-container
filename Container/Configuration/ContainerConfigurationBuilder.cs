@@ -10,10 +10,18 @@ namespace SimpleContainer.Configuration
 {
 	public class ContainerConfigurationBuilder
 	{
+		private readonly bool isStaticConfiguration;
 		protected readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
+		private readonly ISet<Type> staticServices;
 
 		private readonly IDictionary<string, ContractConfigurationBuilder> contractConfigurators =
 			new Dictionary<string, ContractConfigurationBuilder>();
+
+		public ContainerConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
+		{
+			this.staticServices = staticServices;
+			this.isStaticConfiguration = isStaticConfiguration;
+		}
 
 		public ContainerConfigurationBuilder Bind<TInterface, TImplementation>(bool clearOld = false)
 			where TImplementation : TInterface
@@ -124,9 +132,14 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder CacheLevel(Type type, CacheLevel cacheLevel)
+		public ContainerConfigurationBuilder MakeStatic(Type type)
 		{
-			GetOrCreate<InterfaceConfiguration>(type).CacheLevel = cacheLevel;
+			if (!isStaticConfiguration)
+			{
+				const string messageFormat = "can't make type [{0}] static using non static configurator";
+				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
+			}
+			staticServices.Add(type);
 			return this;
 		}
 
@@ -140,7 +153,7 @@ namespace SimpleContainer.Configuration
 		{
 			ContractConfigurationBuilder result;
 			if (!contractConfigurators.TryGetValue(contract, out result))
-				contractConfigurators.Add(contract, result = new ContractConfigurationBuilder());
+				contractConfigurators.Add(contract, result = new ContractConfigurationBuilder(staticServices, isStaticConfiguration));
 			return result;
 		}
 
@@ -159,23 +172,6 @@ namespace SimpleContainer.Configuration
 		public ContainerConfigurationBuilder DontUse<T>()
 		{
 			return DontUse(typeof (T));
-		}
-
-		public IEnumerable<Type> GetStaticServices()
-		{
-			foreach (var c in contractConfigurators)
-			{
-				var contractStaticServices = c.Value.GetStaticServices().ToArray();
-				if (!contractStaticServices.Any())
-					continue;
-				const string messageFormat = "can't configure static on contract level; contract [{0}], services [{1}]";
-				throw new SimpleContainerException(string.Format(messageFormat, c.Key,
-					contractStaticServices.Select(x => x.FormatName()).JoinStrings(",")));
-			}
-			return configurations
-				.Where(x => x.Value is InterfaceConfiguration &&
-				            ((InterfaceConfiguration) x.Value).CacheLevel == Implementation.CacheLevel.Static)
-				.Select(x => x.Key);
 		}
 
 		public IContainerConfiguration Build()
@@ -202,6 +198,18 @@ namespace SimpleContainer.Configuration
 		private T GetOrCreate<T>(Type type) where T : class, new()
 		{
 			object result;
+
+			var isStatic = staticServices.Contains(type) || type.IsDefined<StaticAttribute>();
+			if (isStatic && !isStaticConfiguration)
+			{
+				const string messageFormat = "can't configure static service [{0}] using non static configurator";
+				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
+			}
+			if (!isStatic && isStaticConfiguration)
+			{
+				const string messageFormat = "can't configure non static service [{0}] using static configurator";
+				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
+			}
 			if (!configurations.TryGetValue(type, out result))
 				configurations.Add(type, result = new T());
 			try

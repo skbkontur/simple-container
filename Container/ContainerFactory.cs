@@ -9,6 +9,7 @@ using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer
 {
@@ -66,7 +67,13 @@ namespace SimpleContainer
 			var hostingTypes = types.Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-			return new StaticContainer(configuration, inheritors, assembliesFilter, settingsLoader);
+
+			var staticServices = new HashSet<Type>();
+			var builder = new ContainerConfigurationBuilder(staticServices, true);
+			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, settingsLoader))
+				runner.Run(builder, x => true);
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter, settingsLoader, staticServices);
 		}
 
 		private static string GetBinDirectory()
@@ -80,7 +87,7 @@ namespace SimpleContainer
 		{
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
 			var factoriesProcessor = new FactoryConfigurationProcessor();
-			var builder = new ContainerConfigurationBuilder();
+			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
 			foreach (var type in types)
 			{
 				genericsProcessor.FirstRun(type);

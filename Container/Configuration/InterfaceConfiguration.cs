@@ -11,7 +11,6 @@ namespace SimpleContainer.Configuration
 		public bool ImplementationAssigned { get; private set; }
 		public Func<FactoryContext, object> Factory { get; set; }
 		public bool UseAutosearch { get; set; }
-		public CacheLevel? CacheLevel { get; set; }
 
 		public void AddImplementation(Type type, bool clearOld)
 		{

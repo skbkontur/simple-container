@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
@@ -86,16 +87,23 @@ namespace SimpleContainer.Tests
 			{
 			}
 
+			[Static]
+			public class StaticConfigurator : IServiceConfigurator<SomeService>
+			{
+				public void Configure(ServiceConfigurationBuilder<SomeService> builder)
+				{
+					builder.MakeStatic();
+				}
+			}
+
 			[Test]
 			public void Test()
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					using (
-						var localContainer1 = LocalContainer(staticContainer, b => b.CacheLevel(typeof (SomeService), CacheLevel.Static)))
+					using (var localContainer1 = LocalContainer(staticContainer, _ => { }))
 						Assert.That(localContainer1.Get<SomeService>(), Is.SameAs(staticContainer.Get<SomeService>()));
-					using (
-						var localContainer2 = LocalContainer(staticContainer, b => b.CacheLevel(typeof (SomeService), CacheLevel.Static)))
+					using (var localContainer2 = LocalContainer(staticContainer, _ => { }))
 						Assert.That(localContainer2.Get<SomeService>(), Is.SameAs(staticContainer.Get<SomeService>()));
 				}
 			}
@@ -201,70 +209,130 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class StaticConfigurationMustBeTheSameBetweenLocalContainers : StaticContainerTest
+		public class SimpleStaticConfigurators : StaticContainerTest
 		{
-			public class StaticService
+			[Static]
+			public class A
 			{
-			}
+				public readonly int parameter;
 
-			public class LocalService
-			{
-			}
-
-			[Test]
-			public void WereStaticNowLocal()
-			{
-				using (var staticContainer = CreateStaticContainer())
+				public A(int parameter)
 				{
-					using (
-						var localContainer1 = LocalContainer(staticContainer, b => b.CacheLevel(typeof (StaticService), CacheLevel.Static))
-						)
-						Assert.That(localContainer1.Get<StaticService>(), Is.SameAs(staticContainer.Get<StaticService>()));
+					this.parameter = parameter;
+				}
+			}
+			
+			
+			public class B
+			{
+				public readonly int parameter;
 
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer,
-						b => b.CacheLevel(typeof (StaticService), CacheLevel.Local)));
-					Assert.That(error.Message, Is.EqualTo("inconsistent static configuration, [StaticService] were static, now local"));
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Static]
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+			
+			[Static]
+			public class BConfigurator : IServiceConfigurator<B>
+			{
+				public void Configure(ServiceConfigurationBuilder<B> builder)
+				{
+					builder.MakeStatic();
+					builder.Dependencies(new {parameter = 43});
 				}
 			}
 
 			[Test]
-			public void WereLocalNowStatic()
+			public void Test()
 			{
-				using (var staticContainer = CreateStaticContainer())
+				using (var container = CreateStaticContainer())
 				{
-					using (
-						var localContainer1 = LocalContainer(staticContainer, b => b.CacheLevel(typeof (StaticService), CacheLevel.Static))
-						)
-						Assert.That(localContainer1.Get<StaticService>(), Is.SameAs(staticContainer.Get<StaticService>()));
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
+					Assert.That(container.Get<B>().parameter, Is.EqualTo(43));
+				}
+			}
+		}
 
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer,
-						b =>
-						{
-							b.CacheLevel(typeof (StaticService), CacheLevel.Static);
-							b.CacheLevel(typeof (LocalService), CacheLevel.Static);
-						}));
-					Assert.That(error.Message, Is.EqualTo("inconsistent static configuration, [LocalService] were local, now static"));
+		public class CannotMakeServiceStaticViaNonStaticConfigurator : StaticContainerTest
+		{
+			public class Service
+			{
+			}
+
+			public class Configurator : IServiceConfigurator<Service>
+			{
+				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.MakeStatic();
 				}
 			}
 
 			[Test]
-			public void StaticOnContractLevel()
+			public void Test()
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					using (
-						var localContainer1 = LocalContainer(staticContainer, b => b.CacheLevel(typeof (StaticService), CacheLevel.Static))
-						)
-						Assert.That(localContainer1.Get<StaticService>(), Is.SameAs(staticContainer.Get<StaticService>()));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, _ => { }));
+					Assert.That(error.Message, Is.EqualTo("can't make type [Service] static using non static configurator"));
+				}
+			}
+		}
 
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer,
-						b =>
-						{
-							b.CacheLevel(typeof (StaticService), CacheLevel.Static);
-							b.Contract("test").CacheLevel(typeof (LocalService), CacheLevel.Static);
-						}));
-					Assert.That(error.Message,
-						Is.EqualTo("can't configure static on contract level; contract [test], services [LocalService]"));
+		public class CannotConfigureNonStaticServiceUsingStaticConfigurator : StaticContainerTest
+		{
+			public class A
+			{
+			}
+
+			[Static]
+			public class Configurator : IServiceConfigurator<A>
+			{
+				public void Configure(ServiceConfigurationBuilder<A> builder)
+				{
+					builder.DontUse();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var error = Assert.Throws<SimpleContainerException>(() => CreateStaticContainer());
+				Assert.That(error.Message, Is.EqualTo("can't configure non static service [A] using static configurator"));
+			}
+		}
+		
+		public class CannotConfigureStaticServiceUsingNonStaticConfigurator : StaticContainerTest
+		{
+			[Static]
+			public class B
+			{
+			}
+
+			public class Configurator : IServiceConfigurator<B>
+			{
+				public void Configure(ServiceConfigurationBuilder<B> builder)
+				{
+					builder.DontUse();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				using (var staticContainer = CreateStaticContainer())
+				{
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, _ => { }));
+					Assert.That(error.Message, Is.EqualTo("can't configure static service [B] using non static configurator"));
 				}
 			}
 		}

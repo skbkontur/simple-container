@@ -36,8 +36,8 @@ namespace SimpleContainer.Implementation
 
 		protected readonly IContainerConfiguration configuration;
 		protected readonly IInheritanceHierarchy inheritors;
-		private readonly SimpleContainer staticContainer;
-		private readonly CacheLevel cacheLevel;
+		private readonly StaticContainer staticContainer;
+		protected readonly CacheLevel cacheLevel;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
@@ -46,13 +46,12 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 
-		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			SimpleContainer staticContainer)
+		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors, StaticContainer staticContainer, CacheLevel cacheLevel)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
-			cacheLevel = staticContainer == null ? CacheLevel.Static : CacheLevel.Local;
+			this.cacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
@@ -137,12 +136,17 @@ namespace SimpleContainer.Implementation
 
 		public IContainer Clone()
 		{
-			return new SimpleContainer(configuration, inheritors, staticContainer);
+			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel);
+		}
+
+		public virtual CacheLevel GetCacheLevel(Type type)
+		{
+			return staticContainer.GetCacheLevel(type);
 		}
 
 		public ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
 		{
-			var serviceCacheLevel = GetCacheLevel(type, context);
+			var serviceCacheLevel = GetCacheLevel(type);
 			if (serviceCacheLevel == CacheLevel.Static && cacheLevel == CacheLevel.Local)
 				return staticContainer.ResolveSingleton(type, name, context);
 			if (serviceCacheLevel == CacheLevel.Local && cacheLevel == CacheLevel.Static)
@@ -165,14 +169,6 @@ namespace SimpleContainer.Implementation
 					result.ReleaseInstantiateLock();
 				}
 			return result;
-		}
-
-		private static CacheLevel GetCacheLevel(Type type, ResolutionContext resolutionContext)
-		{
-			var interfaceConfiguration = resolutionContext.GetInitialContainerConfiguration<InterfaceConfiguration>(type);
-			if (interfaceConfiguration != null && interfaceConfiguration.CacheLevel.HasValue)
-				return interfaceConfiguration.CacheLevel.Value;
-			return type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		public void Instantiate(ContainerService service)

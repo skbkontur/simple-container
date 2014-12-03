@@ -58,5 +58,11 @@ namespace SimpleContainer.Configuration
 			builder.WithInstanceFilter(filter);
 			return this;
 		}
+
+		public ServiceConfigurationBuilder<T> MakeStatic()
+		{
+			builder.MakeStatic(typeof (T));
+			return this;
+		}
 	}
 }

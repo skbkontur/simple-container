@@ -12,120 +12,37 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly Func<Type, object> settingsLoader;
-		private IEnumerable<Type> staticServices;
+		private readonly ISet<Type> staticServices;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			Func<AssemblyName, bool> assemblyFilter,
-			Func<Type, object> settingsLoader)
-			: base(configuration, inheritors, null)
+			Func<AssemblyName, bool> assemblyFilter, Func<Type, object> settingsLoader, ISet<Type> staticServices)
+			: base(configuration, inheritors, null, CacheLevel.Static)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.settingsLoader = settingsLoader;
+			this.staticServices = staticServices;
+		}
+
+		public override CacheLevel GetCacheLevel(Type type)
+		{
+			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		public IContainer CreateLocalContainer(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure)
 		{
 			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
-			var restrictedHierarchy = new AssembliesRestrictedInheritanceHierarchy(targetAssemblies, inheritors);
-			var configurationContext = new ConfigurationContext(settingsLoader, primaryAssembly);
-			using (var configurationContainer = new SimpleContainer(configuration, restrictedHierarchy, this))
+			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, x => targetAssemblies.Contains(x.Assembly));
+
+			var builder = new ContainerConfigurationBuilder(staticServices, false);
+			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, settingsLoader))
 			{
-				var invokers = configurationContainer.GetAll<IServiceConfiguratorInvoker>();
-				foreach (var i in invokers)
-					i.Configure(configurationContext);
-				configurationContext.isLocalRun = true;
-				foreach (var i in invokers)
-					i.Configure(configurationContext);
+				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);
+				runner.Run(builder, c => c.GetType().Assembly == primaryAssembly);
 			}
 			if (configure != null)
-				configure(configurationContext.Builder);
-			var newStaticServices = configurationContext.Builder.GetStaticServices().ToArray();
-			if (staticServices == null)
-				staticServices = newStaticServices;
-			else
-			{
-				var diff = staticServices.Except(newStaticServices).ToArray();
-				if (diff.Any())
-					throw new SimpleContainerException(string.Format("inconsistent static configuration, [{0}] were static, now local",
-						diff.Select(x => x.FormatName()).JoinStrings(",")));
-				diff = newStaticServices.Except(staticServices).ToArray();
-				if (diff.Any())
-					throw new SimpleContainerException(string.Format("inconsistent static configuration, [{0}] were local, now static",
-						diff.Select(x => x.FormatName()).JoinStrings(",")));
-			}
-			var containerConfiguration = new MergedConfiguration(configuration, configurationContext.Builder.Build());
-			return new SimpleContainer(containerConfiguration, restrictedHierarchy, this);
-		}
-
-		public interface IServiceConfiguratorInvoker
-		{
-			void Configure(ConfigurationContext context);
-		}
-
-		public class ServiceConfiguratorInvoker<T> : IServiceConfiguratorInvoker
-		{
-			private readonly IEnumerable<IServiceConfigurator<T>> configurators;
-
-			public ServiceConfiguratorInvoker(IEnumerable<IServiceConfigurator<T>> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
-				foreach (var configurator in context.Filter(configurators))
-					configurator.Configure(serviceConfigurationBuilder);
-			}
-		}
-
-		public class ServiceConfiguratorWithSettingsInvoker<TSettings, T> : IServiceConfiguratorInvoker
-		{
-			private readonly IEnumerable<IServiceConfigurator<TSettings, T>> configurators;
-
-			public ServiceConfiguratorWithSettingsInvoker(IEnumerable<IServiceConfigurator<TSettings, T>> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.GetSettings<TSettings>(c.GetType()), serviceConfigurationBuilder);
-			}
-		}
-
-		public class ContainerConfiguratorInvoker : IServiceConfiguratorInvoker
-		{
-			private readonly IEnumerable<IContainerConfigurator> configurators;
-
-			public ContainerConfiguratorInvoker(IEnumerable<IContainerConfigurator> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.Builder);
-			}
-		}
-
-		public class ContainerConfiguratorWithSettingsInvoker<TSettings> : IServiceConfiguratorInvoker
-		{
-			private readonly IEnumerable<IContainerConfigurator<TSettings>> configurators;
-
-			public ContainerConfiguratorWithSettingsInvoker(IEnumerable<IContainerConfigurator<TSettings>> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.GetSettings<TSettings>(c.GetType()), context.Builder);
-			}
+				configure(builder);
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
 		}
 
 		private IEnumerable<Assembly> ReferencedAssemblies(Assembly assembly)
@@ -136,55 +53,6 @@ namespace SimpleContainer.Implementation
 				.Concat(referencedByAttribute)
 				.Where(assemblyFilter)
 				.Select(Assembly.Load);
-		}
-
-		public class ConfigurationContext
-		{
-			public Func<Type, object> SettingsLoader { get; private set; }
-			private readonly Assembly primaryAssembly;
-			public ContainerConfigurationBuilder Builder { get; private set; }
-			public bool isLocalRun;
-
-			public ConfigurationContext(Func<Type, object> settingsLoader, Assembly primaryAssembly)
-			{
-				SettingsLoader = settingsLoader;
-				this.primaryAssembly = primaryAssembly;
-				Builder = new ContainerConfigurationBuilder();
-			}
-
-			public IEnumerable<T> Filter<T>(IEnumerable<T> source)
-			{
-				return source.Where(x => IsLocal(x) == isLocalRun);
-			}
-
-			private bool IsLocal(object o)
-			{
-				return o.GetType().Assembly == primaryAssembly;
-			}
-
-			public TSettings GetSettings<TSettings>(Type configuratorType)
-			{
-				if (SettingsLoader == null)
-				{
-					const string messageFormat = "configurator [{0}] requires settings, but settings loader is not configured;" +
-												 "configure it using ContainerFactory.SetSettingsLoader";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
-				}
-				var settingsInstance = SettingsLoader(typeof(TSettings));
-				if (settingsInstance == null)
-				{
-					const string messageFormat = "configurator [{0}] requires settings, but settings loader returned null";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
-				}
-				if (settingsInstance is TSettings == false)
-				{
-					const string messageFormat = "configurator [{0}] requires settings [{1}], " +
-												 "but settings loader returned [{2}]";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName(),
-						typeof(TSettings).FormatName(), settingsInstance.GetType().FormatName()));
-				}
-				return (TSettings) settingsInstance;
-			}
 		}
 	}
 }
