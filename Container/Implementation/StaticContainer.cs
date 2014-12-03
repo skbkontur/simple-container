@@ -23,13 +23,14 @@ namespace SimpleContainer.Implementation
 			this.staticServices = staticServices;
 		}
 
-		public override CacheLevel GetCacheLevel(Type type)
+		internal override CacheLevel GetCacheLevel(Type type)
 		{
 			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		public IContainer CreateLocalContainer(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure)
 		{
+			EnsureNotDisposed();
 			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, x => targetAssemblies.Contains(x.Assembly));
 

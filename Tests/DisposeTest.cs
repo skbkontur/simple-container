@@ -1,13 +1,15 @@
 using System;
 using System.Reflection;
+using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
 	public abstract class DisposeTest : SimpleContainerTestBase
 	{
-		public class DisposeInReverseTopSortOrder : ContainerConfigurationTest
+		public class DisposeInReverseTopSortOrder : DisposeTest
 		{
 			public class Disposable1 : IDisposable
 			{
@@ -70,7 +72,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DisposeEachServiceOnlyOnce : ContainerConfigurationTest
+		public class DisposeEachServiceOnlyOnce : DisposeTest
 		{
 			public interface IMyInterface : IDisposable
 			{
@@ -94,7 +96,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class SeparateDisposableImplementation : ContainerConfigurationTest
+		public class SeparateDisposableImplementation : DisposeTest
 		{
 			[Static]
 			public class Impl : IInterface, IDisposable
@@ -122,7 +124,47 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DisposeAllServicesEvenIfSomeOfThemCrashed : ContainerConfigurationTest
+		public class CannotCallToDisposedContainer : DisposeTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Dispose();
+				Assert.Throws<ObjectDisposedException>(() => container.Get<A>());
+			}
+		}
+
+		public class DoNotDisposeServicesTwice : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				public StringBuilder Logger { get; set; }
+
+				public void Dispose()
+				{
+					Logger.Append("dispose ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var logger = new StringBuilder();
+				var a = container.Get<A>();
+				a.Logger = logger;
+				container.Dispose();
+				container.Dispose();
+				Assert.That(logger.ToString(), Is.EqualTo("dispose "));
+			}
+		}
+
+		public class DisposeAllServicesEvenIfSomeOfThemCrashed : DisposeTest
 		{
 			public class Component1 : IDisposable
 			{

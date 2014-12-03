@@ -47,7 +47,7 @@ namespace SimpleContainer.Implementation
 			{
 			}
 
-			public override CacheLevel GetCacheLevel(Type type)
+			internal override CacheLevel GetCacheLevel(Type type)
 			{
 				return cacheLevel;
 			}

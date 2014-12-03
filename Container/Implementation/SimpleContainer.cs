@@ -45,6 +45,7 @@ namespace SimpleContainer.Implementation
 		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
+		private bool disposed;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors, StaticContainer staticContainer, CacheLevel cacheLevel)
 		{
@@ -62,6 +63,7 @@ namespace SimpleContainer.Implementation
 
 		public object Get(Type serviceType, IEnumerable<string> contracts)
 		{
+			EnsureNotDisposed();
 			Type enumerableItem;
 			if (TryUnwrapEnumerable(serviceType, out enumerableItem))
 				return GetAll(enumerableItem);
@@ -80,11 +82,13 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetAll(Type serviceType)
 		{
+			EnsureNotDisposed();
 			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
+			EnsureNotDisposed();
 			var resolutionContext = new ResolutionContext(configuration, contracts);
 			var result = ContainerService.ForFactory(type, arguments);
 			resolutionContext.Instantiate(null, result, this);
@@ -99,6 +103,7 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
 		{
+			EnsureNotDisposed();
 			var interfaceConfiguration = configuration.GetOrNull<InterfaceConfiguration>(interfaceType);
 			if (interfaceConfiguration != null && interfaceConfiguration.ImplementationTypes != null)
 				return interfaceConfiguration.ImplementationTypes;
@@ -114,12 +119,14 @@ namespace SimpleContainer.Implementation
 
 		public void BuildUp(object target)
 		{
+			EnsureNotDisposed();
 			dependenciesInjector.BuildUp(target);
 		}
 
 		public void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
 			ISimpleLogWriter writer)
 		{
+			EnsureNotDisposed();
 			ContainerService containerService;
 			if (instanceCache.TryGetValue(new CacheKey(type, contracts), out containerService))
 				containerService.Context.Format(entireResolutionContext ? null : type, writer);
@@ -127,24 +134,26 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetInstanceCache(Type type)
 		{
+			EnsureNotDisposed();
 			var resultServices = instanceCache.Values
 				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type));
 			var result = new List<ContainerService>(resultServices);
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
-			return result.SelectMany(x => x.Instances).Distinct();
+			return result.SelectMany(x => x.Instances).Distinct().ToArray();
 		}
 
 		public IContainer Clone()
 		{
+			EnsureNotDisposed();
 			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel);
 		}
 
-		public virtual CacheLevel GetCacheLevel(Type type)
+		internal virtual CacheLevel GetCacheLevel(Type type)
 		{
 			return staticContainer.GetCacheLevel(type);
 		}
 
-		public ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
+		internal ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
 		{
 			var serviceCacheLevel = GetCacheLevel(type);
 			if (serviceCacheLevel == CacheLevel.Static && cacheLevel == CacheLevel.Local)
@@ -171,7 +180,7 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		public void Instantiate(ContainerService service)
+		internal void Instantiate(ContainerService service)
 		{
 			if (ReflectionHelpers.simpleTypes.Contains(service.Type))
 				service.Throw("can't create simple type");
@@ -283,6 +292,7 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
+			EnsureNotDisposed();
 			if (typeof (Delegate).IsAssignableFrom(type))
 				return Enumerable.Empty<Type>();
 			if (!type.IsAbstract)
@@ -434,14 +444,14 @@ namespace SimpleContainer.Implementation
 				service.AddInstance(instance);
 		}
 
-		public ContainerService IndependentService(object instance)
+		private static ContainerService IndependentService(object instance)
 		{
 			var result = new ContainerService(null);
 			result.AddInstance(instance);
 			return result;
 		}
 
-		public ContainerService DependentService(object instance, ContainerService dependency)
+		private static ContainerService DependentService(object instance, ContainerService dependency)
 		{
 			var result = new ContainerService(null);
 			result.AddInstance(instance);
@@ -603,8 +613,15 @@ namespace SimpleContainer.Implementation
 
 		public void Dispose()
 		{
+			if (disposed)
+				return;
+			var servicesToDispose = this.GetInstanceCache<IDisposable>()
+				.Where(x => !ReferenceEquals(x, this))
+				.Reverse()
+				.ToArray();
+			disposed = true;
 			var exceptions = new List<SimpleContainerException>();
-			foreach (var disposable in this.GetInstanceCache<IDisposable>().Where(x => !ReferenceEquals(x, this)).Reverse())
+			foreach (var disposable in servicesToDispose)
 			{
 				try
 				{
@@ -630,6 +647,12 @@ namespace SimpleContainer.Implementation
 				var message = string.Format("error disposing [{0}]", disposable.GetType().FormatName());
 				throw new SimpleContainerException(message, e);
 			}
+		}
+
+		protected void EnsureNotDisposed()
+		{
+			if (disposed)
+				throw new ObjectDisposedException("SimpleContainer");
 		}
 	}
 }
