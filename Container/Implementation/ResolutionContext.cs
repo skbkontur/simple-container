@@ -171,6 +171,15 @@ namespace SimpleContainer.Implementation
 
 		private void PushContract(string contractName)
 		{
+			foreach (var requiredContract in requiredContracts)
+			{
+				if (string.Equals(requiredContract.name, contractName, StringComparison.OrdinalIgnoreCase))
+				{
+					const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
+					throw new SimpleContainerException(string.Format(messageFormat,
+						contractName, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.name)), Format()));
+				}
+			}
 			requiredContracts.Add(new RequiredContract
 			{
 				name = contractName,

@@ -981,6 +981,32 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ProhibitDuplicatedContractInChain : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([RequireContract("x")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[RequireContract("x")]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x"));
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message, Is.EqualTo("contract [x] already required, all required contracts [x]\r\nA!"));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
