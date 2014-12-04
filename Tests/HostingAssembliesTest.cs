@@ -402,6 +402,7 @@ namespace SimpleContainer.Tests
 				var exceptionText = invoker.InvokeWithCrash();
 				Assert.That(exceptionText, Is.StringContaining("A1.ISomeInterface.Do"));
 				Assert.That(exceptionText, Is.StringContaining("Unable to load one or more of the requested types"));
+				Assert.That(exceptionText, Is.StringContaining(primaryAssembly.GetName().Name));
 			}
 
 			public class FactoryInvoker : MarshalByRefObject

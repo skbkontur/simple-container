@@ -75,6 +75,11 @@ namespace SimpleContainer
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter, settingsLoader, staticServices);
 		}
 
+		public IStaticContainer FromCurrentAppDomain()
+		{
+			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+		}
+
 		private static string GetBinDirectory()
 		{
 			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
@@ -99,15 +104,21 @@ namespace SimpleContainer
 
 		private static Type[] LoadTypes(IEnumerable<Assembly> assemblies)
 		{
-			try
-			{
-				return assemblies.SelectMany(x => x.GetTypes()).ToArray();
-			}
-			catch (ReflectionTypeLoadException e)
-			{
-				throw new SimpleContainerException(string.Format("can't load types, loaderExceptions:\r\n{0}",
-					e.LoaderExceptions.Select(x => x.ToString()).JoinStrings("\r\n")), e);
-			}
+			return assemblies
+				.SelectMany(a =>
+				{
+					try
+					{
+						return a.GetTypes();
+					}
+					catch (ReflectionTypeLoadException e)
+					{
+						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
+						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
+						throw new SimpleContainerException(string.Format(messageFormat, a.GetName().Name, loaderExceptionsText), e);
+					}
+				})
+				.ToArray();
 		}
 	}
 }
