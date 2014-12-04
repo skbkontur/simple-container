@@ -73,7 +73,6 @@
     <Compile Include="Configuration\IServiceConfigurator.cs" />
     <Compile Include="Infection\OptionalAttribute.cs" />
     <Compile Include="IStaticContainer.cs" />
-    <Compile Include="Implementation\SimpleContainerTypeLoadException.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="Implementation\IInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ImplementationConfiguration.cs" />

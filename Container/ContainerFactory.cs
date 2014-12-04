@@ -103,9 +103,10 @@ namespace SimpleContainer
 			{
 				return assemblies.SelectMany(x => x.GetTypes()).ToArray();
 			}
-			catch (ReflectionTypeLoadException typeLoadException)
+			catch (ReflectionTypeLoadException e)
 			{
-				throw new SimpleContainerTypeLoadException(typeLoadException);
+				throw new SimpleContainerException(string.Format("can't load types, loaderExceptions:\r\n{0}",
+					e.LoaderExceptions.Select(x => x.ToString()).JoinStrings("\r\n")), e);
 			}
 		}
 	}

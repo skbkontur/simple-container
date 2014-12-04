@@ -1,6 +1,8 @@
 ﻿using System;
 using System.CodeDom.Compiler;
+using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -12,6 +14,32 @@ namespace SimpleContainer.Tests
 {
 	public abstract class HostingAssembliesTest : UnitTestBase
 	{
+		protected override void SetUp()
+		{
+			base.SetUp();
+			CleanupTestAssemblies();
+		}
+
+		protected override void TearDown()
+		{
+			CleanupTestAssemblies();
+			base.TearDown();
+		}
+
+		private static void CleanupTestAssemblies()
+		{
+			var testAssemblyFileNames = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory)
+				.Where(x => Path.GetFileName(x).StartsWith("tmp_"));
+			foreach (var fileName in testAssemblyFileNames)
+				try
+				{
+					File.Delete(fileName);
+				}
+				catch (IOException)
+				{
+				}
+		}
+
 		public class ImplementationsFromIndependentPrimaryAssemblies : HostingAssembliesTest
 		{
 			private const string a1Code = @"
@@ -286,10 +314,138 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		protected Assembly CompileAssembly(string source, params Assembly[] references)
+		public class TypeLoadExceptionCorrectHandling : HostingAssembliesTest
 		{
-			var testAssemblyName = "tmp_" + Guid.NewGuid().ToString("N");
-			var tempAssemblyFileName = testAssemblyName + ".dll";
+			private AppDomain appDomain;
+			private const string referencedAssemblyCodeV1 = @"
+					using SimpleContainer.Configuration;
+					using SimpleContainer;
+					using System;
+
+					namespace A1
+					{
+						public interface ISomeInterface
+						{
+						}
+					}
+				";
+
+			private const string referencedAssemblyCodeV2 = @"
+					using SimpleContainer.Configuration;
+					using SimpleContainer;
+					using System;
+
+					namespace A1
+					{
+						public interface ISomeInterface
+						{
+							void Do();
+						}
+					}
+				";
+
+			private const string primaryAssemblyCode = @"
+					using System;
+					using A1;
+
+					namespace A2
+					{
+						public class TestClass: ISomeInterface
+						{
+							void ISomeInterface.Do()
+							{
+							}
+						}
+					}
+				";
+
+			private string testDirectory;
+
+			protected override void SetUp()
+			{
+				base.SetUp();
+				testDirectory = Path.GetFullPath("testDirectory");
+				if (Directory.Exists(testDirectory))
+					Directory.Delete(testDirectory, true);
+				Directory.CreateDirectory(testDirectory);
+				appDomain = AppDomain.CreateDomain("test", null, new AppDomainSetup {ApplicationBase = testDirectory});
+			}
+
+			protected override void TearDown()
+			{
+				if (appDomain != null)
+					AppDomain.Unload(appDomain);
+				if (Directory.Exists(testDirectory))
+					Directory.Delete(testDirectory, true);
+				base.TearDown();
+			}
+
+			private void CopyAssemblyToTestDirectory(Assembly assembly, string resultFileName = null)
+			{
+				File.Copy(assembly.Location, Path.Combine(testDirectory, Path.GetFileName(resultFileName ?? assembly.Location)));
+			}
+
+			[Test]
+			public void Test()
+			{
+				var referencedAssemblyV2 = CompileAssembly(referencedAssemblyCodeV2);
+				CompileAssembly(referencedAssemblyCodeV1,
+					Path.Combine(testDirectory, Path.GetFileName(referencedAssemblyV2.Location)));
+				var primaryAssembly = CompileAssembly(primaryAssemblyCode, referencedAssemblyV2);
+				
+				CopyAssemblyToTestDirectory(primaryAssembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+
+				var invoker = (FactoryInvoker) appDomain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().GetName().FullName,
+					typeof (FactoryInvoker).FullName);
+				var exceptionText = invoker.InvokeWithCrash();
+				Assert.That(exceptionText, Is.StringContaining("A1.ISomeInterface.Do"));
+				Assert.That(exceptionText, Is.StringContaining("Unable to load one or more of the requested types"));
+			}
+
+			public class FactoryInvoker : MarshalByRefObject
+			{
+				public string InvokeWithCrash()
+				{
+					try
+					{
+						return InternalInvoker.DoInvoke();
+					}
+					catch (Exception e)
+					{
+						return e.ToString();
+					}
+				}
+
+				private static class InternalInvoker
+				{
+					static InternalInvoker()
+					{
+						new ContainerFactory(x => x.Name.StartsWith("tmp_")).FromDefaultBinDirectory(false);
+					}
+
+					public static string DoInvoke()
+					{
+						return "can't reach here";
+					}
+				}
+			}
+		}
+
+		private static Assembly CompileAssembly(string source, params Assembly[] references)
+		{
+			return CompileAssembly(source, null, references);
+		}
+
+		private static Assembly CompileAssembly(string source, string resultFileName, params Assembly[] references)
+		{
+			var tempAssemblyFileName = resultFileName;
+			if (tempAssemblyFileName == null)
+			{
+				var testAssemblyName = "tmp_" + Guid.NewGuid().ToString("N");
+				tempAssemblyFileName = testAssemblyName + ".dll";
+			}
 			var compilationParameters = new CompilerParameters
 			{
 				OutputAssembly = tempAssemblyFileName,
