@@ -49,7 +49,7 @@ namespace SimpleContainer.Configuration
 
 		public ServiceConfigurationBuilder<T> Bind(Func<FactoryContext, T> factory)
 		{
-			builder.Bind<T>(factory);
+			builder.Bind(factory);
 			return this;
 		}
 

@@ -59,9 +59,9 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ContainerConfigurationBuilder Bind<T>(Func<FactoryContext, object> creator)
+		public ContainerConfigurationBuilder Bind<T>(Func<FactoryContext, T> creator)
 		{
-			GetOrCreate<InterfaceConfiguration>(typeof (T)).Factory = creator;
+			GetOrCreate<InterfaceConfiguration>(typeof (T)).Factory = c => creator(c);
 			return this;
 		}
 

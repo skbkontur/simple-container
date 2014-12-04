@@ -350,6 +350,45 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanBindFactoryViaServiceConfigurator : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly Type ownerType;
+
+				public B(Type ownerType)
+				{
+					this.ownerType = ownerType;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<B>
+			{
+				public void Configure(ServiceConfigurationBuilder<B> builder)
+				{
+					builder.Bind(c => new B(c.target));
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				Assert.That(a.b.ownerType, Is.EqualTo(typeof (A)));
+			}
+		}
+
 		public class CanBindDependenciesViaAnonymousType : ContainerConfigurationTest
 		{
 			public class TestService
