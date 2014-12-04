@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -430,6 +431,62 @@ namespace SimpleContainer.Tests
 				Assert.That(simpleReader.parameter, Is.EqualTo(12));
 				var complexReader = contaier.Get<GenericReader<ComplexItem>>();
 				Assert.That(complexReader.parameter, Is.EqualTo(12));
+			}
+		}
+
+		public class ImplicitlyCastInt32ToInt64 : ContainerConfigurationTest
+		{
+			public class Service
+			{
+				public readonly long parameter;
+
+				public Service(long parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class ServiceConfigurator : IServiceConfigurator<Service>
+			{
+				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<Service>().parameter, Is.EqualTo(42));
+			}
+		}
+
+		public class ImplicitlyCastInt32ToNullableInt64 : ContainerConfigurationTest
+		{
+			public class Service
+			{
+				public readonly long? parameter;
+
+				public Service(long? parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class ServiceConfigurator : IServiceConfigurator<Service>
+			{
+				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.Dependencies(new { parameter = 42 });
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<Service>().parameter, Is.EqualTo(42));
 			}
 		}
 

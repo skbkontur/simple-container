@@ -51,6 +51,7 @@
     <Compile Include="Configuration\ProfileConfigurationBuilder.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Configuration\ServiceProfileConfigurationBuilder.cs" />
+    <Compile Include="Helpers\ImplicitTypeCaster.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />

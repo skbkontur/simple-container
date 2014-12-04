@@ -395,21 +395,22 @@ namespace SimpleContainer.Implementation
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
-				var dependencyService = InstantiateDependency(formalParameter, implementation, service);
-				service.UnionUsedContracts(dependencyService);
-				if (dependencyService.Instances.Count == 0)
+				var dependency = InstantiateDependency(formalParameter, implementation, service);
+				service.UnionUsedContracts(dependency);
+				if (dependency.Instances.Count == 0)
 				{
 					service.EndResolveDependencies();
 					return;
 				}
-				var dependencyValue = dependencyService.SingleInstance();
-				if (dependencyValue != null && !formalParameter.ParameterType.IsInstanceOfType(dependencyValue))
+				var dependencyValue = dependency.SingleInstance();
+				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
+				if (dependencyValue != null && castedValue == null)
 					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
 						dependencyValue.GetType().FormatName(),
 						formalParameter.ParameterType.FormatName(),
 						formalParameter.Name,
 						dependencyValue);
-				actualArguments[i] = dependencyValue;
+				actualArguments[i] = castedValue;
 			}
 			service.EndResolveDependencies();
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
