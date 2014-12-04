@@ -11,19 +11,16 @@ namespace SimpleContainer.Implementation
 	internal class StaticContainer : SimpleContainer, IStaticContainer
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
-		private readonly Func<Type, object> settingsLoader;
+		private readonly ConfigurationContext configurationContext;
 		private readonly ISet<Type> staticServices;
-		private readonly string profile;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			Func<AssemblyName, bool> assemblyFilter, Func<Type, object> settingsLoader, ISet<Type> staticServices,
-			string profile)
+			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices)
 			: base(configuration, inheritors, null, CacheLevel.Static)
 		{
 			this.assemblyFilter = assemblyFilter;
-			this.settingsLoader = settingsLoader;
+			this.configurationContext = configurationContext;
 			this.staticServices = staticServices;
-			this.profile = profile;
 		}
 
 		internal override CacheLevel GetCacheLevel(Type type)
@@ -38,14 +35,14 @@ namespace SimpleContainer.Implementation
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, x => targetAssemblies.Contains(x.Assembly));
 
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
-			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, settingsLoader))
+			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, configurationContext))
 			{
 				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);
 				runner.Run(builder, c => c.GetType().Assembly == primaryAssembly);
 			}
 			if (configure != null)
 				configure(builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build(profile));
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
 		}
 

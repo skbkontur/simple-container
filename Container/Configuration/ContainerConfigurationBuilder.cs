@@ -12,9 +12,6 @@ namespace SimpleContainer.Configuration
 		private readonly IDictionary<string, ContractConfigurationBuilder> contractConfigurators =
 			new Dictionary<string, ContractConfigurationBuilder>();
 
-		private readonly IDictionary<string, ProfileConfigurationBuilder> profileConfigurators =
-			new Dictionary<string, ProfileConfigurationBuilder>();
-
 		public ContainerConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
 			: base(staticServices, isStaticConfiguration)
 		{
@@ -45,27 +42,10 @@ namespace SimpleContainer.Configuration
 			return result;
 		}
 
-		public ProfileConfigurationBuilder Profile<TProfile>()
+		internal IContainerConfiguration Build()
 		{
-			return Profile(typeof (TProfile).Name);
-		}
-
-		public ProfileConfigurationBuilder Profile(string name)
-		{
-			ProfileConfigurationBuilder result;
-			if (!profileConfigurators.TryGetValue(name, out result))
-				profileConfigurators.Add(name, result = new ProfileConfigurationBuilder(staticServices, isStaticConfiguration));
-			return result;
-		}
-
-		internal IContainerConfiguration Build(string profile)
-		{
-			IContainerConfiguration result = new ContainerConfiguration(configurations,
+			return new ContainerConfiguration(configurations,
 				contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()));
-			ProfileConfigurationBuilder profileBuilder;
-			return profile != null && profileConfigurators.TryGetValue(profile, out profileBuilder)
-				? new MergedConfiguration(result, profileBuilder.Build())
-				: result;
 		}
 	}
 }

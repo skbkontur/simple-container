@@ -10,31 +10,31 @@ namespace SimpleContainer.Implementation
 {
 	internal class ConfiguratorRunner : IDisposable
 	{
-		private readonly Func<Type, object> settingsLoader;
+		private readonly ConfigurationContext context;
 		private readonly IContainer container;
 
-		private ConfiguratorRunner(Func<Type, object> settingsLoader, IContainer container)
+		private ConfiguratorRunner(ConfigurationContext context, IContainer container)
 		{
-			this.settingsLoader = settingsLoader;
+			this.context = context;
 			this.container = container;
 		}
 
 		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
-			IInheritanceHierarchy hierarchy, Func<Type, object> settingsLoader)
+			IInheritanceHierarchy hierarchy, ConfigurationContext context)
 		{
 			var thisAssembly = Assembly.GetExecutingAssembly();
 			Func<Type, bool> filter = x => x.Assembly == thisAssembly || x.IsDefined<StaticAttribute>() == isStatic;
 			var staticHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
 			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
 				new FilteredContainerConfiguration(configuration, filter), staticHierarchy);
-			return new ConfiguratorRunner(settingsLoader, container);
+			return new ConfiguratorRunner(context, container);
 		}
 
 		public void Run(ContainerConfigurationBuilder builder, Func<object, bool> configuratorsFilter)
 		{
-			var configurationContext = new ConfigurationContext(settingsLoader, configuratorsFilter, builder);
+			var internalContext = new ConfigurationContextInternal(context, builder, configuratorsFilter);
 			foreach (var invoker in container.GetAll<IServiceConfiguratorInvoker>())
-				invoker.Configure(configurationContext);
+				invoker.Configure(internalContext);
 		}
 
 		public void Dispose()
@@ -56,12 +56,12 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public interface IServiceConfiguratorInvoker
+		internal interface IServiceConfiguratorInvoker
 		{
-			void Configure(ConfigurationContext context);
+			void Configure(ConfigurationContextInternal internalContext);
 		}
 
-		public class ServiceConfiguratorInvoker<T> : IServiceConfiguratorInvoker
+		internal class ServiceConfiguratorInvoker<T> : IServiceConfiguratorInvoker
 		{
 			private readonly IEnumerable<IServiceConfigurator<T>> configurators;
 
@@ -70,32 +70,15 @@ namespace SimpleContainer.Implementation
 				this.configurators = configurators;
 			}
 
-			public void Configure(ConfigurationContext context)
+			public void Configure(ConfigurationContextInternal internalContext)
 			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
-				foreach (var configurator in context.Filter(configurators))
-					configurator.Configure(serviceConfigurationBuilder);
+				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(internalContext.Builder);
+				foreach (var configurator in internalContext.FilterConfigurators(configurators))
+					configurator.Configure(internalContext.Context, serviceConfigurationBuilder);
 			}
 		}
 
-		public class ServiceConfiguratorWithSettingsInvoker<TSettings, T> : IServiceConfiguratorInvoker
-		{
-			private readonly IEnumerable<IServiceConfigurator<TSettings, T>> configurators;
-
-			public ServiceConfiguratorWithSettingsInvoker(IEnumerable<IServiceConfigurator<TSettings, T>> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(context.Builder);
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.GetSettings<TSettings>(c.GetType()), serviceConfigurationBuilder);
-			}
-		}
-
-		public class ContainerConfiguratorInvoker : IServiceConfiguratorInvoker
+		internal class ContainerConfiguratorInvoker : IServiceConfiguratorInvoker
 		{
 			private readonly IEnumerable<IContainerConfigurator> configurators;
 
@@ -104,70 +87,30 @@ namespace SimpleContainer.Implementation
 				this.configurators = configurators;
 			}
 
-			public void Configure(ConfigurationContext context)
+			public void Configure(ConfigurationContextInternal internalContext)
 			{
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.Builder);
+				foreach (var c in internalContext.FilterConfigurators(configurators))
+					c.Configure(internalContext.Context, internalContext.Builder);
 			}
 		}
 
-		public class ContainerConfiguratorWithSettingsInvoker<TSettings> : IServiceConfiguratorInvoker
+		internal class ConfigurationContextInternal
 		{
-			private readonly IEnumerable<IContainerConfigurator<TSettings>> configurators;
-
-			public ContainerConfiguratorWithSettingsInvoker(IEnumerable<IContainerConfigurator<TSettings>> configurators)
-			{
-				this.configurators = configurators;
-			}
-
-			public void Configure(ConfigurationContext context)
-			{
-				foreach (var c in context.Filter(configurators))
-					c.Configure(context.GetSettings<TSettings>(c.GetType()), context.Builder);
-			}
-		}
-
-		public class ConfigurationContext
-		{
-			private readonly Func<object, bool> filter;
-			public Func<Type, object> SettingsLoader { get; private set; }
+			public ConfigurationContext Context { get; private set; }
 			public ContainerConfigurationBuilder Builder { get; private set; }
+			private readonly Func<object, bool> configuratorsFilter;
 
-			public ConfigurationContext(Func<Type, object> settingsLoader, Func<object, bool> filter,
-				ContainerConfigurationBuilder builder)
+			public ConfigurationContextInternal(ConfigurationContext context, ContainerConfigurationBuilder builder,
+				Func<object, bool> configuratorsFilter)
 			{
-				this.filter = filter;
-				SettingsLoader = settingsLoader;
+				Context = context;
 				Builder = builder;
+				this.configuratorsFilter = configuratorsFilter;
 			}
 
-			public IEnumerable<T> Filter<T>(IEnumerable<T> source)
+			public IEnumerable<TConfigurator> FilterConfigurators<TConfigurator>(IEnumerable<TConfigurator> configurators)
 			{
-				return source.Where(x => filter(x));
-			}
-
-			public TSettings GetSettings<TSettings>(Type configuratorType)
-			{
-				if (SettingsLoader == null)
-				{
-					const string messageFormat = "configurator [{0}] requires settings, but settings loader is not configured;" +
-					                             "configure it using ContainerFactory.SetSettingsLoader";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
-				}
-				var settingsInstance = SettingsLoader(typeof (TSettings));
-				if (settingsInstance == null)
-				{
-					const string messageFormat = "configurator [{0}] requires settings, but settings loader returned null";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName()));
-				}
-				if (settingsInstance is TSettings == false)
-				{
-					const string messageFormat = "configurator [{0}] requires settings [{1}], " +
-					                             "but settings loader returned [{2}]";
-					throw new SimpleContainerException(string.Format(messageFormat, configuratorType.FormatName(),
-						typeof (TSettings).FormatName(), settingsInstance.GetType().FormatName()));
-				}
-				return (TSettings) settingsInstance;
+				return configurators.Where(x => configuratorsFilter(x));
 			}
 		}
 	}

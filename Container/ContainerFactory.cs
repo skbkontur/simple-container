@@ -14,20 +14,27 @@ namespace SimpleContainer
 {
 	public class ContainerFactory
 	{
-		private readonly string profile;
-		private readonly Func<AssemblyName, bool> assembliesFilter;
+		private Type profile;
+		private Func<AssemblyName, bool> assembliesFilter;
 		private Func<Type, object> settingsLoader;
 
-		public ContainerFactory(Func<AssemblyName, bool> assembliesFilter, string profile = null)
-		{
-			this.profile = profile;
-			this.assembliesFilter = name => assembliesFilter(name) || name.Name == "SimpleContainer";
-		}
-
-		public void SetSettingsLoader(Func<Type, object> newLoader)
+		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
 			var cache = new ConcurrentDictionary<Type, object>();
 			settingsLoader = t => cache.GetOrAdd(t, newLoader);
+			return this;
+		}
+
+		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
+		{
+			assembliesFilter = name => newAssembliesFilter(name) || name.Name == "SimpleContainer";
+			return this;
+		}
+
+		public ContainerFactory WithProfile(Type newProfile)
+		{
+			profile = newProfile;
+			return this;
 		}
 
 		public IStaticContainer FromDefaultBinDirectory(bool withExecutables)
@@ -71,11 +78,11 @@ namespace SimpleContainer
 
 			var staticServices = new HashSet<Type>();
 			var builder = new ContainerConfigurationBuilder(staticServices, true);
-			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, settingsLoader))
+			var configurationContext = new ConfigurationContext(profile, settingsLoader);
+			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
 				runner.Run(builder, x => true);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build(profile));
-			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				settingsLoader, staticServices, profile);
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter, configurationContext, staticServices);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()
@@ -102,7 +109,7 @@ namespace SimpleContainer
 			}
 			foreach (var type in types)
 				genericsProcessor.SecondRun(builder, type);
-			return builder.Build(profile);
+			return builder.Build();
 		}
 
 		private Type[] LoadTypes(IEnumerable<Assembly> assemblies)

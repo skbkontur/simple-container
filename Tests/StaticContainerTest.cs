@@ -90,7 +90,7 @@ namespace SimpleContainer.Tests
 			[Static]
 			public class StaticConfigurator : IServiceConfigurator<SomeService>
 			{
-				public void Configure(ServiceConfigurationBuilder<SomeService> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<SomeService> builder)
 				{
 					builder.MakeStatic();
 				}
@@ -236,7 +236,7 @@ namespace SimpleContainer.Tests
 			[Static]
 			public class AConfigurator : IServiceConfigurator<A>
 			{
-				public void Configure(ServiceConfigurationBuilder<A> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
 					builder.Dependencies(new {parameter = 42});
 				}
@@ -245,7 +245,7 @@ namespace SimpleContainer.Tests
 			[Static]
 			public class BConfigurator : IServiceConfigurator<B>
 			{
-				public void Configure(ServiceConfigurationBuilder<B> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
 				{
 					builder.MakeStatic();
 					builder.Dependencies(new {parameter = 43});
@@ -271,7 +271,7 @@ namespace SimpleContainer.Tests
 
 			public class Configurator : IServiceConfigurator<Service>
 			{
-				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.MakeStatic();
 				}
@@ -297,7 +297,7 @@ namespace SimpleContainer.Tests
 			[Static]
 			public class Configurator : IServiceConfigurator<A>
 			{
-				public void Configure(ServiceConfigurationBuilder<A> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
 					builder.DontUse();
 				}
@@ -320,7 +320,7 @@ namespace SimpleContainer.Tests
 
 			public class Configurator : IServiceConfigurator<B>
 			{
-				public void Configure(ServiceConfigurationBuilder<B> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
 				{
 					builder.DontUse();
 				}

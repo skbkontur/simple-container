@@ -45,7 +45,7 @@ namespace SimpleContainer.Tests
 
 		public class Configurator : IContainerConfigurator
 		{
-			public void Configure(ContainerConfigurationBuilder builder)
+			public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 			{
 				builder.Contract("all").UnionOf("c1", "c2", "c3");
 				builder.Contract("c1").BindDependency<FileAccessor>("fileName", "qq");

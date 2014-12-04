@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -28,7 +27,7 @@ namespace SimpleContainer.Tests
 
 			public class InterfaceConfigurator : IServiceConfigurator<IInterface>
 			{
-				public void Configure(ServiceConfigurationBuilder<IInterface> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IInterface> builder)
 				{
 					builder.Bind<Impl2>();
 				}
@@ -59,20 +58,20 @@ namespace SimpleContainer.Tests
 				public string MyParameter { get; set; }
 			}
 
-			public class ServiceConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			public class ServiceConfigurator : IServiceConfigurator<Service>
 			{
-				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.Dependencies(new
 					{
-						parameter = settings.MyParameter
+						parameter = context.Settings<MySubsystemSettings>().MyParameter
 					});
 				}
 			}
 
-			public class OtherConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			public class OtherConfigurator : IServiceConfigurator<Service>
 			{
-				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 				}
 			}
@@ -81,7 +80,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
-				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				using (var localContainer = LocalContainer(staticContainer, null))
 				{
 					var instance = localContainer.Get<Service>();
@@ -98,7 +97,7 @@ namespace SimpleContainer.Tests
 					log.AppendFormat("load {0} ", t.Name);
 					return new MySubsystemSettings {MyParameter = "abc"};
 				};
-				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				using (LocalContainer(staticContainer, null))
 				{
 				}
@@ -127,13 +126,13 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class ServiceConfigurator : IServiceConfigurator<MySubsystemSettings, Service>
+			public class ServiceConfigurator : IServiceConfigurator<Service>
 			{
-				public void Configure(MySubsystemSettings settings, ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.Dependencies(new
 					{
-						parameter = settings.MyParameter
+						parameter = context.Settings<MySubsystemSettings>().MyParameter
 					});
 				}
 			}
@@ -144,10 +143,7 @@ namespace SimpleContainer.Tests
 				using (var staticContainer = CreateStaticContainer())
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
-					const string expectedMessage =
-						"configurator [ServiceConfigurator] requires settings, but settings loader is not configured;" +
-						"configure it using ContainerFactory.SetSettingsLoader";
-					Assert.That(error.Message, Is.EqualTo(expectedMessage));
+					Assert.That(error.Message, Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
 				}
 			}
 
@@ -155,12 +151,10 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderRetursNull()
 			{
 				Func<Type, object> loadSettings = t => null;
-				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
-					const string expectedMessage = "configurator [ServiceConfigurator] requires settings, " +
-					                               "but settings loader returned null";
-					Assert.That(error.Message, Is.EqualTo(expectedMessage));
+					Assert.That(error.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
 				}
 			}
 
@@ -168,12 +162,11 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderReturnsObjectOfInvalidType()
 			{
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
-				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
-					const string expectedMessage = "configurator [ServiceConfigurator] requires settings [MySubsystemSettings], " +
-					                               "but settings loader returned [OtherSubsystemSettings]";
-					Assert.That(error.Message, Is.EqualTo(expectedMessage));
+					Assert.That(error.Message,
+						Is.EqualTo("invalid settings type, required [MySubsystemSettings], actual [OtherSubsystemSettings]"));
 				}
 			}
 		}
@@ -194,7 +187,7 @@ namespace SimpleContainer.Tests
 
 			public class ServiceConfigurator1 : IServiceConfigurator<Service>
 			{
-				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.Dependencies(new
 					{
@@ -205,7 +198,7 @@ namespace SimpleContainer.Tests
 
 			public class ServiceConfigurator2 : IServiceConfigurator<Service>
 			{
-				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.Dependencies(new
 					{
@@ -253,7 +246,7 @@ namespace SimpleContainer.Tests
 
 			public class CompositeContractConfigurator : IContainerConfigurator
 			{
-				public void Configure(ContainerConfigurationBuilder builder)
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
 					builder.Contract("composite-contract").UnionOf("c1", "c2");
 				}
@@ -261,7 +254,7 @@ namespace SimpleContainer.Tests
 
 			public class ImplConfigurator : IServiceConfigurator<Impl>
 			{
-				public void Configure(ServiceConfigurationBuilder<Impl> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Impl> builder)
 				{
 					builder.Contract("c1").Dependencies(new {value = 1});
 					builder.Contract("c2").Dependencies(new {value = 2});
@@ -294,11 +287,11 @@ namespace SimpleContainer.Tests
 				public int Value { get; private set; }
 			}
 
-			public class MyConfigurator : IContainerConfigurator<MySettings>
+			public class MyConfigurator : IContainerConfigurator
 			{
-				public void Configure(MySettings settings, ContainerConfigurationBuilder builder)
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.BindDependency<SomeService>("value", settings.value);
+					builder.BindDependency<SomeService>("value", context.Settings<MySettings>().value);
 				}
 			}
 
@@ -306,7 +299,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySettings {value = 87};
-				using (var staticContainer = CreateStaticContainer(x => x.SetSettingsLoader(loadSettings)))
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 					Assert.That(LocalContainer(staticContainer, null).Get<SomeService>().Value, Is.EqualTo(87));
 			}
 		}
@@ -327,7 +320,7 @@ namespace SimpleContainer.Tests
 
 			public class AConfigurator1 : IServiceConfigurator<A>
 			{
-				public void Configure(ServiceConfigurationBuilder<A> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
 					builder.Contract("a").Dependencies(new {p1 = 1});
 				}
@@ -335,7 +328,7 @@ namespace SimpleContainer.Tests
 
 			public class AConfigurator2 : IServiceConfigurator<A>
 			{
-				public void Configure(ServiceConfigurationBuilder<A> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
 					builder.Contract("a").Dependencies(new {p2 = 2});
 				}
@@ -375,7 +368,7 @@ namespace SimpleContainer.Tests
 
 			public class AConfigurator : IServiceConfigurator<B>
 			{
-				public void Configure(ServiceConfigurationBuilder<B> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
 				{
 					builder.Bind(c => new B(c.target));
 				}
@@ -393,7 +386,7 @@ namespace SimpleContainer.Tests
 		public class GenericConfigurators : ContainerConfigurationTest
 		{
 			public class GenericReader<TItem>
-				where TItem: IItem
+				where TItem : IItem
 			{
 				public readonly int parameter;
 
@@ -410,14 +403,14 @@ namespace SimpleContainer.Tests
 			public class SimpleItem : IItem
 			{
 			}
-			
+
 			public class ComplexItem : IItem
 			{
 			}
 
 			public class GenericReaderConfigurator<TItem> : IServiceConfigurator<GenericReader<TItem>> where TItem : IItem
 			{
-				public void Configure(ServiceConfigurationBuilder<GenericReader<TItem>> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<GenericReader<TItem>> builder)
 				{
 					builder.Dependencies(new {parameter = 12});
 				}
@@ -448,7 +441,7 @@ namespace SimpleContainer.Tests
 
 			public class ServiceConfigurator : IServiceConfigurator<Service>
 			{
-				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
 					builder.Dependencies(new {parameter = 42});
 				}
@@ -476,9 +469,9 @@ namespace SimpleContainer.Tests
 
 			public class ServiceConfigurator : IServiceConfigurator<Service>
 			{
-				public void Configure(ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
-					builder.Dependencies(new { parameter = 42 });
+					builder.Dependencies(new {parameter = 42});
 				}
 			}
 
@@ -506,7 +499,7 @@ namespace SimpleContainer.Tests
 
 			public class InterfaceConfigurator : IServiceConfigurator<TestService>
 			{
-				public void Configure(ServiceConfigurationBuilder<TestService> builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<TestService> builder)
 				{
 					builder.Dependencies(new
 					{
@@ -523,6 +516,46 @@ namespace SimpleContainer.Tests
 				var instance = container.Get<TestService>();
 				Assert.That(instance.stringVal, Is.EqualTo("testString"));
 				Assert.That(instance.intVal, Is.EqualTo(42));
+			}
+		}
+
+		public class Profiles : ContainerConfigurationTest
+		{
+			public class InMemoryProfile
+			{
+			}
+
+			public interface IDatabase
+			{
+			}
+
+			public class InMemoryDatabase : IDatabase
+			{
+			}
+
+			public class Database : IDatabase
+			{
+			}
+
+			public class DatabaseConfigurator : IServiceConfigurator<IDatabase>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IDatabase> builder)
+				{
+					if (context.ProfileIs<InMemoryProfile>())
+						builder.Bind<InMemoryDatabase>();
+					else
+						builder.Bind<Database>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<IDatabase>(), Is.InstanceOf<Database>());
+
+				var inMemoryContainer = Container(null, typeof (InMemoryProfile));
+				Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
 			}
 		}
 	}

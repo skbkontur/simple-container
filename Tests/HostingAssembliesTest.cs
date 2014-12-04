@@ -1,6 +1,5 @@
 ﻿using System;
 using System.CodeDom.Compiler;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -8,7 +7,6 @@ using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
-using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -206,7 +204,7 @@ namespace SimpleContainer.Tests
 					{
 						public class ServiceConfigurator: IServiceConfigurator<IServiceProvider>
 						{
-							public void Configure(ServiceConfigurationBuilder<IServiceProvider> builder)
+							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IServiceProvider> builder)
 							{
 								builder.Bind<Impl1>();
 							}
@@ -279,7 +277,7 @@ namespace SimpleContainer.Tests
 				
 						public class ServiceConfigurator: IServiceConfigurator<IServiceProvider>
 						{
-							public void Configure(ServiceConfigurationBuilder<IServiceProvider> builder)
+							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IServiceProvider> builder)
 							{
 								builder.Bind<Impl1>();
 							}
@@ -296,7 +294,7 @@ namespace SimpleContainer.Tests
 					{
 						public class ServiceConfigurator: IServiceConfigurator<IServiceProvider>
 						{
-							public void Configure(ServiceConfigurationBuilder<IServiceProvider> builder)
+							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IServiceProvider> builder)
 							{
 								builder.Bind<Impl2>(true);
 							}
@@ -424,7 +422,9 @@ namespace SimpleContainer.Tests
 				{
 					static InternalInvoker()
 					{
-						new ContainerFactory(x => x.Name.StartsWith("tmp_")).FromDefaultBinDirectory(false);
+						new ContainerFactory()
+							.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+							.FromDefaultBinDirectory(false);
 					}
 
 					public static string DoInvoke()
@@ -455,7 +455,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var a1 = CompileAssembly(primaryAssemblyCode);
-				var factory = new ContainerFactory(x => x.Name.StartsWith("tmp2_"));
+				var factory = new ContainerFactory()
+					.WithAssembliesFilter(x => x.Name.StartsWith("tmp2_"));
 				using (var staticContainer = factory.FromAssemblies(new[] {a1}))
 				using (var localContainer = staticContainer.CreateLocalContainer(a1, null))
 					Assert.That(localContainer.GetAll<IComponent>(), Is.Empty);
@@ -502,7 +503,7 @@ namespace SimpleContainer.Tests
 
 		protected static ContainerFactory Factory()
 		{
-			return new ContainerFactory(x => x.Name.StartsWith("tmp_"));
+			return new ContainerFactory().WithAssembliesFilter(x => x.Name.StartsWith("tmp_"));
 		}
 	}
 }
