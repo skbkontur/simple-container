@@ -102,9 +102,10 @@ namespace SimpleContainer
 			return builder.Build();
 		}
 
-		private static Type[] LoadTypes(IEnumerable<Assembly> assemblies)
+		private Type[] LoadTypes(IEnumerable<Assembly> assemblies)
 		{
 			return assemblies
+				.Where(x => assembliesFilter(x.GetName()))
 				.SelectMany(a =>
 				{
 					try

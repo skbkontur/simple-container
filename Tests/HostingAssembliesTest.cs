@@ -8,6 +8,7 @@ using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
+using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -431,6 +432,33 @@ namespace SimpleContainer.Tests
 						return "can't reach here";
 					}
 				}
+			}
+		}
+
+		public class UseAssembliesFilterForExplicitlySpecifiedAssemblies : HostingAssembliesTest
+		{
+			private const string primaryAssemblyCode = @"
+					using SimpleContainer.Hosting;
+
+					namespace A1
+					{
+						public class TestClass: IComponent
+						{
+							public void Run()
+							{
+							}
+						}
+					}
+				";
+
+			[Test]
+			public void Test()
+			{
+				var a1 = CompileAssembly(primaryAssemblyCode);
+				var factory = new ContainerFactory(x => x.Name.StartsWith("tmp2_"));
+				using (var staticContainer = factory.FromAssemblies(new[] {a1}))
+				using (var localContainer = staticContainer.CreateLocalContainer(a1, null))
+					Assert.That(localContainer.GetAll<IComponent>(), Is.Empty);
 			}
 		}
 
