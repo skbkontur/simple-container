@@ -48,5 +48,11 @@ namespace SimpleContainer.Configuration
 			builder.WithInstanceFilter(filter);
 			return Self;
 		}
+
+		public TSelf DontUse()
+		{
+			builder.DontUse<TService>();
+			return Self;
+		}
 	}
 }

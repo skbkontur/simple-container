@@ -9,12 +9,6 @@ namespace SimpleContainer.Configuration
 		{
 		}
 
-		public ServiceConfigurationBuilder<T> DontUse()
-		{
-			builder.DontUse<T>();
-			return Self;
-		}
-
 		public ServiceContractConfigurationBuilder<T> Contract<TContract>() where TContract : RequireContractAttribute, new()
 		{
 			return new ServiceContractConfigurationBuilder<T>(builder.Contract<TContract>());
