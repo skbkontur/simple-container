@@ -39,12 +39,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\AbstractServiceConfigurationBuilder.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ContainerConfiguration.cs" />
     <Compile Include="Configuration\ContractConfiguration.cs" />
     <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
+    <Compile Include="Configuration\ProfileConfigurationBuilder.cs" />
+    <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\ServiceProfileConfigurationBuilder.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />

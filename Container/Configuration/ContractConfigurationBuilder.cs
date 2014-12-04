@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace SimpleContainer.Configuration
 {
-	public class ContractConfigurationBuilder : ContainerConfigurationBuilder
+	public class ContractConfigurationBuilder : AbstractConfigurationBuilder<ContractConfigurationBuilder>
 	{
 		private IEnumerable<string> unionContractNames;
 
@@ -24,7 +24,7 @@ namespace SimpleContainer.Configuration
 			return UnionOf(contractNames.AsEnumerable());
 		}
 
-		public new ContractConfiguration Build()
+		internal ContractConfiguration Build()
 		{
 			return new ContractConfiguration(configurations, unionContractNames);
 		}

@@ -26,18 +26,18 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null)
+		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null, string profile = null)
 		{
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
-			var factory = new ContainerFactory(x => x.Name.StartsWith("SimpleContainer"));
+			var factory = new ContainerFactory(x => x.Name.StartsWith("SimpleContainer"), profile);
 			if (configureContainerFactory != null)
 				configureContainerFactory(factory);
 			return factory.FromTypes(targetTypes);
 		}
 
-		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null)
+		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null, string profile = null)
 		{
-			var staticContainer = CreateStaticContainer();
+			var staticContainer = CreateStaticContainer(null, profile);
 			disposables.Add(staticContainer);
 			var result = LocalContainer(staticContainer, configure);
 			disposables.Add(result);

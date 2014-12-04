@@ -13,14 +13,17 @@ namespace SimpleContainer.Implementation
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly Func<Type, object> settingsLoader;
 		private readonly ISet<Type> staticServices;
+		private readonly string profile;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			Func<AssemblyName, bool> assemblyFilter, Func<Type, object> settingsLoader, ISet<Type> staticServices)
+			Func<AssemblyName, bool> assemblyFilter, Func<Type, object> settingsLoader, ISet<Type> staticServices,
+			string profile)
 			: base(configuration, inheritors, null, CacheLevel.Static)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.settingsLoader = settingsLoader;
 			this.staticServices = staticServices;
+			this.profile = profile;
 		}
 
 		internal override CacheLevel GetCacheLevel(Type type)
@@ -42,7 +45,7 @@ namespace SimpleContainer.Implementation
 			}
 			if (configure != null)
 				configure(builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build(profile));
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
 		}
 

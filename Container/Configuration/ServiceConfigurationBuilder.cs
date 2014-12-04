@@ -1,62 +1,38 @@
-using System;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Configuration
 {
-	public class ServiceConfigurationBuilder<T>
+	public class ServiceConfigurationBuilder<T> : AbstractServiceConfigurationBuilder<ServiceConfigurationBuilder<T>,ContainerConfigurationBuilder,T>
 	{
-		private readonly ContainerConfigurationBuilder builder;
-
 		public ServiceConfigurationBuilder(ContainerConfigurationBuilder builder)
+			: base(builder)
 		{
-			this.builder = builder;
 		}
 
 		public ServiceConfigurationBuilder<T> DontUse()
 		{
 			builder.DontUse<T>();
-			return this;
+			return Self;
 		}
 
-		public ServiceConfigurationBuilder<T> Contract<TContract>() where TContract : RequireContractAttribute, new()
+		public ServiceContractConfigurationBuilder<T> Contract<TContract>() where TContract : RequireContractAttribute, new()
 		{
-			return new ServiceConfigurationBuilder<T>(builder.Contract<TContract>());
+			return new ServiceContractConfigurationBuilder<T>(builder.Contract<TContract>());
+		}
+		
+		public ServiceContractConfigurationBuilder<T> Contract(string contractName)
+		{
+			return new ServiceContractConfigurationBuilder<T>(builder.Contract(contractName));
 		}
 
-		public ServiceConfigurationBuilder<T> Contract(string contractName)
+		public ServiceProfileConfigurationBuilder<T> Profile<TProfile>()
 		{
-			return new ServiceConfigurationBuilder<T>(builder.Contract(contractName));
+			return new ServiceProfileConfigurationBuilder<T>(builder.Profile<TProfile>());
 		}
-
-		public ServiceConfigurationBuilder<T> Dependencies(object values)
+		
+		public ServiceProfileConfigurationBuilder<T> Profile(string profileName)
 		{
-			builder.BindDependencies<T>(values);
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<T> Bind<TImplementation>(bool clearOld = false) where TImplementation : T
-		{
-			builder.Bind<T, TImplementation>(clearOld);
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<T> Bind(Type type, bool clearOld = false)
-		{
-			builder.Bind(typeof (T), type, clearOld);
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<T> Bind(Func<FactoryContext, T> factory)
-		{
-			builder.Bind(factory);
-			return this;
-		}
-
-		public ServiceConfigurationBuilder<T> WithInstanceFilter(Func<T, bool> filter)
-		{
-			builder.WithInstanceFilter(filter);
-			return this;
+			return new ServiceProfileConfigurationBuilder<T>(builder.Profile(profileName));
 		}
 
 		public ServiceConfigurationBuilder<T> MakeStatic()

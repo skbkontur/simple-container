@@ -14,11 +14,13 @@ namespace SimpleContainer
 {
 	public class ContainerFactory
 	{
+		private readonly string profile;
 		private readonly Func<AssemblyName, bool> assembliesFilter;
 		private Func<Type, object> settingsLoader;
 
-		public ContainerFactory(Func<AssemblyName, bool> assembliesFilter)
+		public ContainerFactory(Func<AssemblyName, bool> assembliesFilter, string profile = null)
 		{
+			this.profile = profile;
 			this.assembliesFilter = name => assembliesFilter(name) || name.Name == "SimpleContainer";
 		}
 
@@ -71,8 +73,9 @@ namespace SimpleContainer
 			var builder = new ContainerConfigurationBuilder(staticServices, true);
 			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, settingsLoader))
 				runner.Run(builder, x => true);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter, settingsLoader, staticServices);
+			var containerConfiguration = new MergedConfiguration(configuration, builder.Build(profile));
+			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
+				settingsLoader, staticServices, profile);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()
@@ -99,7 +102,7 @@ namespace SimpleContainer
 			}
 			foreach (var type in types)
 				genericsProcessor.SecondRun(builder, type);
-			return builder.Build();
+			return builder.Build(profile);
 		}
 
 		private Type[] LoadTypes(IEnumerable<Assembly> assemblies)
