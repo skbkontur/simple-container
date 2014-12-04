@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
@@ -21,7 +22,8 @@ namespace SimpleContainer.Implementation
 		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
 			IInheritanceHierarchy hierarchy, Func<Type, object> settingsLoader)
 		{
-			Func<Type, bool> filter = x => x.IsDefined<StaticAttribute>() == isStatic;
+			var thisAssembly = Assembly.GetExecutingAssembly();
+			Func<Type, bool> filter = x => x.Assembly == thisAssembly || x.IsDefined<StaticAttribute>() == isStatic;
 			var staticHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
 			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
 				new FilteredContainerConfiguration(configuration, filter), staticHierarchy);
