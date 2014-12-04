@@ -154,12 +154,12 @@ namespace SimpleContainer.Configuration
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)
 		{
-			return GetDependencyConfigurator(implementationType, dependencyType.FormatName() + " type");
+			return GetDependencyConfigurator(implementationType, InternalHelpers.ByTypeDependencyKey(dependencyType));
 		}
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, string dependencyName)
 		{
-			return GetDependencyConfigurator(implementationType, dependencyName + " name");
+			return GetDependencyConfigurator(implementationType, InternalHelpers.ByNameDependencyKey(dependencyName));
 		}
 
 		private ImplentationDependencyConfiguration GetDependencyConfigurator(Type pluggable, string key)

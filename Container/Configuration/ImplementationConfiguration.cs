@@ -20,8 +20,8 @@ namespace SimpleContainer.Configuration
 
 		public ImplentationDependencyConfiguration GetOrNull(ParameterInfo parameter)
 		{
-			var result = GetByKeyOrNull(parameter.Name + " name") ??
-			             GetByKeyOrNull(parameter.ParameterType.FormatName() + " type");
+			var result = GetByKeyOrNull(InternalHelpers.ByNameDependencyKey(parameter.Name)) ??
+			             GetByKeyOrNull(InternalHelpers.ByTypeDependencyKey(parameter.ParameterType));
 			if (result != null)
 				result.Used = true;
 			return result;

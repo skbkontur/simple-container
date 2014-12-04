@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SimpleContainer.Helpers
 {
@@ -8,6 +9,16 @@ namespace SimpleContainer.Helpers
 		public static string FormatContractsKey(IEnumerable<string> contracts)
 		{
 			return string.Join("->", contracts);
+		}
+
+		public static string ByNameDependencyKey(string name)
+		{
+			return "name=" + name;
+		}
+
+		public static string ByTypeDependencyKey(Type type)
+		{
+			return "type=" + type.FormatName();
 		}
 	}
 }
