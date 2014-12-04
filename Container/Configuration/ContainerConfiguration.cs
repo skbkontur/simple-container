@@ -15,9 +15,9 @@ namespace SimpleContainer.Configuration
 			this.contractsConfigurators = contractsConfigurators;
 		}
 
-		public ContractConfiguration GetContractConfiguration(string contractName)
+		public ContractConfiguration GetContractConfiguration(string contract)
 		{
-			return contractsConfigurators.GetOrDefault(contractName);
+			return contractsConfigurators.GetOrDefault(contract);
 		}
 	}
 }

@@ -18,9 +18,9 @@ namespace SimpleContainer.Configuration
 			return child.GetOrNull<T>(type) ?? parent.GetOrNull<T>(type);
 		}
 
-		public ContractConfiguration GetContractConfiguration(string contractName)
+		public ContractConfiguration GetContractConfiguration(string contract)
 		{
-			return child.GetContractConfiguration(contractName) ?? parent.GetContractConfiguration(contractName);
+			return child.GetContractConfiguration(contract) ?? parent.GetContractConfiguration(contract);
 		}
 	}
 }

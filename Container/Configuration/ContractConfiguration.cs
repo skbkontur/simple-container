@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SimpleContainer.Configuration
 {
-	public class ContractConfiguration : ConfigurationRegistry
+	internal class ContractConfiguration : ConfigurationRegistry
 	{
 		public ContractConfiguration(IDictionary<Type, object> configurations, IEnumerable<string> unionContractNames)
 			: base(configurations)

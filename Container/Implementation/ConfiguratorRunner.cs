@@ -21,9 +21,10 @@ namespace SimpleContainer.Implementation
 		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
 			IInheritanceHierarchy hierarchy, Func<Type, object> settingsLoader)
 		{
-			var staticHierarchy = new FilteredInheritanceHierarchy(hierarchy, x => x.IsDefined<StaticAttribute>() == isStatic);
+			Func<Type, bool> filter = x => x.IsDefined<StaticAttribute>() == isStatic;
+			var staticHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
 			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
-				configuration, staticHierarchy);
+				new FilteredContainerConfiguration(configuration, filter), staticHierarchy);
 			return new ConfiguratorRunner(settingsLoader, container);
 		}
 

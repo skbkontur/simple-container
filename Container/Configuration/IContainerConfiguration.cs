@@ -2,9 +2,9 @@ using System;
 
 namespace SimpleContainer.Configuration
 {
-	public interface IContainerConfiguration
+	internal interface IContainerConfiguration
 	{
 		T GetOrNull<T>(Type type) where T : class;
-		ContractConfiguration GetContractConfiguration(string contextKey);
+		ContractConfiguration GetContractConfiguration(string contract);
 	}
 }

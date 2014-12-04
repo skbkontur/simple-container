@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
@@ -26,6 +27,18 @@ namespace SimpleContainer.Configuration
 		{
 			Implementation = instance;
 			ImplementationAssigned = true;
+		}
+
+		public InterfaceConfiguration CloneWithFilter(Func<Type, bool> filter)
+		{
+			return new InterfaceConfiguration
+			{
+				Factory = Factory,
+				Implementation = Implementation,
+				ImplementationAssigned = ImplementationAssigned,
+				ImplementationTypes = new List<Type>(ImplementationTypes.Where(filter)),
+				UseAutosearch = UseAutosearch
+			};
 		}
 	}
 }

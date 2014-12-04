@@ -45,6 +45,7 @@
     <Compile Include="Configuration\ContainerConfiguration.cs" />
     <Compile Include="Configuration\ContractConfiguration.cs" />
     <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\FilteredContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
     <Compile Include="Configuration\ProfileConfigurationBuilder.cs" />

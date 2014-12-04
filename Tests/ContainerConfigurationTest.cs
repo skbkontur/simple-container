@@ -389,6 +389,50 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class GenericConfigurators : ContainerConfigurationTest
+		{
+			public class GenericReader<TItem>
+				where TItem: IItem
+			{
+				public readonly int parameter;
+
+				public GenericReader(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public interface IItem
+			{
+			}
+
+			public class SimpleItem : IItem
+			{
+			}
+			
+			public class ComplexItem : IItem
+			{
+			}
+
+			public class GenericReaderConfigurator<TItem> : IServiceConfigurator<GenericReader<TItem>> where TItem : IItem
+			{
+				public void Configure(ServiceConfigurationBuilder<GenericReader<TItem>> builder)
+				{
+					builder.Dependencies(new {parameter = 12});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var contaier = Container();
+				var simpleReader = contaier.Get<GenericReader<SimpleItem>>();
+				Assert.That(simpleReader.parameter, Is.EqualTo(12));
+				var complexReader = contaier.Get<GenericReader<ComplexItem>>();
+				Assert.That(complexReader.parameter, Is.EqualTo(12));
+			}
+		}
+
 		public class CanBindDependenciesViaAnonymousType : ContainerConfigurationTest
 		{
 			public class TestService
