@@ -955,10 +955,20 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				const string message =
-					"many implementations for IInterface\r\n\tImpl1\r\n\tImpl2\r\nIInterface++\r\n\tImpl1\r\n\tImpl2";
+					"many implementations for IInterface\r\n\tImpl1\r\n\tImpl2\r\nWrap!\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
 				var container = Container();
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message, Is.EqualTo(message));
+			}
+
+			public class Wrap
+			{
+				public readonly IInterface s;
+
+				public Wrap(IInterface s)
+				{
+					this.s = s;
+				}
 			}
 
 			public interface IInterface

@@ -96,10 +96,10 @@ namespace SimpleContainer.Implementation
 				.ToArray();
 		}
 
-		public string Format(Type targetType = null)
+		public string Format()
 		{
 			var writer = new SimpleTextLogWriter();
-			Format(targetType, writer);
+			Format(null, writer);
 			return writer.GetText();
 		}
 

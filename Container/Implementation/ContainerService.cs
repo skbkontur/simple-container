@@ -121,7 +121,7 @@ namespace SimpleContainer.Implementation
 				? "no implementations for " + Type.Name
 				: string.Format("many implementations for {0}\r\n{1}", Type.Name,
 					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format(Type)));
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
 		}
 
 		public bool WaitForSuccessfullResolve()
