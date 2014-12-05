@@ -14,6 +14,7 @@ namespace SimpleContainer.Implementation
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
 		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
+		public object locker = new object();
 
 		public string[] RequiredContractNames()
 		{
@@ -45,6 +46,30 @@ namespace SimpleContainer.Implementation
 				return result;
 			}
 			return configuration.GetOrNull<T>(type);
+		}
+
+		public void Mark(ISet<ContainerService> marked)
+		{
+			var index = 0;
+			Mark(ref index, marked);
+		}
+
+		private void Mark(ref int index, ISet<ContainerService> marked)
+		{
+			lock (locker)
+			{
+				var start = index;
+				var item = log[start];
+				var skip = item.service.Instances.Count == 0;
+				if (!skip)
+					marked.Add(item.service);
+				index++;
+				while (index < log.Count && log[index].depth > item.depth)
+					if (skip)
+						index++;
+					else
+						Mark(ref index, marked);
+			}
 		}
 
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)

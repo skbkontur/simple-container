@@ -58,7 +58,8 @@ namespace SimpleContainer.Implementation
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
-				return ResolveSingleton(key.type, null, context);
+				lock (context.locker)
+					return ResolveSingleton(key.type, null, context);
 			};
 		}
 
@@ -91,15 +92,18 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			var resolutionContext = new ResolutionContext(configuration, contracts);
-			var result = ContainerService.ForFactory(type, arguments);
-			resolutionContext.Instantiate(null, result, this);
-			if (result.Arguments != null)
+			lock (resolutionContext.locker)
 			{
-				var unused = result.Arguments.GetUnused().ToArray();
-				if (unused.Any())
-					resolutionContext.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
+				var result = ContainerService.ForFactory(type, arguments);
+				resolutionContext.Instantiate(null, result, this);
+				if (result.Arguments != null)
+				{
+					var unused = result.Arguments.GetUnused().ToArray();
+					if (unused.Any())
+						resolutionContext.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
+				}
+				return result.SingleInstance();
 			}
-			return result.SingleInstance();
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
@@ -137,8 +141,14 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			var resultServices = instanceCache.Values
-				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type));
-			var result = new List<ContainerService>(resultServices);
+				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type))
+				.ToArray();
+			var processedContexts = new HashSet<ResolutionContext>();
+			var reachableServices = new HashSet<ContainerService>();
+			foreach (var containerService in resultServices)
+				if (processedContexts.Add(containerService.Context))
+					containerService.Context.Mark(reachableServices);
+			var result = new List<ContainerService>(resultServices.Where(reachableServices.Contains));
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
 			return result.SelectMany(x => x.Instances).Distinct().ToArray();
 		}
@@ -532,10 +542,13 @@ namespace SimpleContainer.Implementation
 				result = ResolveSingleton(dependencyType, formalParameter.Name, service.Context);
 			if (isEnumerable)
 				return DependentService(result.AsEnumerable(), result);
-			if (result.Instances.Count == 0 && formalParameter.HasDefaultValue)
-				result.AddInstance(formalParameter.DefaultValue);
-			if (result.Instances.Count == 0 && formalParameter.IsDefined<OptionalAttribute>())
-				result.AddInstance(null);
+			if (result.Instances.Count == 0)
+			{
+				if (formalParameter.HasDefaultValue)
+					return IndependentService(formalParameter.DefaultValue);
+				if (formalParameter.IsDefined<OptionalAttribute>())
+					return IndependentService(null);
+			}
 			return result;
 		}
 

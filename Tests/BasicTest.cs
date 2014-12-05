@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
@@ -626,6 +627,31 @@ namespace SimpleContainer.Tests
 				}
 
 				public int Parameter { get; private set; }
+			}
+		}
+
+		public class ParameterDefaultValuesAreIndependentServices : BasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b = null)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<B>());
+				Assert.That(container.Get<A>().b, Is.Null);
+				Assert.That(container.GetAll<B>(), Is.Empty);
 			}
 		}
 
@@ -1561,8 +1587,10 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.DontUse<A>());
-				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
+				Assert.That(container.GetConstructionLog(typeof(WrapWithOptionalDependency)),
+					Is.EqualTo("WrapWithOptionalDependency\r\n\tA!"));
+				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}
 		}
 	}

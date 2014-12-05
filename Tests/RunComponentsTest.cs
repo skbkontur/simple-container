@@ -132,6 +132,137 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DoNotRunNotUsedComponents : RunComponentsTest
+		{
+			private static readonly StringBuilder logBuilder = new StringBuilder();
+
+			public class A
+			{
+				public readonly BWrap b;
+
+				public A([Optional] BWrap b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class BWrap
+			{
+				public readonly B b;
+				public readonly FilteredService filteredService;
+
+				public BWrap(B b, FilteredService filteredService)
+				{
+					this.b = b;
+					this.filteredService = filteredService;
+				}
+			}
+
+			public class FilteredService
+			{
+			}
+
+			public class B : IComponent
+			{
+				public void Run()
+				{
+					logBuilder.Append("Run ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.WithInstanceFilter<FilteredService>(x => false));
+				var a = container.Run<A>();
+				Assert.That(a.b, Is.Null);
+				Assert.That(logBuilder.ToString(), Is.Empty);
+			}
+		}
+
+		public class RunUsesInstancesReachableFromAllResolutionContexts : RunComponentsTest
+		{
+			private static readonly StringBuilder logBuilder = new StringBuilder();
+
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+			
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C : IComponent
+			{
+				public void Run()
+				{
+					logBuilder.Append("Run ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<B>();
+				container.Run<A>();
+				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
+			}
+		}
+
+		public class RunUsesInstancesCreatedByFactories : RunComponentsTest
+		{
+			private static readonly StringBuilder logBuilder = new StringBuilder();
+
+			public class A
+			{
+				public readonly B b;
+
+				public A(Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C : IComponent
+			{
+				public void Run()
+				{
+					logBuilder.Append("Run ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Run<A>();
+				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
+			}
+		}
+
 		public class RunWithRunLogger : RunComponentsTest
 		{
 			private static StringBuilder log;
