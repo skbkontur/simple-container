@@ -76,7 +76,7 @@ namespace SimpleContainer.Tests
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => staticContainer.Get<StaticService>());
 					Assert.That(error.Message,
-						Is.EqualTo("local service [LocalService] can't be resolved in static context\r\nStaticService!"));
+						Is.EqualTo("local service [LocalService] can't be resolved in static context\r\n(s)StaticService!"));
 				}
 			}
 		}
@@ -308,6 +308,23 @@ namespace SimpleContainer.Tests
 			{
 				var error = Assert.Throws<SimpleContainerException>(() => CreateStaticContainer());
 				Assert.That(error.Message, Is.EqualTo("can't configure non static service [A] using static configurator"));
+			}
+		}
+
+		public class StaticServiceHasSpecialMarkerInConstructionLog : StaticContainerTest
+		{
+			[Static]
+			public class SomeStaticService
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var staticContainer = CreateStaticContainer();
+				staticContainer.Get<SomeStaticService>();
+				var constructionLog = staticContainer.GetConstructionLog(typeof (SomeStaticService));
+				Assert.That(constructionLog, Is.EqualTo("(s)SomeStaticService"));
 			}
 		}
 

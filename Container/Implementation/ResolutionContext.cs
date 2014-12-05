@@ -59,7 +59,8 @@ namespace SimpleContainer.Implementation
 				allContactsKey = allContractsKey,
 				contractDeclared = requiredContractNames.Length > 0 && previous != null &&
 				                   (previous.allContactsKey ?? "").Length < allContractsKey.Length,
-				service = containerService
+				service = containerService,
+				isStatic = container.cacheLevel == CacheLevel.Static
 			};
 			current.Push(item);
 			log.Add(item);
@@ -129,9 +130,10 @@ namespace SimpleContainer.Implementation
 					startDepth = state.depth;
 				}
 				writer.WriteIndent(state.depth - startDepth);
-				writer.WriteName(state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.Type)
+				var name = state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.Type)
 					? state.name
-					: state.service.Type.FormatName());
+					: state.service.Type.FormatName();
+				writer.WriteName(state.isStatic ? "(s)" + name : name);
 				var usedContractNames = state.service.GetUsedContractNames();
 				if (usedContractNames.Length > 0)
 					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContractNames));
@@ -195,6 +197,7 @@ namespace SimpleContainer.Implementation
 			public string allContactsKey;
 			public bool contractDeclared;
 			public ContainerService service;
+			public bool isStatic;
 		}
 	}
 }

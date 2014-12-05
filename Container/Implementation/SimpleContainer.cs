@@ -37,7 +37,7 @@ namespace SimpleContainer.Implementation
 		protected readonly IContainerConfiguration configuration;
 		protected readonly IInheritanceHierarchy inheritors;
 		private readonly StaticContainer staticContainer;
-		protected readonly CacheLevel cacheLevel;
+		internal readonly CacheLevel cacheLevel;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
