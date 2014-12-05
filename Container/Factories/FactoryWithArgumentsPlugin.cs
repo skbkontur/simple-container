@@ -5,7 +5,7 @@ namespace SimpleContainer.Factories
 {
 	internal class FactoryWithArgumentsPlugin : IFactoryPlugin
 	{
-		public bool TryInstantiate(IContainer container, ContainerService containerService)
+		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
 		{
 			var funcType = containerService.Type;
 			if (!funcType.IsGenericType)
@@ -17,7 +17,14 @@ namespace SimpleContainer.Factories
 				return false;
 			var type = typeArguments[1];
 			var requiredContractNames = containerService.Context.RequiredContractNames();
-			Func<object, object> factory = arguments => container.Create(type, requiredContractNames, arguments);
+			var hostService = containerService.Context.GetPreviousService();
+			Func<object, object> factory =
+				arguments =>
+				{
+					var topService = containerService.Context.GetTopService();
+					return container.Create(type, requiredContractNames, arguments,
+						topService == hostService ? containerService.Context : null);
+				};
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
 			containerService.UseAllContracts(requiredContractNames.Length);
 			return true;

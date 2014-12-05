@@ -4,6 +4,6 @@ namespace SimpleContainer.Factories
 {
 	internal interface IFactoryPlugin
 	{
-		bool TryInstantiate(IContainer container, ContainerService containerService);
+		bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService);
 	}
 }

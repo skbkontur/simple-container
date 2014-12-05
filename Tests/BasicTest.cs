@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
-using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
@@ -1588,7 +1587,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof(WrapWithOptionalDependency)),
+				Assert.That(container.GetConstructionLog(typeof (WrapWithOptionalDependency)),
 					Is.EqualTo("WrapWithOptionalDependency\r\n\tA!"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}

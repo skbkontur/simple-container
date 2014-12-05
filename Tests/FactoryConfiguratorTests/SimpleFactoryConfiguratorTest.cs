@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Implementation;
 
@@ -102,6 +103,83 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
 				Assert.That(error.Message, Is.EqualTo("arguments [argument] are not used\r\nService"));
+			}
+		}
+
+		public class CloseOverResolutionContextWhenInvokeFromConstructor : SimpleFactoryConfiguratorTest
+		{
+			public class A
+			{
+				public B b1;
+				public B b2;
+
+				public A(Func<B> createB)
+				{
+					b1 = createB();
+					b2 = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				var constructionLog = container.GetConstructionLog(typeof (A));
+				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\tB\r\n\t\tC\r\n\tB"));
+				Assert.That(container.Get<B>(), Is.Not.SameAs(a.b1));
+				Assert.That(a.b1, Is.Not.SameAs(a.b2));
+			}
+		}
+
+		public class DoNotCloseOverContextIfFactoryIsInvokedNotFromConstructor : SimpleFactoryConfiguratorTest
+		{
+			public class A
+			{
+				public readonly Func<B> createB;
+
+				public A(Func<B> createB)
+				{
+					this.createB = createB;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				a.createB();
+				var constructionLog = container.GetConstructionLog(typeof (A), null, true);
+				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>"));
 			}
 		}
 

@@ -88,10 +88,10 @@ namespace SimpleContainer.Implementation
 			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
-		public object Create(Type type, IEnumerable<string> contracts, object arguments)
+		internal object Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext resolutionContext)
 		{
 			EnsureNotDisposed();
-			var resolutionContext = new ResolutionContext(configuration, contracts);
+			resolutionContext = resolutionContext ?? new ResolutionContext(configuration, contracts);
 			lock (resolutionContext.locker)
 			{
 				var result = ContainerService.ForFactory(type, arguments);
@@ -104,6 +104,11 @@ namespace SimpleContainer.Implementation
 				}
 				return result.SingleInstance();
 			}
+		}
+
+		public object Create(Type type, IEnumerable<string> contracts, object arguments)
+		{
+			return Create(type, contracts, arguments, null);
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)

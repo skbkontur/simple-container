@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 	internal class ResolutionContext
 	{
 		private readonly IContainerConfiguration configuration;
-		private readonly Stack<ResolutionItem> current = new Stack<ResolutionItem>();
+		private readonly List<ResolutionItem> current = new List<ResolutionItem>();
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
@@ -42,7 +42,7 @@ namespace SimpleContainer.Implementation
 				var result = requiredContract.configuration.GetOrNull<T>(type);
 				if (result == null)
 					continue;
-				current.Peek().service.UseContractWithIndex(i);
+				GetTopService().UseContractWithIndex(i);
 				return result;
 			}
 			return configuration.GetOrNull<T>(type);
@@ -74,7 +74,7 @@ namespace SimpleContainer.Implementation
 
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
-			var previous = current.Count == 0 ? null : current.Peek();
+			var previous = current.Count == 0 ? null : current[current.Count - 1];
 			var requiredContractNames = RequiredContractNames();
 			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
 			var item = new ResolutionItem
@@ -87,7 +87,7 @@ namespace SimpleContainer.Implementation
 				service = containerService,
 				isStatic = container.cacheLevel == CacheLevel.Static
 			};
-			current.Push(item);
+			current.Add(item);
 			log.Add(item);
 			if (currentTypes.Contains(containerService.Type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
@@ -95,8 +95,19 @@ namespace SimpleContainer.Implementation
 			currentTypes.Add(containerService.Type);
 			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
-			currentTypes.Remove(current.Pop().service.Type);
+			current.RemoveAt(current.Count - 1);
+			currentTypes.Remove(containerService.Type);
 			depth--;
+		}
+
+		public ContainerService GetTopService()
+		{
+			return current.Count == 0 ? null : current[current.Count - 1].service;
+		}
+
+		public ContainerService GetPreviousService()
+		{
+			return current.Count <= 1 ? null : current[current.Count - 2].service;
 		}
 
 		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name,
@@ -136,7 +147,7 @@ namespace SimpleContainer.Implementation
 
 		public void Report(string message, params object[] args)
 		{
-			current.Peek().message = string.Format(message, args);
+			current[current.Count - 1].message = string.Format(message, args);
 		}
 
 		public void Format(Type targetType, ISimpleLogWriter writer)
