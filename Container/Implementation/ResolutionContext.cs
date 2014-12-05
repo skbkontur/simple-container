@@ -89,10 +89,9 @@ namespace SimpleContainer.Implementation
 			};
 			current.Add(item);
 			log.Add(item);
-			if (currentTypes.Contains(containerService.Type))
+			if (!currentTypes.Add(containerService.Type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
 					containerService.Type.FormatName(), previous == null ? "null" : previous.service.Type.FormatName(), Format()));
-			currentTypes.Add(containerService.Type);
 			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
 			current.RemoveAt(current.Count - 1);
