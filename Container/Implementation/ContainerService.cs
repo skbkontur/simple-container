@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using SimpleContainer.Helpers;
@@ -20,7 +19,7 @@ namespace SimpleContainer.Implementation
 		private bool failed;
 		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
-		public string[] FinalUsedContracts { get; private set; }
+		public List<string> FinalUsedContracts { get; private set; }
 		public IObjectAccessor Arguments { get; private set; }
 		public bool CreateNew { get; private set; }
 		public ResolutionContext Context { get; private set; }
@@ -68,8 +67,8 @@ namespace SimpleContainer.Implementation
 
 		public void UseAllRequiredContracts()
 		{
-			FinalUsedContracts = Context.requiredContracts.Select(x => x.name).ToArray();
-			usedContractIndexes = Enumerable.Range(0, FinalUsedContracts.Length).Select((i, x) => i).ToList();
+			FinalUsedContracts = Context.requiredContracts.Select(x => x.name).ToList();
+			usedContractIndexes = Enumerable.Range(0, FinalUsedContracts.Count).Select((i, x) => i).ToList();
 		}
 
 		public void UnionUsedContracts(ContainerService dependency)
@@ -104,16 +103,16 @@ namespace SimpleContainer.Implementation
 			FinalUsedContracts = GetUsedContractNamesFromContext();
 		}
 
-		public string[] GetUsedContractNames()
+		public List<string> GetUsedContractNames()
 		{
 			return FinalUsedContracts ?? GetUsedContractNamesFromContext();
 		}
 
-		private string[] GetUsedContractNamesFromContext()
+		private List<string> GetUsedContractNamesFromContext()
 		{
 			return usedContractIndexes == null
-				? new string[0]
-				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].name).ToArray();
+				? new List<string>(0)
+				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].name).ToList();
 		}
 
 		public object SingleInstance(bool inConstructor)

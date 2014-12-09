@@ -5,12 +5,12 @@ namespace SimpleContainer.Configuration
 {
 	internal class ContractConfiguration : ConfigurationRegistry
 	{
-		public ContractConfiguration(IDictionary<Type, object> configurations, IEnumerable<string> unionContractNames)
+		public ContractConfiguration(IDictionary<Type, object> configurations, List<string> unionContractNames)
 			: base(configurations)
 		{
 			UnionContractNames = unionContractNames;
 		}
 
-		public IEnumerable<string> UnionContractNames { get; private set; }
+		public List<string> UnionContractNames { get; private set; }
 	}
 }

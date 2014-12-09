@@ -26,7 +26,7 @@ namespace SimpleContainer.Configuration
 
 		internal ContractConfiguration Build()
 		{
-			return new ContractConfiguration(configurations, unionContractNames);
+			return new ContractConfiguration(configurations, unionContractNames == null ? null : unionContractNames.ToList());
 		}
 	}
 }

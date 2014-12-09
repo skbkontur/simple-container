@@ -16,22 +16,22 @@ namespace SimpleContainer.Implementation
 		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
 		public object locker = new object();
 
-		public string[] RequiredContractNames()
+		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
 		{
-			return requiredContracts.Select(x => x.name).ToArray();
+			this.configuration = configuration;
+			if (contracts != null)
+				PushContracts(contracts);
+		}
+
+		public List<string> RequiredContractNames()
+		{
+			return requiredContracts.Select(x => x.name).ToList();
 		}
 
 		public struct RequiredContract
 		{
 			public string name;
 			public ContractConfiguration configuration;
-		}
-
-		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contractNames)
-		{
-			this.configuration = configuration;
-			foreach (var c in contractNames)
-				PushContract(c);
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -109,27 +109,54 @@ namespace SimpleContainer.Implementation
 			return current.Count <= 1 ? null : current[current.Count - 2].service;
 		}
 
-		public IEnumerable<ContainerService> ResolveUsingContract(Type type, string name,
-			string dependencyContract, string serviceContract, SimpleContainer container)
+		public ContainerService Resolve(Type type, string name, SimpleContainer container, List<string> contractNames)
 		{
-			var dependencyContracts = dependencyContract == null
-				? new string[] {null}
-				: GetContractConfiguration(dependencyContract).UnionContractNames ?? Enumerable.Repeat(dependencyContract, 1);
-			return dependencyContracts
-				.Select(delegate(string c)
+			if (contractNames == null)
+				return container.ResolveSingleton(type, name, this);
+			var unioned = contractNames.Select(c => GetContractConfiguration(c).UnionContractNames).ToArray();
+			if (unioned.All(x => x == null))
+				return ResolveUsingContracts(type, name, container, contractNames);
+			var source = new List<List<string>>();
+			for (var i = 0; i < contractNames.Count; i++)
+				source.Add(unioned[i] ?? new List<string>(1) {contractNames[i]});
+			var result = new ContainerService(type);
+			result.AttachToContext(this);
+			foreach (var contracts in source.CartesianProduct())
+			{
+				var item = ResolveUsingContracts(type, name, container, contracts);
+				result.UnionFrom(item);
+			}
+			return result;
+		}
+
+		public ContainerService ResolveUsingContracts(Type type, string name, SimpleContainer container,
+			List<string> contractNames)
+		{
+			PushContracts(contractNames);
+			var result = container.ResolveSingleton(type, name, this);
+			for (var i = 0; i < contractNames.Count; i++)
+				requiredContracts.RemoveAt(requiredContracts.Count - 1);
+			return result;
+		}
+
+		private void PushContracts(IEnumerable<string> contractNames)
+		{
+			foreach (var c in contractNames)
+			{
+				foreach (var requiredContract in requiredContracts)
 				{
-					if (c != null)
-						PushContract(c);
-					if (serviceContract != null)
-						PushContract(serviceContract);
-					var result = container.ResolveSingleton(type, name, this);
-					if (serviceContract != null)
-						PopContract();
-					if (c != null)
-						PopContract();
-					return result;
-				})
-				.ToArray();
+					if (!string.Equals(requiredContract.name, c, StringComparison.OrdinalIgnoreCase))
+						continue;
+					const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
+					throw new SimpleContainerException(string.Format(messageFormat,
+						c, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.name)), Format()));
+				}
+				requiredContracts.Add(new RequiredContract
+				{
+					name = c,
+					configuration = GetContractConfiguration(c)
+				});
+			}
 		}
 
 		public string Format()
@@ -172,7 +199,7 @@ namespace SimpleContainer.Implementation
 					: state.service.Type.FormatName();
 				writer.WriteName(state.isStatic ? "(s)" + name : name);
 				var usedContracts = state.service.GetUsedContractNames();
-				if (usedContracts != null && usedContracts.Length > 0)
+				if (usedContracts != null && usedContracts.Count > 0)
 					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 				if (state.allContactsKey != null && state.contractDeclared)
 				{
@@ -201,29 +228,6 @@ namespace SimpleContainer.Implementation
 			if (result == null)
 				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contractName, Format()));
 			return result;
-		}
-
-		private void PushContract(string contractName)
-		{
-			foreach (var requiredContract in requiredContracts)
-			{
-				if (string.Equals(requiredContract.name, contractName, StringComparison.OrdinalIgnoreCase))
-				{
-					const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
-					throw new SimpleContainerException(string.Format(messageFormat,
-						contractName, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.name)), Format()));
-				}
-			}
-			requiredContracts.Add(new RequiredContract
-			{
-				name = contractName,
-				configuration = GetContractConfiguration(contractName)
-			});
-		}
-
-		private void PopContract()
-		{
-			requiredContracts.RemoveAt(requiredContracts.Count - 1);
 		}
 
 		private class ResolutionItem

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
 {
@@ -9,6 +11,17 @@ namespace SimpleContainer.Helpers
 		public static string FormatContractsKey(IEnumerable<string> contracts)
 		{
 			return string.Join("->", contracts);
+		}
+
+		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
+		{
+			if (contracts == null)
+				return null;
+			var result = contracts.ToList();
+			RequireContractAttribute requireContractAttribute;
+			if (type.TryGetCustomAttribute(out requireContractAttribute))
+				result.Add(requireContractAttribute.ContractName);
+			return result;
 		}
 
 		public static string ByNameDependencyKey(string name)

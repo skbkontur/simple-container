@@ -1203,6 +1203,41 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class FinalUsedContractsForSkippedServices : ContractsTest
+		{
+			public class Wrap
+			{
+				public readonly A a;
+
+				public Wrap([RequireContract("x")] A a)
+				{
+					this.a = a;
+				}
+			}
+
+			public class A
+			{
+				public readonly B b;
+
+				public A([Optional] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x").DontUse<B>());
+				Assert.That(container.Get<Wrap>().a.b, Is.Null);
+				Assert.That(container.GetConstructionLog(typeof (A), "x"), Is.EqualTo("A->[x]\r\n\tB[x]!"));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
