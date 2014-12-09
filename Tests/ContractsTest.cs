@@ -1101,6 +1101,46 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ContractUsedInEnumerableDependency : ContractsTest
+		{
+			public class Wrap
+			{
+				public readonly A a;
+
+				public Wrap([RequireContract("b")] A a)
+				{
+					this.a = a;
+				}
+			}
+
+			public class A
+			{
+				public readonly IEnumerable<B> enumerable;
+
+				public A(IEnumerable<B> enumerable)
+				{
+					this.enumerable = enumerable;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("b").BindDependency<B>("parameter", 128));
+				Assert.That(container.Get<Wrap>().a.enumerable.Single().parameter, Is.EqualTo(128));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A

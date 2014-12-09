@@ -473,6 +473,7 @@ namespace SimpleContainer.Implementation
 		private static ContainerService DependentService(object instance, ContainerService dependency)
 		{
 			var result = new ContainerService(null);
+			result.AttachToContext(dependency.Context);
 			result.AddInstance(instance);
 			result.UnionUsedContracts(dependency);
 			return result;
