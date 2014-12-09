@@ -280,6 +280,10 @@ namespace SimpleContainer.Tests
 					log.Append(componentType.Name + ".start\r\n");
 					return new ActionDisposable(() => log.Append(componentType.Name + ".finish\r\n"));
 				}
+
+				public void TRASH_DumpConstructionLog(string constructionLog)
+				{
+				}
 			}
 
 			public class ComponentA : IComponent

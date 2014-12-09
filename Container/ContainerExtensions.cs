@@ -87,6 +87,9 @@ namespace SimpleContainer
 		public static object Run(this IContainer container, Type type, string contract = null)
 		{
 			var result = container.Get(type, contract);
+			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
+			if (runLogger != null)
+				runLogger.TRASH_DumpConstructionLog(container.GetConstructionLog(type, contract, true));
 			container.Run();
 			return result;
 		}
