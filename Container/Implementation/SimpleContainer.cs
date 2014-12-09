@@ -445,7 +445,7 @@ namespace SimpleContainer.Implementation
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
 				{
-					InvokeConstructor(constructor, null, actualArguments, service);
+					InvokeConstructor(constructor, null, actualArguments, serviceForUsedContracts);
 					serviceForUsedContracts.AttachToContext(service.Context);
 					serviceForUsedContracts.UnionUsedContracts(service);
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
@@ -624,8 +624,9 @@ namespace SimpleContainer.Implementation
 		{
 			try
 			{
-				var compiledMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
-				containerService.AddInstance(compiledMethod(self, actualArguments));
+				var factoryMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
+				var instance = factoryMethod(self, actualArguments);
+				containerService.AddInstance(instance);
 			}
 			catch (ServiceCouldNotBeCreatedException)
 			{
