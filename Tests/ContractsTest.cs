@@ -333,7 +333,7 @@ namespace SimpleContainer.Tests
 					builder.Contract("a2");
 				});
 				container.Get<Wrap>();
-				Assert.That(container.GetConstructionLog(typeof (A), "a2"), Is.EqualTo("A->[a2]"));
+				Assert.That(container.GetConstructionLog(typeof (A), "a2"), Is.EqualTo("A->[a2] - reused"));
 			}
 		}
 
@@ -1235,6 +1235,38 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
 				Assert.That(container.GetConstructionLog(typeof (A), "x"), Is.EqualTo("A->[x]\r\n\tB[x]!"));
+			}
+		}
+
+		public class ExplicitlyReportReuseFromUsedContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b1;
+				public readonly B b2;
+
+				public A([RequireContract("x")] B b1, [RequireContract("y")] B b2)
+				{
+					this.b1 = b1;
+					this.b2 = b2;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b =>
+				{
+					b.Contract("x");
+					b.Contract("y");
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b1, Is.SameAs(a.b2));
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y] - reused"));
 			}
 		}
 

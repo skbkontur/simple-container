@@ -208,13 +208,11 @@ namespace SimpleContainer.Implementation
 					writer.WriteMeta("]");
 				}
 				if (state.service.Instances.Count == 0)
-				{
 					writer.WriteMeta("!");
-					if (state.message != null)
-					{
-						writer.WriteMeta(" - ");
-						writer.WriteMeta(state.message);
-					}
+				if (state.message != null)
+				{
+					writer.WriteMeta(" - ");
+					writer.WriteMeta(state.message);
 				}
 				else if (state.service.Instances.Count > 1)
 					writer.WriteMeta("++");
