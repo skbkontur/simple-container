@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using SimpleContainer.Helpers;
@@ -65,9 +66,10 @@ namespace SimpleContainer.Implementation
 			instances.RemoveAll(o => !filter(o));
 		}
 
-		public void UseAllContracts(int contractsCount)
+		public void UseAllRequiredContracts()
 		{
-			usedContractIndexes = Enumerable.Range(0, contractsCount).Select((i, x) => i).ToList();
+			FinalUsedContracts = Context.requiredContracts.Select(x => x.name).ToArray();
+			usedContractIndexes = Enumerable.Range(0, FinalUsedContracts.Length).Select((i, x) => i).ToList();
 		}
 
 		public void UnionUsedContracts(ContainerService dependency)

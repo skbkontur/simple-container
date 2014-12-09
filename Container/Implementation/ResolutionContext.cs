@@ -77,13 +77,13 @@ namespace SimpleContainer.Implementation
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
 			var requiredContractNames = RequiredContractNames();
 			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
+			var previousContractsKey = previous == null ? "" : previous.allContactsKey ?? "";
 			var item = new ResolutionItem
 			{
 				depth = depth++,
 				name = name,
 				allContactsKey = allContractsKey,
-				contractDeclared = requiredContractNames.Length > 0 && previous != null &&
-				                   (previous.allContactsKey ?? "").Length < allContractsKey.Length,
+				contractDeclared = previousContractsKey.Length < allContractsKey.Length,
 				service = containerService,
 				isStatic = container.cacheLevel == CacheLevel.Static
 			};
@@ -171,9 +171,9 @@ namespace SimpleContainer.Implementation
 					? state.name
 					: state.service.Type.FormatName();
 				writer.WriteName(state.isStatic ? "(s)" + name : name);
-				var usedContractNames = state.service.GetUsedContractNames();
-				if (usedContractNames.Length > 0)
-					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContractNames));
+				var usedContracts = state.service.GetUsedContractNames();
+				if (usedContracts != null && usedContracts.Length > 0)
+					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 				if (state.allContactsKey != null && state.contractDeclared)
 				{
 					writer.WriteMeta("->[");

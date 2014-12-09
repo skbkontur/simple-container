@@ -23,7 +23,7 @@ namespace SimpleContainer.Factories
 					: container.Create(type, requiredContractNames, null);
 			};
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
-			containerService.UseAllContracts(requiredContractNames.Length);
+			containerService.UseAllRequiredContracts();
 			return true;
 		}
 	}

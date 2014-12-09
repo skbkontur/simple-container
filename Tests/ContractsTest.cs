@@ -1143,6 +1143,66 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ConstructionLogForFactory : ContractsTest
+		{
+			[RequireContract("a")]
+			public class A
+			{
+				public readonly Func<B> func;
+
+				public A(Func<B> func)
+				{
+					this.func = func;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("a"));
+				container.Get<A>();
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A[a]->[a]\r\n\tFunc<B>[a]"));
+			}
+		}
+
+		public class DumpUsedContractsBeforeFinalConstruction : ContractsTest
+		{
+			[RequireContract("a")]
+			public class A
+			{
+				private readonly int parameter;
+				private readonly B b;
+
+				public A(int parameter, B b)
+				{
+					this.parameter = parameter;
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message, Is.StringContaining("A[a]->[a]!\r\n\tB!\r\n\t\tparameter!"));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
