@@ -73,7 +73,7 @@ namespace SimpleContainer.Implementation
 			RequireContractAttribute requireContractAttribute;
 			if (serviceType.TryGetCustomAttribute(out requireContractAttribute))
 				targetContracts = targetContracts.Concat(requireContractAttribute.ContractName);
-			return GetInternal(new CacheKey(serviceType, targetContracts)).SingleInstance();
+			return GetInternal(new CacheKey(serviceType, targetContracts)).SingleInstance(false);
 		}
 
 		private ContainerService GetInternal(CacheKey cacheKey)
@@ -88,7 +88,7 @@ namespace SimpleContainer.Implementation
 			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
-		internal object Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext resolutionContext)
+		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext resolutionContext)
 		{
 			EnsureNotDisposed();
 			resolutionContext = resolutionContext ?? new ResolutionContext(configuration, contracts);
@@ -102,13 +102,13 @@ namespace SimpleContainer.Implementation
 					if (unused.Any())
 						resolutionContext.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
 				}
-				return result.SingleInstance();
+				return result;
 			}
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
-			return Create(type, contracts, arguments, null);
+			return Create(type, contracts, arguments, null).SingleInstance(false);
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
@@ -290,10 +290,7 @@ namespace SimpleContainer.Implementation
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.Context);
 				if (factory.Instances.Count == 1)
-				{
-					var instance = InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service.Context);
-					service.AddInstance(instance);
-				}
+					InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service);
 			}
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
@@ -424,7 +421,7 @@ namespace SimpleContainer.Implementation
 					service.EndResolveDependencies();
 					return;
 				}
-				var dependencyValue = dependency.SingleInstance();
+				var dependencyValue = dependency.SingleInstance(false);
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
 					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
@@ -440,8 +437,7 @@ namespace SimpleContainer.Implementation
 				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
 			if (service.FinalUsedContracts.Length == service.Context.requiredContracts.Count)
 			{
-				var instance = InvokeConstructor(constructor, null, actualArguments, service.Context);
-				service.AddInstance(instance);
+				InvokeConstructor(constructor, null, actualArguments, service);
 				return;
 			}
 			var usedContactsCacheKey = new CacheKey(type, service.FinalUsedContracts);
@@ -449,10 +445,9 @@ namespace SimpleContainer.Implementation
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
 				{
-					var instance = InvokeConstructor(constructor, null, actualArguments, service.Context);
+					InvokeConstructor(constructor, null, actualArguments, service);
 					serviceForUsedContracts.AttachToContext(service.Context);
 					serviceForUsedContracts.UnionUsedContracts(service);
-					serviceForUsedContracts.AddInstance(instance);
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
 				catch
@@ -624,17 +619,20 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private static object InvokeConstructor(MethodBase method, object self, object[] actualArguments,
-			ResolutionContext resolutionContext)
+		private static void InvokeConstructor(MethodBase method, object self, object[] actualArguments,
+			ContainerService containerService)
 		{
 			try
 			{
 				var compiledMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
-				return compiledMethod(self, actualArguments);
+				containerService.AddInstance(compiledMethod(self, actualArguments));
+			}
+			catch (ServiceCouldNotBeCreatedException)
+			{
 			}
 			catch (Exception e)
 			{
-				throw new SimpleContainerException("construction exception\r\n" + resolutionContext.Format() + "\r\n", e);
+				throw new SimpleContainerException("construction exception\r\n" + containerService.Context.Format() + "\r\n", e);
 			}
 		}
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using SimpleContainer.Helpers;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
@@ -113,10 +114,12 @@ namespace SimpleContainer.Implementation
 				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].name).ToArray();
 		}
 
-		public object SingleInstance()
+		public object SingleInstance(bool inConstructor)
 		{
 			if (instances.Count == 1)
 				return instances[0];
+			if (instances.Count == 0 && inConstructor)
+				throw new ServiceCouldNotBeCreatedException();
 			var prefix = instances.Count == 0
 				? "no implementations for " + Type.Name
 				: string.Format("many implementations for {0}\r\n{1}", Type.Name,

@@ -3,6 +3,7 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {
+	//todo remove duplicate with FactoryWithArgumentsPlugin
 	internal class SimpleFactoryPlugin : IFactoryPlugin
 	{
 		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
@@ -17,8 +18,9 @@ namespace SimpleContainer.Factories
 			Func<object> factory = () =>
 			{
 				var topService = containerService.Context.GetTopService();
-				return container.Create(type, requiredContractNames, null,
-					topService == hostService ? containerService.Context : null);
+				return topService == hostService
+					? container.Create(type, requiredContractNames, null, containerService.Context).SingleInstance(true)
+					: container.Create(type, requiredContractNames, null);
 			};
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
 			containerService.UseAllContracts(requiredContractNames.Length);

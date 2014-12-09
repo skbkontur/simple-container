@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
@@ -1590,6 +1591,87 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetConstructionLog(typeof (WrapWithOptionalDependency)),
 					Is.EqualTo("WrapWithOptionalDependency\r\n\tA!"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
+			}
+		}
+
+		public class ServiceCouldNotBeCreatedException : SimpleContainerTestBase
+		{
+			public class A
+			{
+				public readonly IEnumerable<IInterface> enumerable;
+
+				public A(IEnumerable<IInterface> enumerable)
+				{
+					this.enumerable = enumerable;
+				}
+			}
+
+			public interface IInterface
+			{
+			}
+
+			public class B1 : IInterface
+			{
+				public B1()
+				{
+					throw new Infection.ServiceCouldNotBeCreatedException();
+				}
+			}
+
+			public class B2 : IInterface
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
+			}
+		}
+
+		public class OptionalFunc : SimpleContainerTestBase
+		{
+			public class Wrap
+			{
+				public readonly IEnumerable<A> listOfA;
+
+				public Wrap([RequireContract("unioned")] IEnumerable<A> listOfA)
+				{
+					this.listOfA = listOfA;
+				}
+			}
+
+			public class A
+			{
+				public B b;
+
+				public A([Optional] Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("unioned").UnionOf("c1", "c2");
+					builder.Contract("c1").DontUse<B>();
+					builder.Contract("c2").BindDependency<B>("parameter", 54);
+				});
+				Assert.That(container.Get<Wrap>().listOfA.Single().b.parameter, Is.EqualTo(54));
 			}
 		}
 	}

@@ -73,6 +73,7 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\IComponentLogger.cs" />
+    <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />
     <Compile Include="Implementation\StaticContainer.cs" />
     <Compile Include="ContainerFactory.cs" />
