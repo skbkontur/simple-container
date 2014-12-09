@@ -138,7 +138,11 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			ContainerService containerService;
-			var cacheKey = new CacheKey(type, contracts);
+			var targetContracts = new List<string>(contracts);
+			RequireContractAttribute requireContractAttribute;
+			if (type.TryGetCustomAttribute(out requireContractAttribute))
+				targetContracts.Add(requireContractAttribute.ContractName);
+			var cacheKey = new CacheKey(type, targetContracts);
 			if (!instanceCache.TryGetValue(cacheKey, out containerService)) return;
 			if (entireResolutionContext)
 				containerService.Context.Format(null, null, writer);

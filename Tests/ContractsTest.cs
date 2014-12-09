@@ -714,6 +714,8 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract<TestContractAttribute>().Bind<IInterface, Impl2>());
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
+				Assert.That(container.GetConstructionLog(typeof (Service)),
+					Is.EqualTo("Service[test-contract]->[test-contract]\r\n\tIInterface[test-contract]\r\n\t\tImpl2"));
 			}
 		}
 
