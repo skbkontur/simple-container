@@ -135,7 +135,7 @@ namespace SimpleContainer.Implementation
 		public string Format()
 		{
 			var writer = new SimpleTextLogWriter();
-			Format(null, writer);
+			Format(null, null, writer);
 			return writer.GetText();
 		}
 
@@ -149,13 +149,15 @@ namespace SimpleContainer.Implementation
 			current[current.Count - 1].message = string.Format(message, args);
 		}
 
-		public void Format(Type targetType, ISimpleLogWriter writer)
+		public void Format(Type targetType, string contractsKey, ISimpleLogWriter writer)
 		{
 			var startDepth = 0;
 			var targetTypeFound = false;
 			foreach (var state in log)
 			{
-				if (targetType != null && state.service.Type != targetType && !targetTypeFound)
+				if (targetType != null &&
+				    (state.service.Type != targetType || state.allContactsKey != contractsKey) &&
+				    !targetTypeFound)
 					continue;
 				if (targetTypeFound && state.depth <= startDepth)
 					break;

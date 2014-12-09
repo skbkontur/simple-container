@@ -9,9 +9,14 @@ namespace SimpleContainer
 {
 	public static class ContainerExtensions
 	{
-		public static T Get<T>(this IContainer container)
+		public static T Get<T>(this IContainer container, string contract = null)
 		{
-			return (T) container.Get(typeof (T), new string[0]);
+			return (T) container.Get(typeof (T), contract);
+		}
+
+		public static object Get(this IContainer container, Type type, string contract = null)
+		{
+			return container.Get(type, contract == null ? new string[0] : new[] {contract});
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
@@ -81,7 +86,7 @@ namespace SimpleContainer
 
 		public static object Run(this IContainer container, Type type, string contract = null)
 		{
-			var result = container.Get(type, contract == null ? new string[0] : new[] {contract});
+			var result = container.Get(type, contract);
 			container.Run();
 			return result;
 		}

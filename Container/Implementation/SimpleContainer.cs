@@ -138,8 +138,12 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			ContainerService containerService;
-			if (instanceCache.TryGetValue(new CacheKey(type, contracts), out containerService))
-				containerService.Context.Format(entireResolutionContext ? null : type, writer);
+			var cacheKey = new CacheKey(type, contracts);
+			if (!instanceCache.TryGetValue(cacheKey, out containerService)) return;
+			if (entireResolutionContext)
+				containerService.Context.Format(null, null, writer);
+			else
+				containerService.Context.Format(type, cacheKey.contractsKey, writer);
 		}
 
 		public IEnumerable<object> GetInstanceCache(Type type)
@@ -292,7 +296,10 @@ namespace SimpleContainer.Implementation
 				}
 			}
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
+			{
 				service.FilterInstances(implementationConfiguration.InstanceFilter);
+				service.Context.Report("instance filter");
+			}
 		}
 
 		private static MethodInfo GetFactoryOrNull(Type type)
@@ -578,7 +585,7 @@ namespace SimpleContainer.Implementation
 		{
 			public readonly Type type;
 			public readonly string[] contracts;
-			private readonly string contractsKey;
+			public readonly string contractsKey;
 
 			public CacheKey(Type type, IEnumerable<string> contracts)
 			{

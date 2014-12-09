@@ -306,6 +306,37 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ConstructionLogForSpecificContract : ContractsTest
+		{
+			public class Wrap
+			{
+				public readonly A a1;
+				public readonly A a2;
+
+				public Wrap([RequireContract("a1")] A a1, [RequireContract("a2")] A a2)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+				}
+			}
+
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("a1");
+					builder.Contract("a2");
+				});
+				container.Get<Wrap>();
+				Assert.That(container.GetConstructionLog(typeof (A), "a2"), Is.EqualTo("A->[a2]"));
+			}
+		}
+
 		public class ContractUsageViaCache : ContractsTest
 		{
 			public class Client
