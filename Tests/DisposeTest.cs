@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
@@ -160,6 +163,55 @@ namespace SimpleContainer.Tests
 				container.Dispose();
 				container.Dispose();
 				Assert.That(logger.ToString(), Is.EqualTo("dispose "));
+			}
+		}
+
+		public class DisposeUnreferencedObjects : DisposeTest
+		{
+			private static readonly StringBuilder logBuilder = new StringBuilder();
+
+			public class Wrap
+			{
+				public readonly IEnumerable<A> enumerable;
+
+				public Wrap(IEnumerable<A> enumerable)
+				{
+					this.enumerable = enumerable;
+				}
+			}
+
+			public class A
+			{
+				public readonly B b;
+				public readonly C c;
+
+				public A(B b, C c)
+				{
+					this.b = b;
+					this.c = c;
+				}
+			}
+
+			public class B : IDisposable
+			{
+				public void Dispose()
+				{
+					logBuilder.Append("B.Dispose ");
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<C>());
+				var wrap = container.Get<Wrap>();
+				Assert.That(wrap.enumerable, Is.Empty);
+				container.Dispose();
+				Assert.That(logBuilder.ToString(), Is.EqualTo("B.Dispose "));
 			}
 		}
 

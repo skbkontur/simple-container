@@ -91,7 +91,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			resolutionContext = resolutionContext ??
-			                    new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
+								new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			lock (resolutionContext.locker)
 			{
 				var result = ContainerService.ForFactory(type, arguments);
@@ -148,16 +148,24 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type)
 		{
+			return GetInstanceCache(type, true);
+		}
+
+		private IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type, bool filterUnrefered)
+		{
 			EnsureNotDisposed();
-			var resultServices = instanceCache.Values
+			var result = instanceCache.Values
 				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type))
-				.ToArray();
-			var processedContexts = new HashSet<ResolutionContext>();
-			var reachableServices = new HashSet<ContainerService>();
-			foreach (var containerService in resultServices)
-				if (processedContexts.Add(containerService.Context))
-					containerService.Context.Mark(reachableServices);
-			var result = new List<ContainerService>(resultServices.Where(reachableServices.Contains));
+				.ToList();
+			if (filterUnrefered)
+			{
+				var processedContexts = new HashSet<ResolutionContext>();
+				var reachableServices = new HashSet<ContainerService>();
+				foreach (var containerService in result)
+					if (processedContexts.Add(containerService.Context))
+						containerService.Context.Mark(reachableServices);
+				result = result.Where(reachableServices.Contains).ToList();
+			}
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
 			return result.SelectMany(GetInstances).Distinct(new ServiceInstanceEqualityComparer()).ToArray();
 		}
@@ -223,7 +231,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (ReflectionHelpers.simpleTypes.Contains(service.Type))
 				service.Throw("can't create simple type");
-			if (service.Type == typeof (IContainer))
+			if (service.Type == typeof(IContainer))
 			{
 				service.AddInstance(this);
 				return;
@@ -335,7 +343,7 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			EnsureNotDisposed();
-			if (typeof (Delegate).IsAssignableFrom(type))
+			if (typeof(Delegate).IsAssignableFrom(type))
 				return Enumerable.Empty<Type>();
 			if (!type.IsAbstract)
 			{
@@ -360,7 +368,7 @@ namespace SimpleContainer.Implementation
 
 		private static bool IsDependency(Type type)
 		{
-			if (typeof (Delegate).IsAssignableFrom(type))
+			if (typeof(Delegate).IsAssignableFrom(type))
 				return false;
 			if (ReflectionHelpers.simpleTypes.Contains(type))
 				return false;
@@ -385,7 +393,7 @@ namespace SimpleContainer.Implementation
 			public bool TryGetConstructor(out ConstructorInfo constructor)
 			{
 				return publicConstructors.SafeTrySingle(out constructor) ||
-				       publicConstructors.SafeTrySingle(x => x.IsDefined<ContainerConstructorAttribute>(), out constructor);
+					   publicConstructors.SafeTrySingle(x => x.IsDefined<ContainerConstructorAttribute>(), out constructor);
 			}
 
 			public void SetConfiguration(IContainerConfiguration configuration)
@@ -537,7 +545,7 @@ namespace SimpleContainer.Implementation
 			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
 				return IndependentService(formalParameter.DefaultValue);
 			FromResourceAttribute resourceAttribute;
-			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
+			if (implementationType == typeof(Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
 				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type,
 					resourceAttribute.Name);
@@ -581,7 +589,7 @@ namespace SimpleContainer.Implementation
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)
 		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
 			{
 				result = type.GetGenericArguments()[0];
 				return true;
@@ -617,14 +625,14 @@ namespace SimpleContainer.Implementation
 			public override bool Equals(object obj)
 			{
 				if (ReferenceEquals(null, obj)) return false;
-				return obj is CacheKey && Equals((CacheKey) obj);
+				return obj is CacheKey && Equals((CacheKey)obj);
 			}
 
 			public override int GetHashCode()
 			{
 				unchecked
 				{
-					return (type.GetHashCode()*397) ^ (contractsKey == null ? 0 : contractsKey.GetHashCode());
+					return (type.GetHashCode() * 397) ^ (contractsKey == null ? 0 : contractsKey.GetHashCode());
 				}
 			}
 
@@ -661,7 +669,8 @@ namespace SimpleContainer.Implementation
 		{
 			if (disposed)
 				return;
-			var servicesToDispose = this.GetInstanceCache<IDisposable>()
+			var servicesToDispose = GetInstanceCache(typeof(IDisposable), false)
+				.Select(x => x.Cast<IDisposable>())
 				.Where(x => !ReferenceEquals(x.Instance, this))
 				.Reverse()
 				.ToArray();
