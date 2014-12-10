@@ -134,6 +134,11 @@ namespace SimpleContainer.Implementation
 				lock (lockObject)
 					while (!instantiated && !failed)
 						Monitor.Wait(lockObject);
+			if (!failed && FinalUsedContracts == null)
+			{
+				const string messageFormat = "assertion failure: FinalUsedContracts == null, type [{0}]";
+				throw new InvalidOperationException(string.Format(messageFormat, Type));
+			}
 			return instantiated;
 		}
 
