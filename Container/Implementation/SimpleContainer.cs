@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -87,7 +86,8 @@ namespace SimpleContainer.Implementation
 			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
-		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext resolutionContext)
+		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments,
+			ResolutionContext resolutionContext)
 		{
 			EnsureNotDisposed();
 			resolutionContext = resolutionContext ??
@@ -146,7 +146,7 @@ namespace SimpleContainer.Implementation
 				containerService.Context.Format(type, cacheKey.contractsKey, writer);
 		}
 
-		public IEnumerable<object> GetInstanceCache(Type type)
+		public IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type)
 		{
 			EnsureNotDisposed();
 			var resultServices = instanceCache.Values
@@ -159,7 +159,26 @@ namespace SimpleContainer.Implementation
 					containerService.Context.Mark(reachableServices);
 			var result = new List<ContainerService>(resultServices.Where(reachableServices.Contains));
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
-			return result.SelectMany(x => x.Instances).Distinct().ToArray();
+			return result.SelectMany(GetInstances).Distinct(new ServiceInstanceEqualityComparer()).ToArray();
+		}
+
+		private class ServiceInstanceEqualityComparer : IEqualityComparer<ServiceInstance<object>>
+		{
+			public bool Equals(ServiceInstance<object> x, ServiceInstance<object> y)
+			{
+				return ReferenceEquals(x.Instance, y.Instance);
+			}
+
+			public int GetHashCode(ServiceInstance<object> obj)
+			{
+				return obj.Instance.GetHashCode();
+			}
+		}
+
+		private static IEnumerable<ServiceInstance<object>> GetInstances(ContainerService service)
+		{
+			return service.Instances
+				.Select(y => new ServiceInstance<object>(y, InternalHelpers.FormatContractsKey(service.FinalUsedContracts)));
 		}
 
 		public IContainer Clone()
@@ -643,7 +662,7 @@ namespace SimpleContainer.Implementation
 			if (disposed)
 				return;
 			var servicesToDispose = this.GetInstanceCache<IDisposable>()
-				.Where(x => !ReferenceEquals(x, this))
+				.Where(x => !ReferenceEquals(x.Instance, this))
 				.Reverse()
 				.ToArray();
 			disposed = true;
@@ -663,15 +682,15 @@ namespace SimpleContainer.Implementation
 				throw new AggregateException("error disposing services", exceptions);
 		}
 
-		private static void DisposeService(IDisposable disposable)
+		private static void DisposeService(ServiceInstance<IDisposable> disposable)
 		{
 			try
 			{
-				disposable.Dispose();
+				disposable.Instance.Dispose();
 			}
 			catch (Exception e)
 			{
-				var message = string.Format("error disposing [{0}]", disposable.GetType().FormatName());
+				var message = string.Format("error disposing [{0}]", disposable.FormatName());
 				throw new SimpleContainerException(message, e);
 			}
 		}

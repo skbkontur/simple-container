@@ -127,7 +127,7 @@ namespace SimpleContainer.Tests
 				var container = Container(x => x.Contract("x"));
 				container.Get<A>();
 				var instanceCache = container.GetInstanceCache<object>();
-				Assert.That(instanceCache.Select(x => x.GetType()).ToArray(),
+				Assert.That(instanceCache.Select(x => x.Instance.GetType()).ToArray(),
 					Is.EqualTo(new[] {typeof (C), typeof (B), typeof (A)}));
 			}
 		}
@@ -275,10 +275,10 @@ namespace SimpleContainer.Tests
 
 			public class SimpleComponentLogger : IComponentLogger
 			{
-				public IDisposable OnRunComponent(Type componentType)
+				public IDisposable OnRunComponent(ServiceInstance<IComponent> component)
 				{
-					log.Append(componentType.Name + ".start\r\n");
-					return new ActionDisposable(() => log.Append(componentType.Name + ".finish\r\n"));
+					log.Append(component.FormatName() + ".start\r\n");
+					return new ActionDisposable(() => log.Append(component.FormatName() + ".finish\r\n"));
 				}
 
 				public void TRASH_DumpConstructionLog(string constructionLog)

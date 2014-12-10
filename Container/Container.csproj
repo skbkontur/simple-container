@@ -73,6 +73,7 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\IComponentLogger.cs" />
+    <Compile Include="Implementation\OptionalService.cs" />
     <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />
     <Compile Include="Implementation\StaticContainer.cs" />
@@ -123,6 +124,7 @@
     <Compile Include="Implementation\SimpleContainerException.cs" />
     <Compile Include="ContainerExtensions.cs" />
     <Compile Include="Implementation\SimpleTextLogWriter.cs" />
+    <Compile Include="ServiceInstance.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

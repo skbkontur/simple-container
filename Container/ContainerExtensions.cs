@@ -71,17 +71,17 @@ namespace SimpleContainer
 			return logWriter.GetText();
 		}
 
-		public static IEnumerable<T> GetInstanceCache<T>(this IContainer container)
+		public static IEnumerable<ServiceInstance<T>> GetInstanceCache<T>(this IContainer container)
 		{
-			return container.GetInstanceCache(typeof (T)).Cast<T>();
+			return container.GetInstanceCache(typeof (T)).Select(x => x.Cast<T>());
 		}
 
 		public static void Run(this IContainer container)
 		{
 			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
 			foreach (var c in container.GetInstanceCache<IComponent>())
-				using (runLogger != null ? runLogger.OnRunComponent(c.GetType()) : null)
-					c.Run();
+				using (runLogger != null ? runLogger.OnRunComponent(c) : null)
+					c.Instance.Run();
 		}
 
 		public static object Run(this IContainer container, Type type, string contract = null)
