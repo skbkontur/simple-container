@@ -148,16 +148,16 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type)
 		{
+			EnsureNotDisposed();
 			return GetInstanceCache(type, true);
 		}
 
-		private IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type, bool filterUnrefered)
+		private IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type, bool filterUnreferenced)
 		{
-			EnsureNotDisposed();
 			var result = instanceCache.Values
 				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && type.IsAssignableFrom(x.Type))
 				.ToList();
-			if (filterUnrefered)
+			if (filterUnreferenced)
 			{
 				var processedContexts = new HashSet<ResolutionContext>();
 				var reachableServices = new HashSet<ContainerService>();
