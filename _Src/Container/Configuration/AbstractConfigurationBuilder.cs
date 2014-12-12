@@ -175,12 +175,6 @@ namespace SimpleContainer.Configuration
 				const string messageFormat = "can't configure static service [{0}] using non static configurator";
 				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
 			}
-			if (!isStatic && isStaticConfiguration)
-			{
-				const string messageFormat = "can't configure non static service [{0}] using static configurator";
-				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
-			}
-
 			object result;
 			if (!configurations.TryGetValue(type, out result))
 				configurations.Add(type, result = new T());

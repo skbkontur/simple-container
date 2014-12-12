@@ -202,11 +202,8 @@ namespace SimpleContainer.Implementation
 
 		internal ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)
 		{
-			var serviceCacheLevel = GetCacheLevel(type);
-			if (serviceCacheLevel == CacheLevel.Static && cacheLevel == CacheLevel.Local)
+			if (cacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
 				return staticContainer.ResolveSingleton(type, name, context);
-			if (serviceCacheLevel == CacheLevel.Local && cacheLevel == CacheLevel.Static)
-				context.Throw("local service [{0}] can't be resolved in static context", type.FormatName());
 			var cacheKey = new CacheKey(type, context.RequiredContractNames());
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
 			if (result.AcquireInstantiateLock())

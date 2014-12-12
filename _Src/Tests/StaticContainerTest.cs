@@ -52,35 +52,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class StaticServiceCannotReferenceLocalService : StaticContainerTest
-		{
-			[Static]
-			public class StaticService
-			{
-				public readonly LocalService localService;
-
-				public StaticService(LocalService localService)
-				{
-					this.localService = localService;
-				}
-			}
-
-			public class LocalService
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					var error = Assert.Throws<SimpleContainerException>(() => staticContainer.Get<StaticService>());
-					Assert.That(error.Message,
-						Is.EqualTo("local service [LocalService] can't be resolved in static context\r\n(s)StaticService!"));
-				}
-			}
-		}
-
 		public class CanMakeServiceStaticViaConfiguration : StaticContainerTest
 		{
 			public class SomeService
@@ -288,29 +259,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CannotConfigureNonStaticServiceUsingStaticConfigurator : StaticContainerTest
-		{
-			public class A
-			{
-			}
-
-			[Static]
-			public class Configurator : IServiceConfigurator<A>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
-				{
-					builder.DontUse();
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var error = Assert.Throws<SimpleContainerException>(() => CreateStaticContainer());
-				Assert.That(error.Message, Is.EqualTo("can't configure non static service [A] using static configurator"));
-			}
-		}
-
 		public class StaticServiceHasSpecialMarkerInConstructionLog : StaticContainerTest
 		{
 			[Static]
@@ -325,6 +273,62 @@ namespace SimpleContainer.Tests
 				staticContainer.Get<SomeStaticService>();
 				var constructionLog = staticContainer.GetConstructionLog(typeof (SomeStaticService));
 				Assert.That(constructionLog, Is.EqualTo("(s)SomeStaticService"));
+			}
+		}
+
+		public class StaticServicesCanUseServicesNotExplicitlyMarkedAsStatic : StaticContainerTest
+		{
+			[Static]
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Static]
+			public class StaticBConfigurator : IServiceConfigurator<B>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
+				{
+					builder.Dependencies(new {parameter = 41});
+				}
+			}
+
+			public class NonStaticBConfigurator : IServiceConfigurator<B>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				using (var staticContainer = CreateStaticContainer())
+				{
+					var a = staticContainer.Get<A>();
+					Assert.That(a.b.parameter,Is.EqualTo(41));
+					using (var localContainer = LocalContainer(staticContainer, null))
+					{
+						var localB = localContainer.Get<B>();
+						Assert.That(localB.parameter, Is.EqualTo(42));
+					}
+				}
 			}
 		}
 
