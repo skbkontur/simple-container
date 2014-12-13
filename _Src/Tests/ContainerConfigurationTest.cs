@@ -519,6 +519,47 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanInjectStructViaExplicitConfiguration : BasicTest
+		{
+			public class A
+			{
+				public readonly Token token;
+
+				public A(Token token)
+				{
+					this.token = token;
+				}
+			}
+
+			public struct Token
+			{
+				public int value;
+			}
+
+			public class TokenSource
+			{
+				public Token CreateToken()
+				{
+					return new Token { value = 78 };
+				}
+			}
+
+			public class TokenConfigurator : IServiceConfigurator<Token>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Token> builder)
+				{
+					builder.Bind(c => c.container.Get<TokenSource>().CreateToken());
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>().token.value, Is.EqualTo(78));
+			}
+		}
+
 		public class Profiles : ContainerConfigurationTest
 		{
 			public class InMemoryProfile
