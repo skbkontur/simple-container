@@ -23,6 +23,7 @@ namespace SimpleContainer.Implementation
 		public IObjectAccessor Arguments { get; private set; }
 		public bool CreateNew { get; private set; }
 		public ResolutionContext Context { get; private set; }
+		public List<ContainerService> Dependencies { get; private set; }
 
 		public ContainerService(Type type)
 		{
@@ -32,6 +33,11 @@ namespace SimpleContainer.Implementation
 		public static ContainerService ForFactory(Type type, object arguments)
 		{
 			return new ContainerService(type) {CreateNew = true}.WithArguments(ObjectAccessor.Get(arguments));
+		}
+
+		public IEnumerable<ServiceInstance<object>> GetInstances()
+		{
+			return Instances.Select(y => new ServiceInstance<object>(y, InternalHelpers.FormatContractsKey(FinalUsedContracts)));
 		}
 
 		public ContainerService WithArguments(IObjectAccessor arguments)
@@ -101,6 +107,11 @@ namespace SimpleContainer.Implementation
 		public void EndResolveDependencies()
 		{
 			FinalUsedContracts = GetUsedContractNamesFromContext();
+		}
+
+		public void SetDependencies(List<ContainerService> dependencies)
+		{
+			Dependencies = dependencies;
 		}
 
 		public List<string> GetUsedContractNames()

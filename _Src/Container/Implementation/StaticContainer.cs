@@ -28,14 +28,15 @@ namespace SimpleContainer.Implementation
 			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
-		public IContainer CreateLocalContainer(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure)
+		public IContainer CreateLocalContainer(string name, Assembly primaryAssembly,
+			Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
 			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, x => targetAssemblies.Contains(x.Assembly));
-
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
-			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, configurationContext))
+			var localContext = configurationContext.Local(name, primaryAssembly);
+			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext))
 			{
 				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);
 				runner.Run(builder, c => c.GetType().Assembly == primaryAssembly);

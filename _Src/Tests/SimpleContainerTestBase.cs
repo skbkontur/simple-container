@@ -49,7 +49,7 @@ namespace SimpleContainer.Tests
 		protected static IContainer LocalContainer(IStaticContainer staticContainer,
 			Action<ContainerConfigurationBuilder> configure)
 		{
-			return staticContainer.CreateLocalContainer(Assembly.GetExecutingAssembly(), configure);
+			return staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), configure);
 		}
 	}
 }

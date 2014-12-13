@@ -6,6 +6,6 @@ namespace SimpleContainer
 {
 	public interface IStaticContainer : IContainer
 	{
-		IContainer CreateLocalContainer(Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure);
+		IContainer CreateLocalContainer(string name, Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure);
 	}
 }

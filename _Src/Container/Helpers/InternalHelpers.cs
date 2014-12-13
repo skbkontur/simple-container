@@ -10,16 +10,16 @@ namespace SimpleContainer.Helpers
 		//todo утащить во что-нить типа ContractsSet
 		public static string FormatContractsKey(IEnumerable<string> contracts)
 		{
-			return string.Join("->", contracts);
+			return contracts == null ? null : string.Join("->", contracts);
 		}
 
 		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
-			if (contracts == null)
+			var requireContractAttribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
+			if (contracts == null && requireContractAttribute == null)
 				return null;
 			var result = contracts.ToList();
-			RequireContractAttribute requireContractAttribute;
-			if (type.TryGetCustomAttribute(out requireContractAttribute))
+			if (requireContractAttribute != null)
 				result.Add(requireContractAttribute.ContractName);
 			return result;
 		}

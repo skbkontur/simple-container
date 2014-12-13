@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
@@ -557,6 +558,45 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<A>().token.value, Is.EqualTo(78));
+			}
+		}
+
+		public class ApplicationNameAndPrimaryAssembly : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public A(string applicationName, Assembly primaryAssembly)
+				{
+					ApplicationName = applicationName;
+					PrimaryAssembly = primaryAssembly;
+				}
+
+				public string ApplicationName { get; private set; }
+				public Assembly PrimaryAssembly { get; private set; }
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new
+					{
+						applicationName = context.ApplicationName,
+						primaryAssembly = context.PrimaryAssembly
+					});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var staticContainer = CreateStaticContainer();
+				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null))
+				{
+					var a = c.Get<A>();
+					Assert.That(a.ApplicationName, Is.EqualTo("my-app-name"));
+					Assert.That(a.PrimaryAssembly, Is.SameAs(Assembly.GetExecutingAssembly()));
+				}
 			}
 		}
 

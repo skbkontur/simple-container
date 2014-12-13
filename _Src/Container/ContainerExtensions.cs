@@ -71,32 +71,33 @@ namespace SimpleContainer
 			return logWriter.GetText();
 		}
 
-		public static IEnumerable<ServiceInstance<T>> GetInstanceCache<T>(this IContainer container)
+		public static IEnumerable<ServiceInstance<T>> GetClosure<T>(this IContainer container, Type type,
+			IEnumerable<string> contracts)
 		{
-			return container.GetInstanceCache(typeof (T)).Select(x => x.Cast<T>());
+			return container.GetClosure(type, contracts)
+				.Where(x => x.Instance is T)
+				.Select(x => x.Cast<T>());
 		}
 
-		public static void Run(this IContainer container)
+		public static object Run(this IContainer container, Type type, IEnumerable<string> contracts)
 		{
-			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
-			foreach (var c in container.GetInstanceCache<IComponent>())
-				using (runLogger != null ? runLogger.OnRunComponent(c) : null)
-					c.Instance.Run();
-		}
-
-		public static object Run(this IContainer container, Type type, string contract = null)
-		{
-			var result = container.Get(type, contract);
+			var contractsArray = contracts == null ? null : contracts.ToArray();
+			var result = container.Get(type, contractsArray);
 			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
 			if (runLogger != null)
-				runLogger.TRASH_DumpConstructionLog(container.GetConstructionLog(type, contract, true));
-			container.Run();
+			{
+				var constructionLog = container.GetConstructionLog(type, InternalHelpers.FormatContractsKey(contractsArray), true);
+				runLogger.TRASH_DumpConstructionLog(constructionLog);
+			}
+			foreach (var c in container.GetClosure<IComponent>(type, contractsArray))
+				using (runLogger != null ? runLogger.OnRunComponent(c) : null)
+					c.Instance.Run();
 			return result;
 		}
 
-		public static T Run<T>(this IContainer container, string contract = null)
+		public static T Run<T>(this IContainer container, IEnumerable<string> contracts)
 		{
-			return (T) container.Run(typeof (T), contract);
+			return (T) container.Run(typeof (T), contracts);
 		}
 	}
 }

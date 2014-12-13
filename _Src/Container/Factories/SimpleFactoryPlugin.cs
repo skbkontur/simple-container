@@ -18,9 +18,11 @@ namespace SimpleContainer.Factories
 			Func<object> factory = () =>
 			{
 				var topService = containerService.Context.GetTopService();
-				return topService == hostService
-					? container.Create(type, requiredContractNames, null, containerService.Context).SingleInstance(true)
-					: container.Create(type, requiredContractNames, null);
+				if (topService != hostService)
+					return container.Create(type, requiredContractNames, null);
+				var dependency = container.Create(type, requiredContractNames, null, containerService.Context);
+				containerService.Dependencies.Add(dependency);
+				return dependency.SingleInstance(true);
 			};
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
 			containerService.UseAllRequiredContracts();

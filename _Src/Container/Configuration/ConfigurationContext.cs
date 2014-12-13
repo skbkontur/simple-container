@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 
@@ -13,12 +14,25 @@ namespace SimpleContainer.Configuration
 		{
 			this.profile = profile;
 			this.settingsLoader = settingsLoader;
+			ApplicationName = "global";
+		}
+
+		internal ConfigurationContext Local(string name, Assembly primaryAssembly)
+		{
+			return new ConfigurationContext(profile, settingsLoader)
+			{
+				ApplicationName = name,
+				PrimaryAssembly = primaryAssembly
+			};
 		}
 
 		public bool ProfileIs<T>()
 		{
 			return profile == typeof (T);
 		}
+
+		public string ApplicationName { get; private set; }
+		public Assembly PrimaryAssembly { get; private set; }
 
 		public T Settings<T>()
 		{

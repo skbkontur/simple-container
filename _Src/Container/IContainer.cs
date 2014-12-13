@@ -16,7 +16,7 @@ namespace SimpleContainer
 		void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
 			ISimpleLogWriter writer);
 
-		IEnumerable<ServiceInstance<object>> GetInstanceCache(Type type);
+		IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts);
 		IContainer Clone();
 	}
 }
