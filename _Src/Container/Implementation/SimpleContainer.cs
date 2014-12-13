@@ -521,7 +521,7 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private List<string> GetContracts(ParameterInfo formalParameter, Type dependencyType)
+		private static List<string> GetContracts(ParameterInfo formalParameter, Type dependencyType)
 		{
 			var parameterContract = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
 			var dependencyTypeContract = dependencyType.GetCustomAttributeOrNull<RequireContractAttribute>();
