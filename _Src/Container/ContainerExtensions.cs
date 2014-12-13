@@ -95,6 +95,11 @@ namespace SimpleContainer
 			return result;
 		}
 
+		public static T Run<T>(this IContainer container, params string[] contracts)
+		{
+			return container.Run<T>(contracts.AsEnumerable());
+		}
+
 		public static T Run<T>(this IContainer container, IEnumerable<string> contracts)
 		{
 			return (T) container.Run(typeof (T), contracts);
