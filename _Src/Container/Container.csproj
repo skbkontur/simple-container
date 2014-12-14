@@ -117,7 +117,7 @@
     <Compile Include="Helpers\ReflectionEmit\ValueTypeFieldAccessor.cs" />
     <Compile Include="Helpers\ReflectionHelpers.cs" />
     <Compile Include="Implementation\ResolutionContext.cs" />
-    <Compile Include="Implementation\AssembliesRestrictedInheritanceHierarchy.cs" />
+    <Compile Include="Implementation\FilteredInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ServiceConfigurationBuilder.cs" />
     <Compile Include="Implementation\SimpleContainer.cs" />
     <Compile Include="Implementation\SimpleContainerException.cs" />

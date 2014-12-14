@@ -59,8 +59,7 @@ namespace SimpleContainer.Implementation
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
-				lock (context.locker)
-					return ResolveSingleton(key.type, null, context);
+				return ResolveSingleton(key.type, null, context);
 			};
 		}
 
@@ -86,24 +85,19 @@ namespace SimpleContainer.Implementation
 			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
 		}
 
-		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments,
-			ResolutionContext resolutionContext)
+		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			EnsureNotDisposed();
-			resolutionContext = resolutionContext ??
-			                    new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
-			lock (resolutionContext.locker)
+			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
+			var result = ContainerService.ForFactory(type, arguments);
+			context.Instantiate(null, result, this);
+			if (result.Arguments != null)
 			{
-				var result = ContainerService.ForFactory(type, arguments);
-				resolutionContext.Instantiate(null, result, this);
-				if (result.Arguments != null)
-				{
-					var unused = result.Arguments.GetUnused().ToArray();
-					if (unused.Any())
-						resolutionContext.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
-				}
-				return result;
+				var unused = result.Arguments.GetUnused().ToArray();
+				if (unused.Any())
+					context.Throw("arguments [{0}] are not used", unused.JoinStrings(","));
 			}
+			return result;
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)

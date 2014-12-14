@@ -10,6 +10,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class ConfiguratorRunner : IDisposable
 	{
+		private static readonly Assembly containerAssembly = typeof (ConfiguratorRunner).Assembly;
 		private readonly ConfigurationContext context;
 		private readonly IContainer container;
 
@@ -22,11 +23,10 @@ namespace SimpleContainer.Implementation
 		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
 			IInheritanceHierarchy hierarchy, ConfigurationContext context)
 		{
-			var thisAssembly = Assembly.GetExecutingAssembly();
-			Func<Type, bool> filter = x => x.Assembly == thisAssembly || x.IsDefined<StaticAttribute>() == isStatic;
-			var staticHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
+			Func<Type, bool> filter = x => x.Assembly == containerAssembly || x.IsDefined<StaticAttribute>() == isStatic;
+			var filteredHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
 			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
-				new FilteredContainerConfiguration(configuration, filter), staticHierarchy);
+				new FilteredContainerConfiguration(configuration, filter), filteredHierarchy);
 			return new ConfiguratorRunner(context, container);
 		}
 

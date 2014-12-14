@@ -48,30 +48,6 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
-		public void Mark(ISet<ContainerService> marked)
-		{
-			var index = 0;
-			Mark(ref index, marked);
-		}
-
-		private void Mark(ref int index, ISet<ContainerService> marked)
-		{
-			lock (locker)
-			{
-				var start = index;
-				var item = log[start];
-				var skip = item.service.Instances.Count == 0;
-				if (!skip)
-					marked.Add(item.service);
-				index++;
-				while (index < log.Count && log[index].depth > item.depth)
-					if (skip)
-						index++;
-					else
-						Mark(ref index, marked);
-			}
-		}
-
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];

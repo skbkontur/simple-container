@@ -79,28 +79,22 @@ namespace SimpleContainer
 				.Select(x => x.Cast<T>());
 		}
 
-		public static object Run(this IContainer container, Type type, IEnumerable<string> contracts)
+		public static object Run(this IContainer container, Type type, params string[] contracts)
 		{
-			var contractsArray = contracts == null ? null : contracts.ToArray();
-			var result = container.Get(type, contractsArray);
+			var result = container.Get(type, contracts);
 			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
 			if (runLogger != null)
 			{
-				var constructionLog = container.GetConstructionLog(type, InternalHelpers.FormatContractsKey(contractsArray), true);
+				var constructionLog = container.GetConstructionLog(type, InternalHelpers.FormatContractsKey(contracts), true);
 				runLogger.TRASH_DumpConstructionLog(constructionLog);
 			}
-			foreach (var c in container.GetClosure<IComponent>(type, contractsArray))
+			foreach (var c in container.GetClosure<IComponent>(type, contracts))
 				using (runLogger != null ? runLogger.OnRunComponent(c) : null)
 					c.Instance.Run();
 			return result;
 		}
 
 		public static T Run<T>(this IContainer container, params string[] contracts)
-		{
-			return container.Run<T>(contracts.AsEnumerable());
-		}
-
-		public static T Run<T>(this IContainer container, IEnumerable<string> contracts)
 		{
 			return (T) container.Run(typeof (T), contracts);
 		}
