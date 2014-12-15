@@ -3,24 +3,21 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 
-namespace SimpleContainer.Implementation
+namespace SimpleContainer.Configuration
 {
-	using ConfigItem = Action<Func<Type, bool>, ContainerConfigurationBuilder>;
-
 	internal static class FileConfigurationParser
 	{
-		public static ConfigItem Parse(Type[] types, string fileName)
+		public static Action<Func<Type, bool>, ContainerConfigurationBuilder> Parse(Type[] types, string fileName)
 		{
 			var parseItems = SplitWithTrim(File.ReadAllText(fileName), Environment.NewLine).Select(Parse).ToArray();
 			var typesMap = types.ToLookup(x => x.Name);
 			return delegate(Func<Type, bool> f, ContainerConfigurationBuilder builder)
 			{
 				var context = new ParseContext(builder, typesMap, f);
-				foreach (var items in parseItems)
-					items(context);
+				foreach (var item in parseItems)
+					item(context);
 			};
 		}
 
@@ -32,7 +29,7 @@ namespace SimpleContainer.Implementation
 		private static void BindDependency(Type type, string dependencyName, string dependencyText,
 			IInternalConfigurationBuilder builder)
 		{
-			var implementation = new Implementation(type);
+			var implementation = new Implementation.Implementation(type);
 			ConstructorInfo constructor;
 			if (!implementation.TryGetConstructor(out constructor))
 			{
@@ -59,7 +56,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception)
 			{
-				const string message = "can't parse [{0}.{1}] from [{2}] to [{3}]";
+				const string message = "can't parse [{0}.{1}] from [{2}] as [{3}]";
 				throw new InvalidOperationException(string.Format(message, type.FormatName(), dependencyName,
 					dependencyText, formalParameter.ParameterType.FormatName()));
 			}

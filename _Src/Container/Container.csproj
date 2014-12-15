@@ -75,7 +75,7 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\IComponentLogger.cs" />
-    <Compile Include="Implementation\FileBasedConfigurator.cs" />
+    <Compile Include="Configuration\FileBasedConfigurator.cs" />
     <Compile Include="Implementation\Implementation.cs" />
     <Compile Include="Implementation\OptionalService.cs" />
     <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
