@@ -49,6 +49,7 @@
     <Compile Include="Configuration\FilteredContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
+    <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Helpers\ImplicitTypeCaster.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />

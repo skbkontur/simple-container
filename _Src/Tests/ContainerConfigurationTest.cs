@@ -602,7 +602,7 @@ namespace SimpleContainer.Tests
 
 		public class Profiles : ContainerConfigurationTest
 		{
-			public class InMemoryProfile
+			public class InMemoryProfile : IProfile
 			{
 			}
 

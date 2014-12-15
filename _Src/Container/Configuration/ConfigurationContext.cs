@@ -27,6 +27,7 @@ namespace SimpleContainer.Configuration
 		}
 
 		public bool ProfileIs<T>()
+			where T : IProfile
 		{
 			return profile == typeof (T);
 		}

@@ -33,6 +33,9 @@ namespace SimpleContainer
 
 		public ContainerFactory WithProfile(Type newProfile)
 		{
+			if (newProfile != null && !typeof (IProfile).IsAssignableFrom(newProfile))
+				throw new SimpleContainerException(string.Format("profile type [{0}] must inherit from IProfile",
+					newProfile.FormatName()));
 			profile = newProfile;
 			return this;
 		}
