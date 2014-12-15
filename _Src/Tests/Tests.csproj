@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BasicTest.cs" />
+    <Compile Include="FileConfigurationTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />

@@ -7,7 +7,7 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Configuration
 {
-	public abstract class AbstractConfigurationBuilder<TSelf>
+	public abstract class AbstractConfigurationBuilder<TSelf> : IInternalConfigurationBuilder
 		where TSelf : AbstractConfigurationBuilder<TSelf>
 	{
 		protected readonly bool isStaticConfiguration;
@@ -28,10 +28,10 @@ namespace SimpleContainer.Configuration
 		public TSelf Bind<TInterface, TImplementation>(bool clearOld = false)
 			where TImplementation : TInterface
 		{
-			return Bind(typeof(TInterface), typeof(TImplementation), clearOld);
+			return Bind(typeof (TInterface), typeof (TImplementation), clearOld);
 		}
 
-		public TSelf Bind(Type interfaceType, Type implementationType, bool clearOld = false)
+		public TSelf Bind(Type interfaceType, Type implementationType, bool clearOld)
 		{
 			if (!interfaceType.IsAssignableFrom(implementationType))
 				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
@@ -40,9 +40,14 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf Bind(Type interfaceType, Type implementationType)
+		{
+			return Bind(interfaceType, implementationType, false);
+		}
+
 		public TSelf Bind<T>(object value)
 		{
-			return Bind(typeof(T), value);
+			return Bind(typeof (T), value);
 		}
 
 		public TSelf Bind(Type interfaceType, object value)
@@ -57,19 +62,19 @@ namespace SimpleContainer.Configuration
 
 		public TSelf WithInstanceFilter<T>(Func<T, bool> filter)
 		{
-			GetOrCreate<ImplementationConfiguration>(typeof(T)).InstanceFilter = o => filter((T)o);
+			GetOrCreate<ImplementationConfiguration>(typeof (T)).InstanceFilter = o => filter((T) o);
 			return Self;
 		}
 
 		public TSelf Bind<T>(Func<FactoryContext, T> creator)
 		{
-			GetOrCreate<InterfaceConfiguration>(typeof(T)).Factory = c => creator(c);
+			GetOrCreate<InterfaceConfiguration>(typeof (T)).Factory = c => creator(c);
 			return Self;
 		}
 
 		public TSelf BindDependency<T>(string dependencyName, object value)
 		{
-			ConfigureDependency(typeof(T), dependencyName).UseValue(value);
+			ConfigureDependency(typeof (T), dependencyName).UseValue(value);
 			return Self;
 		}
 
@@ -81,7 +86,7 @@ namespace SimpleContainer.Configuration
 
 		public TSelf BindDependency<T, TDependency>(TDependency value)
 		{
-			BindDependency<T, TDependency>((object)value);
+			BindDependency<T, TDependency>((object) value);
 			return Self;
 		}
 
@@ -91,16 +96,16 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(
 					string.Format("dependency {0} for service [{1}] can't be casted to required type [{2}]",
 						DumpValue(value),
-						typeof(T).FormatName(),
-						typeof(TDependency).FormatName()));
-			ConfigureDependency(typeof(T), typeof(TDependency)).UseValue(value);
+						typeof (T).FormatName(),
+						typeof (TDependency).FormatName()));
+			ConfigureDependency(typeof (T), typeof (TDependency)).UseValue(value);
 			return Self;
 		}
 
 		public TSelf BindDependency<T, TDependency, TDependencyValue>()
 			where TDependencyValue : TDependency
 		{
-			ConfigureDependency(typeof(T), typeof(TDependency)).ImplementationType = typeof(TDependencyValue);
+			ConfigureDependency(typeof (T), typeof (TDependency)).ImplementationType = typeof (TDependencyValue);
 			return Self;
 		}
 
@@ -112,13 +117,13 @@ namespace SimpleContainer.Configuration
 
 		public TSelf BindDependencyFactory<T>(string dependencyName, Func<IContainer, object> creator)
 		{
-			ConfigureDependency(typeof(T), dependencyName).Factory = creator;
+			ConfigureDependency(typeof (T), dependencyName).Factory = creator;
 			return Self;
 		}
 
 		public TSelf BindDependencyImplementation<T, TDependencyValue>(string dependencyName)
 		{
-			ConfigureDependency(typeof(T), dependencyName).ImplementationType = typeof(TDependencyValue);
+			ConfigureDependency(typeof (T), dependencyName).ImplementationType = typeof (TDependencyValue);
 			return Self;
 		}
 
@@ -149,7 +154,22 @@ namespace SimpleContainer.Configuration
 
 		public TSelf DontUse<T>()
 		{
-			return DontUse(typeof(T));
+			return DontUse(typeof (T));
+		}
+
+		void IInternalConfigurationBuilder.DontUse(Type pluggableType)
+		{
+			DontUse(pluggableType);
+		}
+
+		void IInternalConfigurationBuilder.Bind(Type interfaceType, Type implementationType)
+		{
+			Bind(interfaceType, implementationType);
+		}
+
+		void IInternalConfigurationBuilder.BindDependency(Type type, string dependencyName, object value)
+		{
+			BindDependency(type, dependencyName, value);
 		}
 
 		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)

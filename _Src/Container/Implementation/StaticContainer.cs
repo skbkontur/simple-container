@@ -13,14 +13,17 @@ namespace SimpleContainer.Implementation
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConfigurationContext configurationContext;
 		private readonly ISet<Type> staticServices;
+		private readonly Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices)
+			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
+			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator)
 			: base(configuration, inheritors, null, CacheLevel.Static)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
 			this.staticServices = staticServices;
+			this.fileConfigurator = fileConfigurator;
 		}
 
 		internal override CacheLevel GetCacheLevel(Type type)
@@ -33,7 +36,8 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
-			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, x => targetAssemblies.Contains(x.Assembly));
+			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
+			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
 			var localContext = configurationContext.Local(name, primaryAssembly);
 			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext))
@@ -43,6 +47,8 @@ namespace SimpleContainer.Implementation
 			}
 			if (configure != null)
 				configure(builder);
+			if (fileConfigurator != null)
+				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
 		}

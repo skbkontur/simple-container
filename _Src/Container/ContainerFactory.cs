@@ -17,6 +17,7 @@ namespace SimpleContainer
 		private Type profile;
 		private Func<AssemblyName, bool> assembliesFilter;
 		private Func<Type, object> settingsLoader;
+		private string configFileName;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -28,6 +29,12 @@ namespace SimpleContainer
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
 			assembliesFilter = name => newAssembliesFilter(name) || name.Name == "SimpleContainer";
+			return this;
+		}
+
+		public ContainerFactory WithConfigFile(string fileName)
+		{
+			configFileName = fileName;
 			return this;
 		}
 
@@ -85,7 +92,9 @@ namespace SimpleContainer
 			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
 				runner.Run(builder, x => true);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter, configurationContext, staticServices);
+			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
+			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
+				configurationContext, staticServices, fileConfigurator);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()

@@ -49,6 +49,7 @@
     <Compile Include="Configuration\FilteredContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
+    <Compile Include="Configuration\IInternalConfigurationBuilder.cs" />
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Helpers\ImplicitTypeCaster.cs" />
@@ -74,6 +75,8 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Hosting\IComponentLogger.cs" />
+    <Compile Include="Implementation\FileBasedConfigurator.cs" />
+    <Compile Include="Implementation\Implementation.cs" />
     <Compile Include="Implementation\OptionalService.cs" />
     <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />

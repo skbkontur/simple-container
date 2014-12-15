@@ -8,7 +8,7 @@ namespace SimpleContainer.Tests
 {
 	public abstract class SimpleContainerTestBase : UnitTestBase
 	{
-		private List<IDisposable> disposables;
+		protected List<IDisposable> disposables;
 
 		protected override void SetUp()
 		{
