@@ -28,6 +28,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <NoWarn>0649</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
@@ -62,6 +63,7 @@
     <Compile Include="GetImplementationsOf.cs" />
     <Compile Include="Helpers\ActionDisposable.cs" />
     <Compile Include="Helpers\TestHelpers.cs" />
+    <Compile Include="BuildUpTest.cs" />
     <Compile Include="InstanceFilter.cs" />
     <Compile Include="LongRunning\CrashOnOneThreadDoNotAffectOtherThreads.cs" />
     <Compile Include="NotConfiguredGenericsTest.cs" />

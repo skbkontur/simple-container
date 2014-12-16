@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -1219,7 +1220,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([Optional] B b)
+				public A([Infection.Optional] B b)
 				{
 					this.b = b;
 				}
@@ -1323,6 +1324,108 @@ namespace SimpleContainer.Tests
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
+			}
+		}
+
+		public class RequiredUnionedContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly C y1C;
+				public readonly C y2C;
+
+				public A([RequireContract("x")] B b, [RequireContract("y1")] C y1C, [RequireContract("y2")] C y2C)
+				{
+					this.b = b;
+					this.y1C = y1C;
+					this.y2C = y2C;
+				}
+			}
+
+			public class B
+			{
+				public readonly IEnumerable<C> enumerable;
+
+				public B([RequireContract("unioned")] IEnumerable<C> enumerable)
+				{
+					this.enumerable = enumerable;
+				}
+			}
+			
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("x");
+					b.Contract("unioned").UnionOf("y1", "y2");
+					b.Contract("x", "y1").BindDependency<C>("parameter", 1);
+					b.Contract("x", "y2").BindDependency<C>("parameter", 2);
+					b.Contract("y1").BindDependency<C>("parameter", 3);
+					b.Contract("y2").BindDependency<C>("parameter", 4);
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b.enumerable.Select(x => x.parameter).ToArray(), Is.EquivalentTo(new[] {1, 2}));
+				Assert.That(a.y1C.parameter, Is.EqualTo(3));
+				Assert.That(a.y2C.parameter, Is.EqualTo(4));
+			}
+		}
+
+		public class ManyRequiredAndUnionedContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([RequireContract("x")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly IEnumerable<C> enumerable;
+
+				public B([RequireContract("unioned")] IEnumerable<C> enumerable)
+				{
+					this.enumerable = enumerable;
+				}
+			}
+
+			public class C
+			{
+				public readonly string context;
+
+				public C(string context)
+				{
+					this.context = context;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("x");
+					b.Contract("unioned").UnionOf("y");
+					b.Contract("y").BindDependency<C>("context", "x");
+					b.Contract("x", "y").BindDependency<C>("context", "xy");
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b.enumerable.Single().context, Is.EqualTo("xy"));
 			}
 		}
 

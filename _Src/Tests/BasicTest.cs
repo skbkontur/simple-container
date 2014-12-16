@@ -202,32 +202,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectEnumerableByAttribute : BasicTest
-		{
-			[Inject]
-			public IEnumerable<IInterface> Interfaces { get; private set; }
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				container.BuildUp(this);
-				Assert.That(Interfaces, Is.EquivalentTo(new IInterface[] {container.Get<Impl1>(), container.Get<Impl2>()}));
-			}
-
-			public interface IInterface
-			{
-			}
-
-			public class Impl1 : IInterface
-			{
-			}
-
-			public class Impl2 : IInterface
-			{
-			}
-		}
-
 		public class CanInjectEnumerableByCtor : BasicTest
 		{
 			[Test]

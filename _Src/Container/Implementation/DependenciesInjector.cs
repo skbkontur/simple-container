@@ -62,7 +62,11 @@ namespace SimpleContainer.Implementation
 			{
 				var member = selfInjections[i];
 				var resultIndex = i + baseInjectionsCount;
-				result[resultIndex].value = container.Get(member.MemberType(), null);
+				RequireContractAttribute requireContractAttribute;
+				var contractName = member.TryGetCustomAttribute(out requireContractAttribute)
+					? requireContractAttribute.ContractName
+					: null;
+				result[resultIndex].value = container.Get(member.MemberType(), contractName);
 				result[resultIndex].accessor = MemberAccessor<object>.Get(member);
 			}
 			return result;
