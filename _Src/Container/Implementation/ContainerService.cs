@@ -73,7 +73,7 @@ namespace SimpleContainer.Implementation
 
 		public void UseAllRequiredContracts()
 		{
-			FinalUsedContracts = Context.requiredContracts.Select(x => x.name).ToList();
+			FinalUsedContracts = Context.requiredContracts.Select(x => x.Name).ToList();
 			usedContractIndexes = Enumerable.Range(0, FinalUsedContracts.Count).Select((i, x) => i).ToList();
 		}
 
@@ -123,7 +123,7 @@ namespace SimpleContainer.Implementation
 		{
 			return usedContractIndexes == null
 				? new List<string>(0)
-				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].name).ToList();
+				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].Name).ToList();
 		}
 
 		public object SingleInstance(bool inConstructor)

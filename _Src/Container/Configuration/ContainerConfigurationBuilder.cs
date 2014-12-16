@@ -9,8 +9,8 @@ namespace SimpleContainer.Configuration
 {
 	public class ContainerConfigurationBuilder : AbstractConfigurationBuilder<ContainerConfigurationBuilder>
 	{
-		private readonly IDictionary<string, ContractConfigurationBuilder> contractConfigurators =
-			new Dictionary<string, ContractConfigurationBuilder>();
+		private readonly List<ContractConfigurationBuilder> contractConfigurators =
+			new List<ContractConfigurationBuilder>();
 
 		public ContainerConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
 			: base(staticServices, isStaticConfiguration)
@@ -34,18 +34,29 @@ namespace SimpleContainer.Configuration
 			return Contract(new T().ContractName);
 		}
 
-		public ContractConfigurationBuilder Contract(string contract)
+		public ContractConfigurationBuilder Contract(params string[] contracts)
 		{
-			ContractConfigurationBuilder result;
-			if (!contractConfigurators.TryGetValue(contract, out result))
-				contractConfigurators.Add(contract, result = new ContractConfigurationBuilder(staticServices, isStaticConfiguration));
+			if (contracts.Length == 0)
+				throw new InvalidOperationException("contracts is empty");
+			var contractName = contracts[contracts.Length - 1];
+			var requiredContracts = contracts.Length == 1
+				? new List<string>(0)
+				: contracts.Where((_, i) => i < contracts.Length - 1).ToList();
+			var requiredContractsKey = InternalHelpers.FormatContractsKey(requiredContracts);
+			var result = contractConfigurators
+				.Where(x => x.Name == contractName)
+				.SingleOrDefault(x => InternalHelpers.FormatContractsKey(x.RequiredContracts) == requiredContractsKey);
+			if (result == null)
+			{
+				result = new ContractConfigurationBuilder(contractName, requiredContracts, staticServices, isStaticConfiguration);
+				contractConfigurators.Add(result);
+			}
 			return result;
 		}
 
 		internal IContainerConfiguration Build()
 		{
-			return new ContainerConfiguration(configurations,
-				contractConfigurators.ToDictionary(x => x.Key, x => x.Value.Build()));
+			return new ContainerConfiguration(configurations, contractConfigurators.Select(x => x.Build()).ToArray());
 		}
 	}
 }

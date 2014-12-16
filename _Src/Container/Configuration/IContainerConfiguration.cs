@@ -1,10 +1,11 @@
 using System;
+using System.Collections.Generic;
 
 namespace SimpleContainer.Configuration
 {
 	internal interface IContainerConfiguration
 	{
 		T GetOrNull<T>(Type type) where T : class;
-		ContractConfiguration GetContractConfiguration(string contract);
+		IEnumerable<ContractConfiguration> GetContractConfigurations(string contract);
 	}
 }

@@ -31,9 +31,9 @@ namespace SimpleContainer.Configuration
 			return (T) resultObject;
 		}
 
-		public ContractConfiguration GetContractConfiguration(string contract)
+		public IEnumerable<ContractConfiguration> GetContractConfigurations(string contract)
 		{
-			return parent.GetContractConfiguration(contract);
+			return parent.GetContractConfigurations(contract);
 		}
 	}
 }

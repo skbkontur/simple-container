@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
-using SimpleContainer.Helpers;
+using System.Linq;
 
 namespace SimpleContainer.Configuration
 {
 	internal class ContainerConfiguration : ConfigurationRegistry, IContainerConfiguration
 	{
-		private readonly IDictionary<string, ContractConfiguration> contractsConfigurators;
+		private readonly IEnumerable<ContractConfiguration> contractsConfigurators;
 
 		public ContainerConfiguration(IDictionary<Type, object> configurations,
-			IDictionary<string, ContractConfiguration> contractsConfigurators)
+			IEnumerable<ContractConfiguration> contractsConfigurators)
 			: base(configurations)
 		{
 			this.contractsConfigurators = contractsConfigurators;
 		}
 
-		public ContractConfiguration GetContractConfiguration(string contract)
+		public IEnumerable<ContractConfiguration> GetContractConfigurations(string contract)
 		{
-			return contractsConfigurators.GetOrDefault(contract);
+			return contractsConfigurators.Where(x => x.Name == contract).OrderBy(x => x.RequiredContracts.Count);
 		}
 	}
 }

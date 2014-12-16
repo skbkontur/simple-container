@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SimpleContainer.Configuration
 {
@@ -18,9 +19,9 @@ namespace SimpleContainer.Configuration
 			return child.GetOrNull<T>(type) ?? parent.GetOrNull<T>(type);
 		}
 
-		public ContractConfiguration GetContractConfiguration(string contract)
+		public IEnumerable<ContractConfiguration> GetContractConfigurations(string contract)
 		{
-			return child.GetContractConfiguration(contract) ?? parent.GetContractConfiguration(contract);
+			return child.GetContractConfigurations(contract) ?? parent.GetContractConfigurations(contract);
 		}
 	}
 }

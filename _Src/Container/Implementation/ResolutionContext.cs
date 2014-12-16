@@ -13,7 +13,7 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
+		public readonly List<ContractConfiguration> requiredContracts = new List<ContractConfiguration>();
 		public object locker = new object();
 
 		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
@@ -25,13 +25,7 @@ namespace SimpleContainer.Implementation
 
 		public List<string> RequiredContractNames()
 		{
-			return requiredContracts.Select(x => x.name).ToList();
-		}
-
-		public struct RequiredContract
-		{
-			public string name;
-			public ContractConfiguration configuration;
+			return requiredContracts.Select(x => x.Name).ToList();
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -39,7 +33,7 @@ namespace SimpleContainer.Implementation
 			for (var i = requiredContracts.Count - 1; i >= 0; i--)
 			{
 				var requiredContract = requiredContracts[i];
-				var result = requiredContract.configuration.GetOrNull<T>(type);
+				var result = requiredContract.GetOrNull<T>(type);
 				if (result == null)
 					continue;
 				GetTopService().UseContractWithIndex(i);
@@ -89,7 +83,13 @@ namespace SimpleContainer.Implementation
 		{
 			if (contractNames == null)
 				return container.ResolveSingleton(type, name, this);
-			var unioned = contractNames.Select(c => GetContractConfiguration(c).UnionContractNames).ToArray();
+			var unioned = contractNames
+				.Select(delegate(string s)
+				{
+					var configurations = GetContractConfigurations(s);
+					return configurations.Length == 1 ? configurations[0].UnionContractNames : null;
+				})
+				.ToArray();
 			if (unioned.All(x => x == null))
 				return ResolveUsingContracts(type, name, container, contractNames);
 			var source = new List<List<string>>();
@@ -117,22 +117,44 @@ namespace SimpleContainer.Implementation
 
 		private void PushContracts(IEnumerable<string> contractNames)
 		{
-			foreach (var c in contractNames)
+			foreach (var c in contractNames.SelectMany(GetContractConfigurations))
 			{
 				foreach (var requiredContract in requiredContracts)
 				{
-					if (!string.Equals(requiredContract.name, c, StringComparison.OrdinalIgnoreCase))
+					if (!string.Equals(requiredContract.Name, c.Name, StringComparison.OrdinalIgnoreCase))
 						continue;
 					const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
 					throw new SimpleContainerException(string.Format(messageFormat,
-						c, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.name)), Format()));
+						c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.Name)), Format()));
 				}
-				requiredContracts.Add(new RequiredContract
-				{
-					name = c,
-					configuration = GetContractConfiguration(c)
-				});
+				if (MatchedByRequiredContracts(c))
+					requiredContracts.Add(c);
 			}
+		}
+
+		private bool MatchedByRequiredContracts(ContractConfiguration c)
+		{
+			if (c.RequiredContracts.Count == 0)
+				return true;
+			var index = 0;
+			foreach (var t in c.RequiredContracts)
+			{
+				if (!SearchForRequiredContract(ref index, t))
+					return false;
+			}
+			return true;
+		}
+
+		private bool SearchForRequiredContract(ref int index, string name)
+		{
+			while (index < requiredContracts.Count)
+			{
+				var contractName = requiredContracts[index].Name;
+				index++;
+				if (contractName == name)
+					return true;
+			}
+			return false;
 		}
 
 		public string Format()
@@ -196,10 +218,10 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private ContractConfiguration GetContractConfiguration(string contractName)
+		private ContractConfiguration[] GetContractConfigurations(string contractName)
 		{
-			var result = configuration.GetContractConfiguration(contractName);
-			if (result == null)
+			var result = configuration.GetContractConfigurations(contractName).ToArray();
+			if (result.Length == 0)
 				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contractName, Format()));
 			return result;
 		}
