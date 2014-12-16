@@ -13,19 +13,28 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public readonly List<ContractConfiguration> requiredContracts = new List<ContractConfiguration>();
+		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
 		public object locker = new object();
 
 		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
 		{
 			this.configuration = configuration;
-			if (contracts != null)
-				PushContracts(contracts);
+			if (contracts == null)
+				return;
+			var contractsArray = contracts.ToArray();
+			if (contractsArray.Length > 0)
+				PushContracts(contractsArray);
+		}
+
+		public struct RequiredContract
+		{
+			public ContractConfiguration configuration;
+			public List<int> requiredContractIndexes;
 		}
 
 		public List<string> RequiredContractNames()
 		{
-			return requiredContracts.Select(x => x.Name).ToList();
+			return requiredContracts.Select(x => x.configuration.Name).ToList();
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -33,10 +42,14 @@ namespace SimpleContainer.Implementation
 			for (var i = requiredContracts.Count - 1; i >= 0; i--)
 			{
 				var requiredContract = requiredContracts[i];
-				var result = requiredContract.GetOrNull<T>(type);
+				var result = requiredContract.configuration.GetOrNull<T>(type);
 				if (result == null)
 					continue;
-				GetTopService().UseContractWithIndex(i);
+				var containerService = GetTopService();
+				containerService.UseContractWithIndex(i);
+				if (requiredContract.requiredContractIndexes != null)
+					foreach (var index in requiredContract.requiredContractIndexes)
+						containerService.UseContractWithIndex(index);
 				return result;
 			}
 			return configuration.GetOrNull<T>(type);
@@ -108,39 +121,58 @@ namespace SimpleContainer.Implementation
 		public ContainerService ResolveUsingContracts(Type type, string name, SimpleContainer container,
 			List<string> contractNames)
 		{
-			PushContracts(contractNames);
+			var pushedContractsCount = PushContracts(contractNames);
 			var result = container.ResolveSingleton(type, name, this);
-			for (var i = 0; i < contractNames.Count; i++)
+			for (var i = 0; i < pushedContractsCount; i++)
 				requiredContracts.RemoveAt(requiredContracts.Count - 1);
 			return result;
 		}
 
-		private void PushContracts(IEnumerable<string> contractNames)
+		private int PushContracts(IEnumerable<string> contractNames)
 		{
+			var pushedContractsCount = 0;
 			foreach (var c in contractNames.SelectMany(GetContractConfigurations))
 			{
 				foreach (var requiredContract in requiredContracts)
 				{
-					if (!string.Equals(requiredContract.Name, c.Name, StringComparison.OrdinalIgnoreCase))
-						continue;
-					const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
-					throw new SimpleContainerException(string.Format(messageFormat,
-						c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.Name)), Format()));
+					var alreadyRequired = requiredContract.configuration.RequiredContracts.Count == 0 &&
+					                      c.RequiredContracts.Count == 0 &&
+					                      string.Equals(requiredContract.configuration.Name, c.Name, StringComparison.OrdinalIgnoreCase);
+					if (alreadyRequired)
+					{
+						const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
+						throw new SimpleContainerException(string.Format(messageFormat,
+							c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.configuration.Name)), Format()));
+					}
 				}
-				if (MatchedByRequiredContracts(c))
-					requiredContracts.Add(c);
+				List<int> requiredIndexes;
+				if (MatchedByRequiredContracts(c, out requiredIndexes))
+				{
+					requiredContracts.Add(new RequiredContract
+					{
+						configuration = c,
+						requiredContractIndexes = requiredIndexes
+					});
+					pushedContractsCount++;
+				}
 			}
+			return pushedContractsCount;
 		}
 
-		private bool MatchedByRequiredContracts(ContractConfiguration c)
+		private bool MatchedByRequiredContracts(ContractConfiguration c, out List<int> requiredIndexes)
 		{
 			if (c.RequiredContracts.Count == 0)
+			{
+				requiredIndexes = null;
 				return true;
+			}
+			requiredIndexes = new List<int>();
 			var index = 0;
 			foreach (var t in c.RequiredContracts)
 			{
 				if (!SearchForRequiredContract(ref index, t))
 					return false;
+				requiredIndexes.Add(index);
 			}
 			return true;
 		}
@@ -149,10 +181,9 @@ namespace SimpleContainer.Implementation
 		{
 			while (index < requiredContracts.Count)
 			{
-				var contractName = requiredContracts[index].Name;
-				index++;
-				if (contractName == name)
+				if (requiredContracts[index].configuration.Name == name)
 					return true;
+				index++;
 			}
 			return false;
 		}

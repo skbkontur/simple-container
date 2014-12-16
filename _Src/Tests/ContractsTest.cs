@@ -1270,6 +1270,62 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class NestedRequiredContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly C cx;
+				public readonly C cy;
+				public readonly C c;
+
+				public A([RequireContract("x")] B b, [RequireContract("x")] C cx, [RequireContract("y")] C cy, C c)
+				{
+					this.b = b;
+					this.cx = cx;
+					this.cy = cy;
+					this.c = c;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B([RequireContract("y")] C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly string context;
+
+				public C(string context)
+				{
+					this.context = context;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("x", "y").BindDependency<C>("context", "xy");
+					b.Contract("x").BindDependency<C>("context", "x");
+					b.Contract("y").BindDependency<C>("context", "y");
+					b.BindDependency<C>("context", "empty");
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b.c.context, Is.EqualTo("xy"));
+				Assert.That(a.cx.context, Is.EqualTo("x"));
+				Assert.That(a.cy.context, Is.EqualTo("y"));
+				Assert.That(a.c.context, Is.EqualTo("empty"));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
