@@ -15,9 +15,9 @@ namespace SimpleContainer.Configuration
 			return new ServiceContractConfigurationBuilder<T>(builder.Contract<TContract>());
 		}
 
-		public ServiceContractConfigurationBuilder<T> Contract(string contractName)
+		public ServiceContractConfigurationBuilder<T> Contract(params string[] contracts)
 		{
-			return new ServiceContractConfigurationBuilder<T>(builder.Contract(contractName));
+			return new ServiceContractConfigurationBuilder<T>(builder.Contract(contracts));
 		}
 
 		public ServiceConfigurationBuilder<T> MakeStatic()
