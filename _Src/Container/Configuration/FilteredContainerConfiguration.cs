@@ -35,5 +35,10 @@ namespace SimpleContainer.Configuration
 		{
 			return parent.GetContractConfigurations(contract);
 		}
+
+		public IEnumerable<string> DefaultContracts()
+		{
+			return parent.DefaultContracts();
+		}
 	}
 }

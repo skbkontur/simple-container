@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
+using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
@@ -71,6 +72,30 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("x").BindDependency<B>("parameter", 42));
 				container.BuildUp(this);
 				Assert.That(createB().parameter, Is.EqualTo(42));
+			}
+		}
+
+		public class CanRunBuilduppedObject : BuildUpTest
+		{
+			public class A : IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			[Inject] private A a;
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.BuildUp(this);
+				container.RunComponents(GetType());
+				Assert.That(A.runCalled);
 			}
 		}
 	}

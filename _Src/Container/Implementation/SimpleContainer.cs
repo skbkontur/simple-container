@@ -47,6 +47,7 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 		private bool disposed;
+		private readonly string[] defaultContracts;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			StaticContainer staticContainer, CacheLevel cacheLevel)
@@ -56,6 +57,7 @@ namespace SimpleContainer.Implementation
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
+			defaultContracts = configuration.DefaultContracts().ToArray();
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
@@ -69,7 +71,7 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			return TryUnwrapEnumerable(serviceType, out enumerableItem)
 				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)))
+				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(defaultContracts, contracts, serviceType)))
 					.SingleInstance(false);
 		}
 
@@ -88,7 +90,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			EnsureNotDisposed();
-			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
+			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
 			context.Instantiate(null, result, this);
 			if (result.Arguments != null)
@@ -132,7 +134,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			ContainerService containerService;
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
 			if (!instanceCache.TryGetValue(cacheKey, out containerService)) return;
 			if (entireResolutionContext)
 				containerService.Context.Format(null, null, writer);
@@ -143,17 +145,23 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
-			ContainerService containerService;
-			return instanceCache.TryGetValue(cacheKey, out containerService) && containerService.WaitForSuccessfullResolve()
-				? Utils.Closure(containerService, s => s.Dependencies ?? Enumerable.Empty<ContainerService>())
-					.Where(x => x.FinalUsedContracts != null)
-					.OrderBy(x => x.TopSortIndex)
-					.SelectMany(x => x.GetInstances())
-					.Distinct(new ServiceInstanceEqualityComparer())
-					.ToArray()
-				: Enumerable.Empty<ServiceInstance<object>>();
+			return dependenciesInjector.GetResolvedDependencies(type).ToArray()
+				.DefaultIfEmpty(type)
+				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(defaultContracts, contracts, t)))
+				.Select(delegate(CacheKey k)
+				{
+					ContainerService containerService;
+					return instanceCache.TryGetValue(k, out containerService) && containerService.WaitForSuccessfullResolve()
+						? containerService
+						: null;
+				})
+				.NotNull()
+				.Closure(s => s.Dependencies ?? Enumerable.Empty<ContainerService>())
+				.Where(x => x.FinalUsedContracts != null)
+				.OrderBy(x => x.TopSortIndex)
+				.SelectMany(x => x.GetInstances())
+				.Distinct(new ServiceInstanceEqualityComparer())
+				.ToArray();
 		}
 
 		private IEnumerable<ServiceInstance<object>> GetInstanceCache(Type interfaceType)

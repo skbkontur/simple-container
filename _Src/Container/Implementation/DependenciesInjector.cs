@@ -29,6 +29,14 @@ namespace SimpleContainer.Implementation
 				dependency.accessor.Set(target, dependency.value);
 		}
 
+		public IEnumerable<Type> GetResolvedDependencies(Type type)
+		{
+			Injection[] typeInjections;
+			return injections.TryGetValue(type, out typeInjections)
+				? typeInjections.Select(x => x.accessor.MemberType)
+				: Enumerable.Empty<Type>();
+		}
+
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			return GetInjections(type).Select(x => x.accessor.MemberType);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
@@ -13,15 +12,25 @@ namespace SimpleContainer.Helpers
 			return contracts == null ? null : string.Join("->", contracts);
 		}
 
-		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
+		public static List<string> ToInternalContracts(string[] defaultContracts,
+			IEnumerable<string> contracts,
+			Type type)
 		{
 			var requireContractAttribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
-			if (contracts == null && requireContractAttribute == null)
+			if (contracts == null && requireContractAttribute == null && defaultContracts.Length == 0)
 				return null;
-			var result = contracts.ToList();
+			var result = new List<string>(defaultContracts);
+			foreach (var contract in contracts)
+				AddIfNotExists(contract, result);
 			if (requireContractAttribute != null)
-				result.Add(requireContractAttribute.ContractName);
+				AddIfNotExists(requireContractAttribute.ContractName, result);
 			return result;
+		}
+
+		private static void AddIfNotExists(string item, List<string> target)
+		{
+			if (target.IndexOf(item) < 0)
+				target.Add(item);
 		}
 
 		public static string ByNameDependencyKey(string name)

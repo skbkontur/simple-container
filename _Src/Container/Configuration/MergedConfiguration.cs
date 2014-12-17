@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SimpleContainer.Configuration
 {
@@ -22,6 +23,11 @@ namespace SimpleContainer.Configuration
 		public IEnumerable<ContractConfiguration> GetContractConfigurations(string contract)
 		{
 			return child.GetContractConfigurations(contract) ?? parent.GetContractConfigurations(contract);
+		}
+
+		public IEnumerable<string> DefaultContracts()
+		{
+			return parent.DefaultContracts().Union(child.DefaultContracts()).Distinct();
 		}
 	}
 }

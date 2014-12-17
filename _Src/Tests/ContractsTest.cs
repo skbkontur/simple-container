@@ -1429,6 +1429,33 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DefaultContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Inject] private A a;
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("x").BindDependency<A>("parameter", 42);
+					builder.WithDefaultContract("x");
+				});
+				container.BuildUp(this);
+				Assert.That(a.parameter, Is.EqualTo(42));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
