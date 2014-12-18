@@ -379,7 +379,8 @@ namespace SimpleContainer.Helpers
 			typeof (string),
 			typeof (Guid),
 			typeof (bool),
-			typeof (DateTime)
+			typeof (DateTime),
+			typeof (TimeSpan)
 		};
 	}
 }

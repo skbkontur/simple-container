@@ -1174,8 +1174,8 @@ namespace SimpleContainer.Tests
 			[RequireContract("a")]
 			public class A
 			{
-				private readonly int parameter;
-				private readonly B b;
+				public readonly int parameter;
+				public readonly B b;
 
 				public A(int parameter, B b)
 				{
@@ -1199,7 +1199,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.StringContaining("A[a]->[a]!\r\n\tparameter->78\r\n\tB!\r\n\t\tparameter!"));
+ 				Assert.That(error.Message,
+					Is.StringContaining("A[a]->[a]!\r\n\tparameter -> 78\r\n\tB!\r\n\t\tparameter! - <---------------"));
 			}
 		}
 

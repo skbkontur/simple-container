@@ -1,10 +1,11 @@
+using System;
 using NUnit.Framework;
 
 namespace SimpleContainer.Tests
 {
 	public abstract class ConstructionLogTest : SimpleContainerTestBase
 	{
-		public class DumpUsedSimpleTypesInConstructionLog : BasicTest
+		public class DumpUsedSimpleTypesInConstructionLog : ConstructionLogTest
 		{
 			public class A
 			{
@@ -26,7 +27,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class DumpSimpleTypesFromFactoryInConstructionLog : BasicTest
+		public class DumpSimpleTypesFromFactoryInConstructionLog : ConstructionLogTest
 		{
 			public class A
 			{
@@ -48,7 +49,30 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ExplicitNull : BasicTest
+		public class DumpTimeSpansAsSimpleTypes : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly TimeSpan parameter;
+
+				public A(TimeSpan parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var ts = TimeSpan.FromSeconds(54).Add(TimeSpan.FromMilliseconds(17));
+				var container = Container(b => b.BindDependency<A>("parameter", ts));
+				container.Get<A>();
+				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
+		public class ExplicitNull : ConstructionLogTest
 		{
 			public class A
 			{
