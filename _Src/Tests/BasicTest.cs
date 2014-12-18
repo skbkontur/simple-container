@@ -1604,6 +1604,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class LastConfigurationWins : BasicTest
+		{
+			public class A
+			{
+				public readonly B parameter;
+
+				public A(B parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class B
+			{
+				public int value;
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Bind(c => new B {value = 1});
+					b.Bind<B>(new B {value = 2});
+				});
+				Assert.That(container.Get<A>().parameter.value, Is.EqualTo(2));
+			}
+		}
+
 		public class OptionalFunc : BasicTest
 		{
 			public class Wrap

@@ -25,6 +25,7 @@ namespace SimpleContainer.Configuration
 
 		public void UseInstance(object instance)
 		{
+			Factory = null;
 			Implementation = instance;
 			ImplementationAssigned = true;
 		}
