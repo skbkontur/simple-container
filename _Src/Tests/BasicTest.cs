@@ -1568,6 +1568,46 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class AnyCanBeNullAttributeIsEquivalentToOptional : BasicTest
+		{
+			public sealed class CanBeNullAttribute : Attribute
+			{
+			}
+
+			public class A
+			{
+				public readonly C c;
+
+				public A([CanBeNull] C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			[IgnoreImplementation]
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.Throws<SimpleContainerException>(() => container.Get<B>());
+				Assert.That(container.Get<A>().c, Is.Null);
+			}
+		}
+
 		public class ServiceCouldNotBeCreatedException : BasicTest
 		{
 			public class A

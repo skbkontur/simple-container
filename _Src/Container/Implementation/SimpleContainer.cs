@@ -542,10 +542,16 @@ namespace SimpleContainer.Implementation
 			{
 				if (formalParameter.HasDefaultValue)
 					return IndependentService(formalParameter, formalParameter.DefaultValue, service.Context);
-				if (formalParameter.IsDefined<OptionalAttribute>())
+				if (IsOptional(formalParameter))
 					return IndependentService(formalParameter, null, service.Context);
 			}
 			return result;
+		}
+
+		private static bool IsOptional(ICustomAttributeProvider customAttributeProvider)
+		{
+			return customAttributeProvider.IsDefined<OptionalAttribute>() ||
+			       customAttributeProvider.GetCustomAttributes(true).Any(x => x.GetType().Name == "CanBeNullAttribute");
 		}
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)
