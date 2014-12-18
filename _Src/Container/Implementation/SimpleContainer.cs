@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -56,8 +57,8 @@ namespace SimpleContainer.Implementation
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
-			dependenciesInjector = new DependenciesInjector(this);
 			defaultContracts = configuration.DefaultContracts().ToArray();
+			dependenciesInjector = new DependenciesInjector(this, defaultContracts);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
@@ -123,10 +124,10 @@ namespace SimpleContainer.Implementation
 				: Type.EmptyTypes;
 		}
 
-		public void BuildUp(object target)
+		public void BuildUp(object target, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-			dependenciesInjector.BuildUp(target);
+			dependenciesInjector.BuildUp(target, contracts);
 		}
 
 		public void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
@@ -145,9 +146,11 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-			return dependenciesInjector.GetResolvedDependencies(type).ToArray()
+			var contractsArray = contracts == null  ? null : contracts.ToArray();
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contractsArray, type));
+			return dependenciesInjector.GetResolvedDependencies(cacheKey).ToArray()
 				.DefaultIfEmpty(type)
-				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(defaultContracts, contracts, t)))
+				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(defaultContracts, contractsArray, t)))
 				.Select(delegate(CacheKey k)
 				{
 					ContainerService containerService;
@@ -561,49 +564,6 @@ namespace SimpleContainer.Implementation
 		{
 			Type result;
 			return TryUnwrapEnumerable(type, out result) ? result : type;
-		}
-
-		private struct CacheKey : IEquatable<CacheKey>
-		{
-			public readonly Type type;
-			public readonly List<string> contracts;
-			public readonly string contractsKey;
-
-			public CacheKey(Type type, List<string> contracts)
-			{
-				this.type = type;
-				this.contracts = contracts ?? new List<string>(0);
-				contractsKey = InternalHelpers.FormatContractsKey(this.contracts);
-			}
-
-			public bool Equals(CacheKey other)
-			{
-				return type == other.type && contractsKey == other.contractsKey;
-			}
-
-			public override bool Equals(object obj)
-			{
-				if (ReferenceEquals(null, obj)) return false;
-				return obj is CacheKey && Equals((CacheKey) obj);
-			}
-
-			public override int GetHashCode()
-			{
-				unchecked
-				{
-					return (type.GetHashCode()*397) ^ (contractsKey == null ? 0 : contractsKey.GetHashCode());
-				}
-			}
-
-			public static bool operator ==(CacheKey left, CacheKey right)
-			{
-				return left.Equals(right);
-			}
-
-			public static bool operator !=(CacheKey left, CacheKey right)
-			{
-				return !left.Equals(right);
-			}
 		}
 
 		private static void InvokeConstructor(MethodBase method, object self, object[] actualArguments,

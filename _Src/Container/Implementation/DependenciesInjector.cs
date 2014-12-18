@@ -2,9 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using SimpleContainer.Helpers;
-using SimpleContainer.Helpers.ReflectionEmit;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
@@ -12,77 +10,65 @@ namespace SimpleContainer.Implementation
 	internal class DependenciesInjector
 	{
 		private readonly IContainer container;
-		private readonly ConcurrentDictionary<Type, Injection[]> injections = new ConcurrentDictionary<Type, Injection[]>();
+		private readonly string[] defaultContracts;
 
-		private const BindingFlags bindingFlags =
-			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+		private readonly ConcurrentDictionary<CacheKey, Injection[]> injections =
+			new ConcurrentDictionary<CacheKey, Injection[]>();
 
-		public DependenciesInjector(IContainer container)
+		private static readonly MemberInjectionsModel model = new MemberInjectionsModel();
+
+		public DependenciesInjector(IContainer container, string[] defaultContracts)
 		{
 			this.container = container;
+			this.defaultContracts = defaultContracts;
 		}
 
-		public void BuildUp(object target)
+		public void BuildUp(object target, IEnumerable<string> contracts)
 		{
-			var dependencies = GetInjections(target.GetType());
+			var type = target.GetType();
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
+			var dependencies = GetInjections(cacheKey);
 			foreach (var dependency in dependencies)
-				dependency.accessor.Set(target, dependency.value);
+				dependency.setter(target, dependency.value);
 		}
 
-		public IEnumerable<Type> GetResolvedDependencies(Type type)
+		public IEnumerable<Type> GetResolvedDependencies(CacheKey cacheKey)
 		{
-			Injection[] typeInjections;
-			return injections.TryGetValue(type, out typeInjections)
-				? typeInjections.Select(x => x.accessor.MemberType)
+			return injections.ContainsKey(cacheKey)
+				? model.GetMembers(cacheKey.type).Select(x => x.member.MemberType())
 				: Enumerable.Empty<Type>();
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
-			return GetInjections(type).Select(x => x.accessor.MemberType);
+			return model.GetMembers(type).Select(x => x.member.MemberType());
 		}
 
-		private Injection[] GetInjections(Type type)
+		private Injection[] GetInjections(CacheKey cacheKey)
 		{
-			return injections.GetOrAdd(type, DetectInjections);
+			return injections.GetOrAdd(cacheKey, DetectInjections);
 		}
 
-		private Injection[] DetectInjections(Type type)
+		private Injection[] DetectInjections(CacheKey cacheKey)
 		{
-			var selfInjections = type
-				.GetProperties(bindingFlags)
-				.Where(m => m.CanWrite)
-				.Union(type.GetFields(bindingFlags).Cast<MemberInfo>())
-				.Where(m => m.IsDefined(typeof (InjectAttribute), true))
-				.ToArray();
-			Injection[] baseInjections = null;
-			if (!type.IsDefined<FrameworkBoundaryAttribute>(false))
+			var memberAccessors = model.GetMembers(cacheKey.type);
+			var result = new Injection[memberAccessors.Length];
+			for (var i = 0; i < result.Length; i++)
 			{
-				var baseType = type.BaseType;
-				if (baseType != typeof (object))
-					baseInjections = GetInjections(baseType);
-			}
-			var baseInjectionsCount = (baseInjections == null ? 0 : baseInjections.Length);
-			var result = new Injection[selfInjections.Length + baseInjectionsCount];
-			if (baseInjectionsCount > 0)
-				Array.Copy(baseInjections, 0, result, 0, baseInjectionsCount);
-			for (var i = 0; i < selfInjections.Length; i++)
-			{
-				var member = selfInjections[i];
-				var resultIndex = i + baseInjectionsCount;
 				RequireContractAttribute requireContractAttribute;
-				var contractName = member.TryGetCustomAttribute(out requireContractAttribute)
-					? requireContractAttribute.ContractName
-					: null;
-				result[resultIndex].value = container.Get(member.MemberType(), contractName);
-				result[resultIndex].accessor = MemberAccessor<object>.Get(member);
+				var member = memberAccessors[i].member;
+				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
+					? new List<string>(cacheKey.contracts) {requireContractAttribute.ContractName}
+					: cacheKey.contracts;
+				result[i].value = container.Get(member.MemberType(), contracts);
+				result[i].setter = memberAccessors[i].setter;
 			}
 			return result;
 		}
 
 		private struct Injection
 		{
-			public MemberAccessor<object> accessor;
+			public Action<object, object> setter;
 			public object value;
 		}
 	}

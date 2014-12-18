@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
@@ -1451,7 +1450,7 @@ namespace SimpleContainer.Tests
 					builder.Contract("x").BindDependency<A>("parameter", 42);
 					builder.WithDefaultContract("x");
 				});
-				container.BuildUp(this);
+				container.BuildUp(this, null);
 				Assert.That(a.parameter, Is.EqualTo(42));
 			}
 		}

@@ -7,7 +7,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 	{
 		private readonly PropertyInfo propertyInfo;
 
-		public PropertyAccessorFactory(PropertyInfo propertyInfo) : base(propertyInfo)
+		public PropertyAccessorFactory(PropertyInfo propertyInfo)
 		{
 			this.propertyInfo = propertyInfo;
 		}

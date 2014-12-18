@@ -13,8 +13,7 @@ namespace SimpleContainer.Helpers
 
 		private static readonly Func<Type, TypeAccessor> createTypeAccessor = t =>
 		{
-			IDictionary<string, IMemberAccessor> properties = t.GetProperties()
-				.ToDictionary(x => x.Name, UntypedMemberAccessor.Create);
+			var properties = t.GetProperties().ToDictionary(x => x.Name, AccessorsFactory.GetGetter);
 			return new TypeAccessor(properties);
 		};
 
@@ -51,9 +50,9 @@ namespace SimpleContainer.Helpers
 
 		private class TypeAccessor
 		{
-			private readonly IDictionary<string, IMemberAccessor> properties;
+			private readonly IDictionary<string, Func<object, object>> properties;
 
-			public TypeAccessor(IDictionary<string, IMemberAccessor> properties)
+			public TypeAccessor(IDictionary<string, Func<object, object>> properties)
 			{
 				this.properties = properties;
 			}
@@ -65,10 +64,10 @@ namespace SimpleContainer.Helpers
 
 			public bool TryGet(object o, string name, out object value)
 			{
-				IMemberAccessor accessor;
+				Func<object, object> accessor;
 				if (properties.TryGetValue(name, out accessor))
 				{
-					value = accessor.Get(o);
+					value = accessor(o);
 					return true;
 				}
 				value = null;

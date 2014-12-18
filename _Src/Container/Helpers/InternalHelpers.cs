@@ -20,8 +20,9 @@ namespace SimpleContainer.Helpers
 			if (contracts == null && requireContractAttribute == null && defaultContracts.Length == 0)
 				return null;
 			var result = new List<string>(defaultContracts);
-			foreach (var contract in contracts)
-				AddIfNotExists(contract, result);
+			if (contracts != null)
+				foreach (var contract in contracts)
+					AddIfNotExists(contract, result);
 			if (requireContractAttribute != null)
 				AddIfNotExists(requireContractAttribute.ContractName, result);
 			return result;

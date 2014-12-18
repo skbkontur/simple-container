@@ -6,13 +6,6 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 {
 	internal abstract class MemberAccessorFactory<TOutput>
 	{
-		private readonly MemberInfo member;
-
-		protected MemberAccessorFactory(MemberInfo member)
-		{
-			this.member = member;
-		}
-
 		protected static void EmitBoxingCast(Type memberType, ILGenerator ilGenerator)
 		{
 			var caster = new BoxingCaster(typeof (TOutput), memberType);
@@ -48,31 +41,20 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 			ilGenerator.Emit(OpCodes.Ldloca_S, 0);
 		}
 
-		public MemberAccessor<TOutput> CreateAccessor()
-		{
-			return new MemberAccessor<TOutput>(CreateGetter(), CreateSetter(), member.MemberType());
-		}
-
-		private Action<object, TOutput> CreateSetter()
+		public Action<object, TOutput> CreateSetter()
 		{
 			var method = CreateSettingMethod();
 			return TryEmitSet(method.GetILGenerator()) ? CreateSettingDelegate(method) : null;
 		}
 
-		private Func<object, TOutput> CreateGetter()
+		public Func<object, TOutput> CreateGetter()
 		{
 			var method = CreateGettingMethod();
 			return TryEmitGet(method.GetILGenerator()) ? CreateGettingDelegate(method) : null;
 		}
 
-		#region Protected interface
-
 		protected abstract bool TryEmitSet(ILGenerator ilGenerator);
 		protected abstract bool TryEmitGet(ILGenerator ilGenerator);
-
-		#endregion
-
-		#region Utils
 
 		private static Action<object, TOutput> CreateSettingDelegate(DynamicMethod dynamicMethod)
 		{
@@ -89,7 +71,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 			return new DynamicMethod("",
 				null,
 				new[] {typeof (object), typeof (TOutput)},
-				typeof (MemberAccessor<TOutput>),
+				typeof (MemberAccessorFactory<TOutput>),
 				true);
 		}
 
@@ -98,10 +80,8 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 			return new DynamicMethod("",
 				typeof (TOutput),
 				new[] {typeof (object)},
-				typeof (MemberAccessor<TOutput>),
+				typeof (MemberAccessorFactory<TOutput>),
 				true);
 		}
-
-		#endregion
 	}
 }

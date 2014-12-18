@@ -239,7 +239,7 @@ namespace SimpleContainer.Helpers
 			var dynamicMethod = new DynamicMethod("",
 				typeof (object),
 				new[] {typeof (object), typeof (object[])},
-				typeof (SimpleExpressionEvaluator),
+				typeof(ReflectionHelpers),
 				true);
 			var il = dynamicMethod.GetILGenerator();
 			if (!targetMethod.IsStatic && !targetMethod.IsConstructor)
@@ -350,7 +350,7 @@ namespace SimpleContainer.Helpers
 			var result = type.Name;
 			if (!type.IsGenericType)
 				return result;
-			var qIndex = result.IndexOf("`");
+			var qIndex = result.IndexOf("`", StringComparison.InvariantCulture);
 			return qIndex >= 0 ? result.Substring(0, qIndex) : result;
 		}
 
@@ -359,7 +359,7 @@ namespace SimpleContainer.Helpers
 			var result = type.Name;
 			if (type.IsGenericType)
 			{
-				result = result.Substring(0, result.IndexOf("`"));
+				result = result.Substring(0, result.IndexOf("`", StringComparison.InvariantCulture));
 				result += "<" + type.GetGenericArguments().Select(FormatName).JoinStrings(",") + ">";
 			}
 			return result;

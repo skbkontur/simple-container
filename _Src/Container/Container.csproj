@@ -54,6 +54,8 @@
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Helpers\ImplicitTypeCaster.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
+    <Compile Include="Helpers\ReflectionEmit\AccessorsFactory.cs" />
+    <Compile Include="Implementation\CacheKey.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
     <Compile Include="Implementation\ConfiguratorRunner.cs" />
@@ -77,6 +79,8 @@
     <Compile Include="Hosting\IComponentLogger.cs" />
     <Compile Include="Configuration\FileBasedConfigurator.cs" />
     <Compile Include="Implementation\Implementation.cs" />
+    <Compile Include="Implementation\InjectionMember.cs" />
+    <Compile Include="Implementation\MemberInjectionsModel.cs" />
     <Compile Include="Implementation\OptionalService.cs" />
     <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />
@@ -107,18 +111,11 @@
     <Compile Include="Helpers\ReflectionEmit\BoxingCaster.cs" />
     <Compile Include="Helpers\ReflectionEmit\Caster.cs" />
     <Compile Include="Helpers\ReflectionEmit\FieldAccessorFactory.cs" />
-    <Compile Include="Helpers\ReflectionEmit\IAccessMember.cs" />
-    <Compile Include="Helpers\ReflectionEmit\IMemberAccessor.cs" />
     <Compile Include="Helpers\ReflectionEmit\InvalidMemberInfoException.cs" />
-    <Compile Include="Helpers\ReflectionEmit\MappingMemberAccessor.cs" />
-    <Compile Include="Helpers\ReflectionEmit\MemberAccessor.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorFactory.cs" />
     <Compile Include="Helpers\ReflectionEmit\PropertyAccessorFactory.cs" />
-    <Compile Include="Helpers\ReflectionEmit\SimpleExpressionEvaluator.cs" />
     <Compile Include="Helpers\ReflectionEmit\TypeMismatchException.cs" />
     <Compile Include="Helpers\ReflectionEmit\UnboxingCaster.cs" />
-    <Compile Include="Helpers\ReflectionEmit\UntypedMemberAccessor.cs" />
-    <Compile Include="Helpers\ReflectionEmit\ValueTypeFieldAccessor.cs" />
     <Compile Include="Helpers\ReflectionHelpers.cs" />
     <Compile Include="Implementation\ResolutionContext.cs" />
     <Compile Include="Implementation\FilteredInheritanceHierarchy.cs" />

@@ -11,7 +11,7 @@ namespace SimpleContainer
 		IEnumerable<object> GetAll(Type type);
 		object Get(Type type, IEnumerable<string> contracts);
 		object Create(Type type, IEnumerable<string> contracts, object arguments);
-		void BuildUp(object target);
+		void BuildUp(object target, IEnumerable<string> contracts);
 
 		void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
 			ISimpleLogWriter writer);
