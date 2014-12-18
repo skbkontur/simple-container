@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
 {
@@ -36,13 +37,13 @@ namespace SimpleContainer.Configuration
 				var messageFormat = implementation.publicConstructors.Length == 0
 					? "type [{0}] has no public ctors, maybe ctor is private?"
 					: "type [{0}] has many public ctors, maybe some of them should be made private?";
-				throw new InvalidOperationException(string.Format(messageFormat, type.FormatName()));
+				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
 			}
 			var formalParameter = constructor.GetParameters().SingleOrDefault(x => x.Name == dependencyName);
 			if (formalParameter == null)
 			{
 				const string message = "type [{0}] has no dependency [{1}]";
-				throw new InvalidOperationException(string.Format(message, type.FormatName(), dependencyName));
+				throw new SimpleContainerException(string.Format(message, type.FormatName(), dependencyName));
 			}
 			var targetType = formalParameter.ParameterType;
 			var underlyingType = Nullable.GetUnderlyingType(targetType);
@@ -57,7 +58,7 @@ namespace SimpleContainer.Configuration
 			catch (Exception)
 			{
 				const string message = "can't parse [{0}.{1}] from [{2}] as [{3}]";
-				throw new InvalidOperationException(string.Format(message, type.FormatName(), dependencyName,
+				throw new SimpleContainerException(string.Format(message, type.FormatName(), dependencyName,
 					dependencyText, formalParameter.ParameterType.FormatName()));
 			}
 			builder.BindDependency(type, dependencyName, parsedValue);
@@ -115,14 +116,14 @@ namespace SimpleContainer.Configuration
 				var foundTypes = typesMap[name].Where(filter).ToArray();
 				if (foundTypes.Length > 1)
 				{
-					const string formatMessage = "for name [{0}] found more than one type {1}";
-					var foundTypesString = foundTypes.Select(x => string.Format("[{0}]", x.FullName));
-					throw new InvalidOperationException(string.Format(formatMessage, name, foundTypesString));
+					const string messageFormat = "for name [{0}] more than one type found {1}";
+					var foundTypesString = foundTypes.Select(x => string.Format("[{0}]", x.FullName)).JoinStrings(", ");
+					throw new SimpleContainerException(string.Format(messageFormat, name, foundTypesString));
 				}
 				if (foundTypes.Length == 0)
 				{
-					const string formatMessage = "no types found for name [{0}]";
-					throw new InvalidOperationException(string.Format(formatMessage, name));
+					const string messageFormat = "no types found for name [{0}]";
+					throw new SimpleContainerException(string.Format(messageFormat, name));
 				}
 				return foundTypes[0];
 			}

@@ -26,11 +26,6 @@ namespace SimpleContainer.Tests.Helpers
 			return result.ToArray();
 		}
 
-		public static string JoinStrings<T>(this IEnumerable<T> source, string separator)
-		{
-			return source.Select(x => x.ToString()).JoinStrings(separator);
-		}
-
 		public static string JoinStrings(this IEnumerable<string> source, string separator)
 		{
 			return string.Join(separator, source.ToArray());

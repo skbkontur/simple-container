@@ -26,7 +26,8 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null, Type profile = null)
+		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null,
+			Type profile = null)
 		{
 			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
 			var factory = new ContainerFactory()

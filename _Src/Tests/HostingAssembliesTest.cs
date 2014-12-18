@@ -1,8 +1,5 @@
 ﻿using System;
-using System.CodeDom.Compiler;
-using System.Collections.Specialized;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Hosting;
@@ -13,32 +10,6 @@ namespace SimpleContainer.Tests
 {
 	public abstract class HostingAssembliesTest : UnitTestBase
 	{
-		protected override void SetUp()
-		{
-			base.SetUp();
-			CleanupTestAssemblies();
-		}
-
-		protected override void TearDown()
-		{
-			CleanupTestAssemblies();
-			base.TearDown();
-		}
-
-		private static void CleanupTestAssemblies()
-		{
-			var testAssemblyFileNames = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory)
-				.Where(x => Path.GetFileName(x).StartsWith("tmp_"));
-			foreach (var fileName in testAssemblyFileNames)
-				try
-				{
-					File.Delete(fileName);
-				}
-				catch (IOException)
-				{
-				}
-		}
-
 		public class ImplementationsFromIndependentPrimaryAssemblies : HostingAssembliesTest
 		{
 			private const string a1Code = @"
@@ -74,8 +45,8 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(a1Code);
-				var a2 = CompileAssembly(a2Code);
+				var a1 = AssemblyCompiler.Compile(a1Code);
+				var a2 = AssemblyCompiler.Compile(a2Code);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
 				{
 					using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null))
@@ -119,8 +90,8 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(a1Code);
-				var a2 = CompileAssembly(a2Code, a1);
+				var a1 = AssemblyCompiler.Compile(a1Code);
+				var a2 = AssemblyCompiler.Compile(a2Code, a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
 					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
@@ -160,8 +131,8 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(a1Code);
-				var a2 = CompileAssembly(string.Format(a2CodeFormat, a1.GetName().Name), a1);
+				var a1 = AssemblyCompiler.Compile(a1Code);
+				var a2 = AssemblyCompiler.Compile(string.Format(a2CodeFormat, a1.GetName().Name), a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
 					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
@@ -237,9 +208,9 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var mainAssembly = CompileAssembly(mainAssemblyCode);
-				var unreferencedAssembly = CompileAssembly(unreferencedAssemblyCode, mainAssembly);
-				var entryAssembly = CompileAssembly(string.Format(entryAssemblyCode, mainAssembly.GetName().Name), mainAssembly);
+				var mainAssembly = AssemblyCompiler.Compile(mainAssemblyCode);
+				var unreferencedAssembly = AssemblyCompiler.Compile(unreferencedAssemblyCode, mainAssembly);
+				var entryAssembly = AssemblyCompiler.Compile(string.Format(entryAssemblyCode, mainAssembly.GetName().Name), mainAssembly);
 
 				using (var staticContainer = Factory().FromAssemblies(new[] {mainAssembly, unreferencedAssembly, entryAssembly}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, entryAssembly, null))
@@ -305,8 +276,8 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(referencedAssemblycode);
-				var a2 = CompileAssembly(primaryAssemblyCode, a1);
+				var a1 = AssemblyCompiler.Compile(referencedAssemblycode);
+				var a2 = AssemblyCompiler.Compile(primaryAssemblyCode, a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a2, a1}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
 					Assert.That(localContainer.Get<IServiceProvider>().GetType().Name, Is.EqualTo("Impl2"));
@@ -387,11 +358,11 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var referencedAssemblyV2 = CompileAssembly(referencedAssemblyCodeV2);
-				CompileAssembly(referencedAssemblyCodeV1,
+				var referencedAssemblyV2 = AssemblyCompiler.Compile(referencedAssemblyCodeV2);
+				AssemblyCompiler.Compile(referencedAssemblyCodeV1,
 					Path.Combine(testDirectory, Path.GetFileName(referencedAssemblyV2.Location)));
-				var primaryAssembly = CompileAssembly(primaryAssemblyCode, referencedAssemblyV2);
-				
+				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode, referencedAssemblyV2);
+
 				CopyAssemblyToTestDirectory(primaryAssembly);
 				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
@@ -454,51 +425,13 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var a1 = CompileAssembly(primaryAssemblyCode);
+				var a1 = AssemblyCompiler.Compile(primaryAssemblyCode);
 				var factory = new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp2_"));
 				using (var staticContainer = factory.FromAssemblies(new[] {a1}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null))
 					Assert.That(localContainer.GetAll<IComponent>(), Is.Empty);
 			}
-		}
-
-		private static Assembly CompileAssembly(string source, params Assembly[] references)
-		{
-			return CompileAssembly(source, null, references);
-		}
-
-		private static Assembly CompileAssembly(string source, string resultFileName, params Assembly[] references)
-		{
-			var tempAssemblyFileName = resultFileName;
-			if (tempAssemblyFileName == null)
-			{
-				var testAssemblyName = "tmp_" + Guid.NewGuid().ToString("N");
-				tempAssemblyFileName = testAssemblyName + ".dll";
-			}
-			var compilationParameters = new CompilerParameters
-			{
-				OutputAssembly = tempAssemblyFileName,
-				GenerateExecutable = false
-			};
-			var defaultAssemblies = new[]
-			{
-				Assembly.GetExecutingAssembly(),
-				typeof (IComponent).Assembly,
-				typeof (NameValueCollection).Assembly
-			};
-			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.GetName().Name + ".dll"))
-				compilationParameters.ReferencedAssemblies.Add(reference);
-			var compilationResult = CodeDomProvider.CreateProvider("C#").CompileAssemblyFromSource(compilationParameters, source);
-			if (compilationResult.Errors.HasErrors || compilationResult.Errors.HasWarnings)
-			{
-				var message = compilationResult.Errors
-					.Cast<CompilerError>()
-					.Select(x => string.Format("{0}:{1} {2}", x.Line, x.Column, x.ErrorText))
-					.JoinStrings("\r\n");
-				Assert.Fail(message);
-			}
-			return compilationResult.CompiledAssembly;
 		}
 
 		protected static ContainerFactory Factory()

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
 using NUnit.Framework;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -155,7 +157,92 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		private string configFileName;
+		public class NoTypesFound : FileConfigurationTest
+		{
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("B -> 1"));
+				Assert.That(e.Message, Is.EqualTo("no types found for name [B]"));
+			}
+		}
+
+		public class ParseFailure : FileConfigurationTest
+		{
+			public class A
+			{
+				public readonly int value;
+
+				public A(int value)
+				{
+					this.value = value;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [Int32]"));
+			}
+
+		}
+
+		public class DependencyNotFound : FileConfigurationTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("type [A] has no dependency [value]"));
+			}
+		}
+
+		public class MoreThanOneTypeByName : FileConfigurationTest
+		{
+			private const string testCode = @"
+					namespace A1
+					{
+						public class A
+						{
+							public A(int parameter)
+							{
+							}
+						}
+					}
+
+					namespace A2
+					{
+						public class A
+						{
+							public A(int parameter)
+							{
+							}
+						}
+					}
+				";
+
+			[Test]
+			public void Test()
+			{
+				var assembly = AssemblyCompiler.Compile(testCode);
+				File.WriteAllText(configFileName, "A.parameter->11");
+				var factory = new ContainerFactory()
+					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+					.WithConfigFile(configFileName);
+				using (var staticContainer = factory.FromAssemblies(new[] {assembly}))
+				{
+					var e = Assert.Throws<SimpleContainerException>(() => staticContainer.CreateLocalContainer(null, assembly, null));
+					Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
+				}
+			}
+		}
+
+		protected string configFileName;
 
 		protected override void SetUp()
 		{
@@ -176,6 +263,7 @@ namespace SimpleContainer.Tests
 		{
 			File.WriteAllText(configFileName, configText);
 			var staticContainer = CreateStaticContainer(f => f.WithConfigFile(configFileName));
+			disposables.Add(staticContainer);
 			var result = LocalContainer(staticContainer, null);
 			disposables.Add(result);
 			return result;
