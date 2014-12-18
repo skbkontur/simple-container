@@ -12,23 +12,16 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConfigurationContext configurationContext;
-		private readonly ISet<Type> staticServices;
 		private readonly Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
 			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator)
-			: base(configuration, inheritors, null, CacheLevel.Static)
+			: base(configuration, inheritors, null, CacheLevel.Static, staticServices)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
-			this.staticServices = staticServices;
 			this.fileConfigurator = fileConfigurator;
-		}
-
-		internal override CacheLevel GetCacheLevel(Type type)
-		{
-			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		public IContainer CreateLocalContainer(string name, Assembly primaryAssembly,
@@ -50,7 +43,7 @@ namespace SimpleContainer.Implementation
 			if (fileConfigurator != null)
 				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
+			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local, staticServices);
 		}
 
 		private IEnumerable<Assembly> ReferencedAssemblies(Assembly assembly)
