@@ -99,7 +99,7 @@ namespace SimpleContainer
 
 		public IStaticContainer FromCurrentAppDomain()
 		{
-			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies().Closure(x => x.ReferencedAssemblies(assembliesFilter)));
 		}
 
 		private static string GetBinDirectory()

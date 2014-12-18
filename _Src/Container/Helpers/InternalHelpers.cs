@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
@@ -24,6 +26,16 @@ namespace SimpleContainer.Helpers
 			if (requireContractAttribute != null)
 				AddIfNotExists(requireContractAttribute.ContractName, result);
 			return result;
+		}
+
+		public static IEnumerable<Assembly> ReferencedAssemblies(this Assembly assembly, Func<AssemblyName, bool> assemblyFilter)
+		{
+			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
+				.Select(x => new AssemblyName(x.AssemblyName));
+			return assembly.GetReferencedAssemblies()
+				.Concat(referencedByAttribute)
+				.Where(assemblyFilter)
+				.Select(Assembly.Load);
 		}
 
 		private static void AddIfNotExists(string item, List<string> target)

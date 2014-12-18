@@ -35,7 +35,7 @@ namespace SimpleContainer.Implementation
 			Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			var targetAssemblies = Utils.Closure(primaryAssembly, ReferencedAssemblies).ToSet();
+			var targetAssemblies = Utils.Closure(primaryAssembly, x => x.ReferencedAssemblies(assemblyFilter)).ToSet();
 			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
@@ -51,16 +51,6 @@ namespace SimpleContainer.Implementation
 				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
-		}
-
-		private IEnumerable<Assembly> ReferencedAssemblies(Assembly assembly)
-		{
-			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
-				.Select(x => new AssemblyName(x.AssemblyName));
-			return assembly.GetReferencedAssemblies()
-				.Concat(referencedByAttribute)
-				.Where(assemblyFilter)
-				.Select(Assembly.Load);
 		}
 	}
 }
