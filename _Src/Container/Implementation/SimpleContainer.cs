@@ -617,6 +617,12 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
+				if (e is OperationCanceledException)
+					return;
+				var aggregateException = e as AggregateException;
+				if (aggregateException != null)
+					if (aggregateException.Flatten().InnerExceptions.All(x => x is OperationCanceledException))
+						return;
 				var message = string.Format("error disposing [{0}]", disposable.FormatName());
 				throw new SimpleContainerException(message, e);
 			}

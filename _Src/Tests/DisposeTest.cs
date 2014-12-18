@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -212,6 +214,54 @@ namespace SimpleContainer.Tests
 				Assert.That(wrap.enumerable, Is.Empty);
 				container.Dispose();
 				Assert.That(logBuilder.ToString(), Is.EqualTo("B.Dispose "));
+			}
+		}
+
+		public class SwallowOperationCancelledException : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				private readonly Task task;
+
+				public A(CancellationToken token)
+				{
+					task = Task.Delay(TimeSpan.FromDays(10), token);
+				}
+
+				public static bool beforeDispose;
+				public static bool afterDispose;
+
+				public void Dispose()
+				{
+					beforeDispose = true;
+					task.Wait();
+					afterDispose = true;
+				}
+			}
+
+			public class B : IDisposable
+			{
+				public static bool disposeCalled;
+
+				public void Dispose()
+				{
+					disposeCalled = true;
+					throw new OperationCanceledException();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var tokenSource = new CancellationTokenSource();
+				var container = Container(b => b.Bind<CancellationToken>(tokenSource.Token));
+				container.Get<A>();
+				container.Get<B>();
+				tokenSource.Cancel();
+				container.Dispose();
+				Assert.That(A.beforeDispose, Is.True);
+				Assert.That(A.afterDispose, Is.False);
+				Assert.That(B.disposeCalled, Is.True);
 			}
 		}
 
