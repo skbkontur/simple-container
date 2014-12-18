@@ -7,6 +7,5 @@ namespace SimpleContainer.Configuration
 	{
 		T GetOrNull<T>(Type type) where T : class;
 		IEnumerable<ContractConfiguration> GetContractConfigurations(string contract);
-		IEnumerable<string> DefaultContracts();
 	}
 }

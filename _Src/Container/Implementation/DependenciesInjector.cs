@@ -10,23 +10,21 @@ namespace SimpleContainer.Implementation
 	internal class DependenciesInjector
 	{
 		private readonly IContainer container;
-		private readonly string[] defaultContracts;
 
 		private readonly ConcurrentDictionary<CacheKey, Injection[]> injections =
 			new ConcurrentDictionary<CacheKey, Injection[]>();
 
 		private static readonly MemberInjectionsModel model = new MemberInjectionsModel();
 
-		public DependenciesInjector(IContainer container, string[] defaultContracts)
+		public DependenciesInjector(IContainer container)
 		{
 			this.container = container;
-			this.defaultContracts = defaultContracts;
 		}
 
 		public void BuildUp(object target, IEnumerable<string> contracts)
 		{
 			var type = target.GetType();
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
 			var dependencies = GetInjections(cacheKey);
 			foreach (var dependency in dependencies)
 				dependency.setter(target, dependency.value);

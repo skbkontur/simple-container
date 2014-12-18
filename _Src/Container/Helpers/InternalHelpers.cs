@@ -12,14 +12,12 @@ namespace SimpleContainer.Helpers
 			return contracts == null ? null : string.Join("->", contracts);
 		}
 
-		public static List<string> ToInternalContracts(string[] defaultContracts,
-			IEnumerable<string> contracts,
-			Type type)
+		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
 			var requireContractAttribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
-			if (contracts == null && requireContractAttribute == null && defaultContracts.Length == 0)
+			if (contracts == null && requireContractAttribute == null)
 				return null;
-			var result = new List<string>(defaultContracts);
+			var result = new List<string>();
 			if (contracts != null)
 				foreach (var contract in contracts)
 					AddIfNotExists(contract, result);

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -48,7 +47,6 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 		private bool disposed;
-		private readonly string[] defaultContracts;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			StaticContainer staticContainer, CacheLevel cacheLevel)
@@ -57,8 +55,7 @@ namespace SimpleContainer.Implementation
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
-			defaultContracts = configuration.DefaultContracts().ToArray();
-			dependenciesInjector = new DependenciesInjector(this, defaultContracts);
+			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
@@ -72,7 +69,7 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			return TryUnwrapEnumerable(serviceType, out enumerableItem)
 				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(defaultContracts, contracts, serviceType)))
+				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)))
 					.SingleInstance(false);
 		}
 
@@ -91,7 +88,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			EnsureNotDisposed();
-			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
+			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
 			context.Instantiate(null, result, this);
 			if (result.Arguments != null)
@@ -135,7 +132,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			ContainerService containerService;
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
 			if (!instanceCache.TryGetValue(cacheKey, out containerService)) return;
 			if (entireResolutionContext)
 				containerService.Context.Format(null, null, writer);
@@ -147,10 +144,10 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			var contractsArray = contracts == null  ? null : contracts.ToArray();
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(defaultContracts, contractsArray, type));
+			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contractsArray, type));
 			return dependenciesInjector.GetResolvedDependencies(cacheKey).ToArray()
 				.DefaultIfEmpty(type)
-				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(defaultContracts, contractsArray, t)))
+				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(contractsArray, t)))
 				.Select(delegate(CacheKey k)
 				{
 					ContainerService containerService;
@@ -457,10 +454,12 @@ namespace SimpleContainer.Implementation
 				service.AddInstance(instance);
 		}
 
-		private static ContainerService IndependentService(object instance)
+		private ContainerService IndependentService(ParameterInfo formalParameter, object instance, ResolutionContext context)
 		{
-			var result = new ContainerService(null);
+			var result = new ContainerService(formalParameter.ParameterType);
 			result.AddInstance(instance);
+			if (ReflectionHelpers.simpleTypes.Contains(formalParameter.ParameterType))
+				context.LogSimpleType(formalParameter.Name, result, this);
 			return result;
 		}
 
@@ -492,20 +491,20 @@ namespace SimpleContainer.Implementation
 		{
 			object actualArgument;
 			if (service.Arguments != null && service.Arguments.TryGet(formalParameter.Name, out actualArgument))
-				return IndependentService(actualArgument);
+				return IndependentService(formalParameter, actualArgument, service.Context);
 			var dependencyConfiguration = implementation.GetDependencyConfiguration(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
 			{
 				if (dependencyConfiguration.ValueAssigned)
-					return IndependentService(dependencyConfiguration.Value);
+					return IndependentService(formalParameter, dependencyConfiguration.Value, service.Context);
 				if (dependencyConfiguration.Factory != null)
-					return IndependentService(dependencyConfiguration.Factory(this));
+					return IndependentService(formalParameter, dependencyConfiguration.Factory(this), service.Context);
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
 			implementationType = implementationType ?? formalParameter.ParameterType;
 			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
-				return IndependentService(formalParameter.DefaultValue);
+				return IndependentService(formalParameter, formalParameter.DefaultValue, service.Context);
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
@@ -516,7 +515,7 @@ namespace SimpleContainer.Implementation
 						string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
 							resourceAttribute.Name, implementation.type,
 							implementation.type.Assembly.GetName().Name, service.Context.Format()));
-				return IndependentService(resourceStream);
+				return IndependentService(formalParameter, resourceStream, service.Context);
 			}
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
@@ -534,7 +533,7 @@ namespace SimpleContainer.Implementation
 					target = implementation.type,
 					contracts = requiredContracts
 				});
-				return IndependentService(instance);
+				return IndependentService(formalParameter, instance, service.Context);
 			}
 			var result = service.Context.Resolve(dependencyType, formalParameter.Name, this, contracts);
 			if (isEnumerable)
@@ -542,9 +541,9 @@ namespace SimpleContainer.Implementation
 			if (result.Instances.Count == 0)
 			{
 				if (formalParameter.HasDefaultValue)
-					return IndependentService(formalParameter.DefaultValue);
+					return IndependentService(formalParameter, formalParameter.DefaultValue, service.Context);
 				if (formalParameter.IsDefined<OptionalAttribute>())
-					return IndependentService(null);
+					return IndependentService(formalParameter, null, service.Context);
 			}
 			return result;
 		}

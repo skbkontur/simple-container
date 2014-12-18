@@ -12,8 +12,6 @@ namespace SimpleContainer.Configuration
 		private readonly List<ContractConfigurationBuilder> contractConfigurators =
 			new List<ContractConfigurationBuilder>();
 
-		private readonly List<string> defaultContracts = new List<string>();
-
 		public ContainerConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
 			: base(staticServices, isStaticConfiguration)
 		{
@@ -27,18 +25,6 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
 			}
 			staticServices.Add(type);
-			return this;
-		}
-
-		public ContainerConfigurationBuilder WithDefaultContract<T>()
-			where T : RequireContractAttribute, new()
-		{
-			return WithDefaultContract(new T().ContractName);
-		}
-
-		public ContainerConfigurationBuilder WithDefaultContract(string contractName)
-		{
-			defaultContracts.Add(contractName);
 			return this;
 		}
 
@@ -70,7 +56,7 @@ namespace SimpleContainer.Configuration
 
 		internal IContainerConfiguration Build()
 		{
-			return new ContainerConfiguration(defaultContracts, configurations, contractConfigurators.Select(x => x.Build()).ToArray());
+			return new ContainerConfiguration(configurations, contractConfigurators.Select(x => x.Build()).ToArray());
 		}
 	}
 }

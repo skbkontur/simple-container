@@ -1199,7 +1199,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.StringContaining("A[a]->[a]!\r\n\tB!\r\n\t\tparameter!"));
+				Assert.That(error.Message, Is.StringContaining("A[a]->[a]!\r\n\tparameter->78\r\n\tB!\r\n\t\tparameter!"));
 			}
 		}
 
@@ -1425,33 +1425,6 @@ namespace SimpleContainer.Tests
 				});
 				var a = container.Get<A>();
 				Assert.That(a.b.enumerable.Single().context, Is.EqualTo("xy"));
-			}
-		}
-
-		public class DefaultContracts : ContractsTest
-		{
-			public class A
-			{
-				public readonly int parameter;
-
-				public A(int parameter)
-				{
-					this.parameter = parameter;
-				}
-			}
-
-			[Inject] private A a;
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(delegate(ContainerConfigurationBuilder builder)
-				{
-					builder.Contract("x").BindDependency<A>("parameter", 42);
-					builder.WithDefaultContract("x");
-				});
-				container.BuildUp(this, null);
-				Assert.That(a.parameter, Is.EqualTo(42));
 			}
 		}
 

@@ -82,6 +82,22 @@ namespace SimpleContainer.Implementation
 			depth--;
 		}
 
+		public void LogSimpleType(string name, ContainerService containerService, SimpleContainer container)
+		{
+			var requiredContractNames = RequiredContractNames();
+			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
+			var item = new ResolutionItem
+			{
+				depth = depth,
+				name = name,
+				allContactsKey = allContractsKey,
+				contractDeclared = false,
+				service = containerService,
+				isStatic = container.cacheLevel == CacheLevel.Static
+			};
+			log.Add(item);
+		}
+
 		public ContainerService GetTopService()
 		{
 			return current.Count == 0 ? null : current[current.Count - 1].service;
@@ -223,9 +239,8 @@ namespace SimpleContainer.Implementation
 					startDepth = state.depth;
 				}
 				writer.WriteIndent(state.depth - startDepth);
-				var name = state.name != null && ReflectionHelpers.simpleTypes.Contains(state.service.Type)
-					? state.name
-					: state.service.Type.FormatName();
+				var isSimpleType = ReflectionHelpers.simpleTypes.Contains(state.service.Type);
+				var name = state.name != null && isSimpleType ? state.name : state.service.Type.FormatName();
 				writer.WriteName(state.isStatic ? "(s)" + name : name);
 				var usedContracts = state.service.GetUsedContractNames();
 				if (usedContracts != null && usedContracts.Count > 0)
@@ -238,13 +253,15 @@ namespace SimpleContainer.Implementation
 				}
 				if (state.service.Instances.Count == 0)
 					writer.WriteMeta("!");
+				else if (state.service.Instances.Count > 1)
+					writer.WriteMeta("++");
+				else if (isSimpleType)
+					writer.WriteMeta(" -> " + (state.service.Instances[0] ?? "<null>"));
 				if (state.message != null)
 				{
 					writer.WriteMeta(" - ");
 					writer.WriteMeta(state.message);
 				}
-				else if (state.service.Instances.Count > 1)
-					writer.WriteMeta("++");
 				writer.WriteNewLine();
 			}
 		}
