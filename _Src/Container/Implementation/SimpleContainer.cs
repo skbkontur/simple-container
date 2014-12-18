@@ -39,7 +39,6 @@ namespace SimpleContainer.Implementation
 		protected readonly IInheritanceHierarchy inheritors;
 		private readonly StaticContainer staticContainer;
 		internal readonly CacheLevel cacheLevel;
-		protected readonly ISet<Type> staticServices;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
@@ -51,7 +50,7 @@ namespace SimpleContainer.Implementation
 		private readonly string[] defaultContracts;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices)
+			StaticContainer staticContainer, CacheLevel cacheLevel)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
@@ -64,7 +63,6 @@ namespace SimpleContainer.Implementation
 				var context = new ResolutionContext(configuration, key.contracts);
 				return ResolveSingleton(key.type, null, context);
 			};
-			this.staticServices = staticServices;
 		}
 
 		public object Get(Type serviceType, IEnumerable<string> contracts)
@@ -73,8 +71,7 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			return TryUnwrapEnumerable(serviceType, out enumerableItem)
 				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType,
-					InternalHelpers.ToInternalContracts(defaultContracts, contracts, serviceType)))
+				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(defaultContracts, contracts, serviceType)))
 					.SingleInstance(false);
 		}
 
@@ -93,8 +90,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			EnsureNotDisposed();
-			context = context ??
-			          new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
+			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(defaultContracts, contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
 			context.Instantiate(null, result, this);
 			if (result.Arguments != null)
@@ -190,24 +186,15 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
+		public IContainer Clone()
 		{
 			EnsureNotDisposed();
-			IContainerConfiguration resultConfiguration;
-			if (configure == null)
-				resultConfiguration = configuration;
-			else
-			{
-				var builder = new ContainerConfigurationBuilder(staticServices, cacheLevel == CacheLevel.Static);
-				configure(builder);
-				resultConfiguration = new MergedConfiguration(configuration, builder.Build());
-			}
-			return new SimpleContainer(resultConfiguration, inheritors, staticContainer, cacheLevel, staticServices);
+			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel);
 		}
 
 		internal virtual CacheLevel GetCacheLevel(Type type)
 		{
-			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
+			return staticContainer.GetCacheLevel(type);
 		}
 
 		internal ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)

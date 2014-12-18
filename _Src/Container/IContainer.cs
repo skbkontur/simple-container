@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer
@@ -18,6 +17,6 @@ namespace SimpleContainer
 			ISimpleLogWriter writer);
 
 		IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts);
-		IContainer Clone(Action<ContainerConfigurationBuilder> configure);
+		IContainer Clone();
 	}
 }
