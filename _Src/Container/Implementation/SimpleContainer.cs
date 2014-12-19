@@ -16,7 +16,6 @@ namespace SimpleContainer.Implementation
 	//todo перевести на явную стек машину
 	//todo заинлайнить GenericConfigurator
 	//todo обработка запросов на явные generic-и
-	//todo логировать значения simple-типов, заюзанные через конфигурирование
 	//todo избавиться от идиотского EndResolveDependencies
 	internal class SimpleContainer : IContainer
 	{
