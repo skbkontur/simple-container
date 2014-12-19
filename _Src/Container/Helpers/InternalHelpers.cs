@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
@@ -28,14 +29,30 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static IEnumerable<Assembly> ReferencedAssemblies(this Assembly assembly, Func<AssemblyName, bool> assemblyFilter)
+		public static IEnumerable<Assembly> ReferencedAssemblies(this Assembly assembly,
+			Func<AssemblyName, bool> assemblyFilter)
 		{
 			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
 				.Select(x => new AssemblyName(x.AssemblyName));
 			return assembly.GetReferencedAssemblies()
 				.Concat(referencedByAttribute)
 				.Where(assemblyFilter)
-				.Select(Assembly.Load);
+				.Select(LoadAssembly);
+		}
+
+		public static Assembly LoadAssembly(AssemblyName name)
+		{
+			try
+			{
+				return Assembly.Load(name);
+			}
+			catch (BadImageFormatException e)
+			{
+				const string messageFormat = "bad assembly image, assembly name [{0}], " +
+				                             "assembly processor architecture [{1}], process is [{2}]";
+				throw new SimpleContainerException(string.Format(messageFormat,
+					name.Name, name.ProcessorArchitecture, Environment.Is64BitProcess ? "x64" : "x86"), e);
+			}
 		}
 
 		private static void AddIfNotExists(string item, List<string> target)

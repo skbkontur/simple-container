@@ -69,7 +69,7 @@ namespace SimpleContainer
 				})
 				.NotNull()
 				.Where(assembliesFilter)
-				.Select(Assembly.Load)
+				.Select(InternalHelpers.LoadAssembly)
 				.Distinct();
 			return FromAssemblies(assemblies);
 		}
