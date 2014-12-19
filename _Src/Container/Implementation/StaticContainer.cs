@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
@@ -51,6 +50,13 @@ namespace SimpleContainer.Implementation
 				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
+		}
+
+		public new IStaticContainer Clone()
+		{
+			EnsureNotDisposed();
+			return new StaticContainer(configuration, inheritors, assemblyFilter,
+				configurationContext, staticServices, fileConfigurator);
 		}
 	}
 }

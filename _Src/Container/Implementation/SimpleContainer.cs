@@ -143,9 +143,9 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-			var contractsArray = contracts == null  ? null : contracts.ToArray();
+			var contractsArray = contracts == null ? null : contracts.ToArray();
 			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contractsArray, type));
-			return dependenciesInjector.GetResolvedDependencies(cacheKey).ToArray()
+			return dependenciesInjector.GetResolvedDependencies(cacheKey)
 				.DefaultIfEmpty(type)
 				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(contractsArray, t)))
 				.Select(delegate(CacheKey k)
