@@ -14,7 +14,7 @@ namespace SimpleContainer.Implementation
 		private readonly ConcurrentDictionary<CacheKey, Injection[]> injections =
 			new ConcurrentDictionary<CacheKey, Injection[]>();
 
-		private static readonly MemberInjectionsModel model = new MemberInjectionsModel();
+		private static readonly MemberInjectionsProvider provider = new MemberInjectionsProvider();
 
 		public DependenciesInjector(IContainer container)
 		{
@@ -33,13 +33,13 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<Type> GetResolvedDependencies(CacheKey cacheKey)
 		{
 			return injections.ContainsKey(cacheKey)
-				? model.GetMembers(cacheKey.type).Select(x => x.member.MemberType())
+				? provider.GetMembers(cacheKey.type).Select(x => x.member.MemberType())
 				: Enumerable.Empty<Type>();
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
-			return model.GetMembers(type).Select(x => x.member.MemberType());
+			return provider.GetMembers(type).Select(x => x.member.MemberType());
 		}
 
 		private Injection[] GetInjections(CacheKey cacheKey)
@@ -49,17 +49,25 @@ namespace SimpleContainer.Implementation
 
 		private Injection[] DetectInjections(CacheKey cacheKey)
 		{
-			var memberAccessors = model.GetMembers(cacheKey.type);
-			var result = new Injection[memberAccessors.Length];
+			var memberSetters = provider.GetMembers(cacheKey.type);
+			var result = new Injection[memberSetters.Length];
 			for (var i = 0; i < result.Length; i++)
 			{
+				var member = memberSetters[i].member;
 				RequireContractAttribute requireContractAttribute;
-				var member = memberAccessors[i].member;
 				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
 					? new List<string>(cacheKey.contracts) {requireContractAttribute.ContractName}
 					: cacheKey.contracts;
-				result[i].value = container.Get(member.MemberType(), contracts);
-				result[i].setter = memberAccessors[i].setter;
+				try
+				{
+					result[i].value = container.Get(member.MemberType(), contracts);
+				}
+				catch (SimpleContainerException e)
+				{
+					const string messageFormat = "can't resolve member [{0}.{1}]";
+					throw new SimpleContainerException(string.Format(messageFormat, member.DeclaringType.FormatName(), member.Name), e);
+				}
+				result[i].setter = memberSetters[i].setter;
 			}
 			return result;
 		}

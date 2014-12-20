@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Helpers.ReflectionEmit
 {
-	public static class AccessorsFactory
+	public static class MemberAccessorsFactory
 	{
 		private static readonly ConcurrentDictionary<MemberInfo, Func<object, object>> getters =
 			new ConcurrentDictionary<MemberInfo, Func<object, object>>();
@@ -15,7 +15,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 		private static readonly Func<MemberInfo, Func<object, object>> createGetter;
 		private static readonly Func<MemberInfo, Action<object, object>> createSetter;
 
-		static AccessorsFactory()
+		static MemberAccessorsFactory()
 		{
 			createGetter = info => MemberAccessorFactory<object>.Create(info).CreateGetter();
 			createSetter = info => MemberAccessorFactory<object>.Create(info).CreateSetter();

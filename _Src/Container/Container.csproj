@@ -54,7 +54,7 @@
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Helpers\ImplicitTypeCaster.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
-    <Compile Include="Helpers\ReflectionEmit\AccessorsFactory.cs" />
+    <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
     <Compile Include="Implementation\CacheKey.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
@@ -79,8 +79,8 @@
     <Compile Include="Hosting\IComponentLogger.cs" />
     <Compile Include="Configuration\FileBasedConfigurator.cs" />
     <Compile Include="Implementation\Implementation.cs" />
-    <Compile Include="Implementation\InjectionMember.cs" />
-    <Compile Include="Implementation\MemberInjectionsModel.cs" />
+    <Compile Include="Implementation\MemberSetter.cs" />
+    <Compile Include="Implementation\MemberInjectionsProvider.cs" />
     <Compile Include="Implementation\OptionalService.cs" />
     <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />

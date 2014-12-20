@@ -3,9 +3,9 @@ using System.Reflection;
 
 namespace SimpleContainer.Implementation
 {
-	public struct InjectionMember
+	public struct MemberSetter
 	{
-		public Action<object, object> setter;
 		public MemberInfo member;
+		public Action<object, object> setter;
 	}
 }

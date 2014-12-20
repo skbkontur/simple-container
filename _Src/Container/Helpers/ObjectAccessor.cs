@@ -13,7 +13,7 @@ namespace SimpleContainer.Helpers
 
 		private static readonly Func<Type, TypeAccessor> createTypeAccessor = t =>
 		{
-			var properties = t.GetProperties().ToDictionary(x => x.Name, AccessorsFactory.GetGetter);
+			var properties = t.GetProperties().ToDictionary(x => x.Name, MemberAccessorsFactory.GetGetter);
 			return new TypeAccessor(properties);
 		};
 

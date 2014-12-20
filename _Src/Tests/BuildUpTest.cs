@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Hosting;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
@@ -51,7 +52,7 @@ namespace SimpleContainer.Tests
 				Assert.That(createB(), Is.Not.Null);
 			}
 		}
-		
+
 		public class CanInjectFactoryWithContract : BuildUpTest
 		{
 			[Inject] [RequireContract("x")] private Func<B> createB;
@@ -99,6 +100,24 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class GracefulBuildUpExceptions : BuildUpTest
+		{
+			public class A
+			{
+			}
+
+			[Inject] private A a;
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<A>());
+				var error = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new String[0]));
+				Assert.That(error.Message, Is.EqualTo("can't resolve member [GracefulBuildUpExceptions.a]"));
+				Assert.That(error.InnerException.Message, Is.EqualTo("no implementations for A\r\nA! - DontUse"));
+			}
+		}
+
 		public class BuildUpWithContracts : BuildUpTest
 		{
 			public class A
@@ -134,7 +153,7 @@ namespace SimpleContainer.Tests
 
 				Assert.That(localAc1, Is.SameAs(a));
 
-				container.BuildUp(this, new[] { "c2" });
+				container.BuildUp(this, new[] {"c2"});
 
 				Assert.That(a.parameter, Is.EqualTo(2));
 				Assert.That(ac1.parameter, Is.EqualTo(1));

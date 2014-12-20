@@ -38,7 +38,9 @@ namespace SimpleContainer.Tests.Helpers
 			};
 			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.GetName().Name + ".dll"))
 				compilationParameters.ReferencedAssemblies.Add(reference);
-			var compilationResult = CodeDomProvider.CreateProvider("C#").CompileAssemblyFromSource(compilationParameters, source);
+			CompilerResults compilationResult;
+			using (var codeDomProvider = CodeDomProvider.CreateProvider("C#"))
+				compilationResult = codeDomProvider.CompileAssemblyFromSource(compilationParameters, source);
 			if (compilationResult.Errors.HasErrors || compilationResult.Errors.HasWarnings)
 			{
 				var message = compilationResult.Errors
