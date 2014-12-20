@@ -309,12 +309,14 @@ namespace SimpleContainer.Implementation
 		{
 			if (service.Type.IsDefined<IgnoreImplementationAttribute>())
 			{
+				service.Context.Report("IgnoreImplementation");
 				service.EndResolveDependencies();
 				return;
 			}
 			var implementationConfiguration = service.Context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 			{
+				service.Context.Report("DontUse");
 				service.EndResolveDependencies();
 				return;
 			}

@@ -1,5 +1,6 @@
 using System;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
 {
@@ -69,6 +70,57 @@ namespace SimpleContainer.Tests
 				container.Get<A>();
 				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
 				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
+		public class ReportExplicitDontUse : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b = null)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<B>());
+				Assert.That(container.Get<A>().b, Is.Null);
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - DontUse"));
+			}
+		}
+		
+		public class ReportIgnoreImplementation : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b = null)
+				{
+					this.b = b;
+				}
+			}
+
+			[IgnoreImplementation]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>().b, Is.Null);
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - IgnoreImplementation"));
 			}
 		}
 

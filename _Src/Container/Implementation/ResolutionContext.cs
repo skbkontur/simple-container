@@ -139,8 +139,7 @@ namespace SimpleContainer.Implementation
 		{
 			var pushedContractsCount = PushContracts(contractNames);
 			var result = container.ResolveSingleton(type, name, this);
-			for (var i = 0; i < pushedContractsCount; i++)
-				requiredContracts.RemoveAt(requiredContracts.Count - 1);
+			requiredContracts.RemoveRange(requiredContracts.Count - pushedContractsCount, pushedContractsCount);
 			return result;
 		}
 

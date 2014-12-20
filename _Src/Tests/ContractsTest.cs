@@ -1235,7 +1235,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (A), "x"), Is.EqualTo("A->[x]\r\n\tB[x]!"));
+				Assert.That(container.GetConstructionLog(typeof (A), "x"), Is.EqualTo("A->[x]\r\n\tB[x]! - DontUse"));
 			}
 		}
 

@@ -1563,7 +1563,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
 				Assert.That(container.GetConstructionLog(typeof (WrapWithOptionalDependency)),
-					Is.EqualTo("WrapWithOptionalDependency\r\n\tA!"));
+					Is.EqualTo("WrapWithOptionalDependency\r\n\tA! - DontUse"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}
 		}
