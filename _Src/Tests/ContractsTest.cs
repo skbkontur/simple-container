@@ -498,28 +498,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContractIsNotConfigured : ContractsTest
-		{
-			public class Service
-			{
-				public Service([RequireContract("some-contract")] Dependency dependency)
-				{
-				}
-			}
-
-			public class Dependency
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var e = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
-				Assert.That(e.Message, Is.EqualTo("contract [some-contract] is not configured\r\nService!"));
-			}
-		}
-
 		public class UnionContractsWithNonContractDependentServices : ContractsTest
 		{
 			public class ServiceWrap
@@ -1446,6 +1424,54 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>("a"));
 				Assert.That(error.Message, Is.StringContaining("construction exception"));
 				Assert.That(error.InnerException.Message, Is.EqualTo("test crash"));
+			}
+		}
+
+		public class NotDefinedContractsCanBeUsedLaterToRestrictOtherContracts : ContractsTest
+		{
+			[RequireContract("a")]
+			public class A
+			{
+				public readonly X x;
+
+				public A(X x)
+				{
+					this.x = x;
+				}
+			}
+			
+			[RequireContract("b")]
+			public class B
+			{
+				public readonly X x;
+
+				public B(X x)
+				{
+					this.x = x;
+				}
+			}
+
+			[RequireContract("x")]
+			public class X
+			{
+				public readonly int parameter;
+
+				public X(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("a", "x").BindDependency<X>("parameter", 1);
+					builder.Contract("b", "x").BindDependency<X>("parameter", 2);
+				});
+				Assert.That(container.Get<A>().x.parameter, Is.EqualTo(1));
+				Assert.That(container.Get<B>().x.parameter, Is.EqualTo(2));
 			}
 		}
 

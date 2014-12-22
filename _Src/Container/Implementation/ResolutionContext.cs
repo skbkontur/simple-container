@@ -115,7 +115,7 @@ namespace SimpleContainer.Implementation
 			var unioned = contractNames
 				.Select(delegate(string s)
 				{
-					var configurations = GetContractConfigurations(s);
+					var configurations = configuration.GetContractConfigurations(s).ToArray();
 					return configurations.Length == 1 ? configurations[0].UnionContractNames : null;
 				})
 				.ToArray();
@@ -144,10 +144,18 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
+		private ContractConfiguration[] GetContractConfigurationsOrDefault(string s)
+		{
+			var result = configuration.GetContractConfigurations(s).ToArray();
+			return result.Length == 0
+				? new[] {new ContractConfiguration(s, new List<string>(), new Dictionary<Type, object>(), null)}
+				: result;
+		}
+
 		private int PushContracts(IEnumerable<string> contractNames)
 		{
 			var pushedContractsCount = 0;
-			foreach (var c in contractNames.SelectMany(GetContractConfigurations))
+			foreach (var c in contractNames.SelectMany(GetContractConfigurationsOrDefault))
 			{
 				foreach (var requiredContract in requiredContracts)
 				{
@@ -264,14 +272,6 @@ namespace SimpleContainer.Implementation
 				}
 				writer.WriteNewLine();
 			}
-		}
-
-		private ContractConfiguration[] GetContractConfigurations(string contractName)
-		{
-			var result = configuration.GetContractConfigurations(contractName).ToArray();
-			if (result.Length == 0)
-				throw new SimpleContainerException(string.Format("contract [{0}] is not configured\r\n{1}", contractName, Format()));
-			return result;
 		}
 
 		private class ResolutionItem
