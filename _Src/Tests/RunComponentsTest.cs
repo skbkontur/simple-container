@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
@@ -239,7 +240,7 @@ namespace SimpleContainer.Tests
 					this.b = b;
 				}
 			}
-			
+
 			public class B
 			{
 				public readonly C c;
@@ -306,6 +307,58 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				container.Run<A>(null);
 				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
+			}
+		}
+
+		public class UnionAllDependencies : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<IX> instances;
+
+				public A([RequireContract("u")] IEnumerable<IX> instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			public interface IX
+			{
+			}
+
+			public class B : IX, IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			public class C : IX, IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			[Test]
+			public void Tets()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("a").Bind<IX, B>();
+					b.Contract("b").Bind<IX, C>();
+					b.Contract("u").UnionOf("a", "b");
+				});
+
+				container.Run<A>();
+				Assert.That(B.runCalled);
+				Assert.That(C.runCalled);
 			}
 		}
 

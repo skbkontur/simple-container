@@ -131,6 +131,7 @@ namespace SimpleContainer.Implementation
 				var item = ResolveUsingContracts(type, name, container, contracts);
 				result.UnionFrom(item);
 			}
+			result.EndResolveDependencies();
 			return result;
 		}
 
