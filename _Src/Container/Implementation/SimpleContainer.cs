@@ -434,8 +434,8 @@ namespace SimpleContainer.Implementation
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
 				{
-					InvokeConstructor(constructor, null, actualArguments, serviceForUsedContracts);
 					serviceForUsedContracts.AttachToContext(service.Context);
+					InvokeConstructor(constructor, null, actualArguments, serviceForUsedContracts);
 					serviceForUsedContracts.UnionUsedContracts(service);
 					serviceForUsedContracts.UnionDependencies(service);
 					serviceForUsedContracts.EndResolveDependencies();

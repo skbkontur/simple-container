@@ -1429,6 +1429,26 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CrashInConstructorOfServiceForUsedContracts : ContractsTest
+		{
+			public class A
+			{
+				public A()
+				{
+					throw new InvalidOperationException("test crash");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("a"));
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>("a"));
+				Assert.That(error.Message, Is.StringContaining("construction exception"));
+				Assert.That(error.InnerException.Message, Is.EqualTo("test crash"));
+			}
+		}
+
 		public class ServicesAreBoundToUsedContractPath : ContractsTest
 		{
 			public class A
