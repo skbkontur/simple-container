@@ -362,6 +362,51 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class InterfaceDependencies : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly IX x;
+
+				public A(IX x)
+				{
+					this.x = x;
+				}
+			}
+
+			public interface IX
+			{
+			}
+
+			public class X1 : IX
+			{
+				public readonly Component component;
+
+				public X1(Component component)
+				{
+					this.component = component;
+				}
+			}
+
+			public class Component : IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Run<A>();
+				Assert.That(Component.runCalled);
+			}
+		}
+
 		public class EnumerableDependencies : RunComponentsTest
 		{
 			public class A

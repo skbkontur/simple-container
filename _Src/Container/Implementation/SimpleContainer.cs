@@ -258,7 +258,6 @@ namespace SimpleContainer.Implementation
 				service.Throw("can't create value type");
 			if (factoryPlugins.Any(p => p.TryInstantiate(this, service)))
 			{
-				service.SetDependencies(new List<ContainerService>());
 				service.EndResolveDependencies();
 				return;
 			}
@@ -396,13 +395,12 @@ namespace SimpleContainer.Implementation
 			implementation.SetContext(service.Context);
 			var formalParameters = constructor.GetParameters();
 			var actualArguments = new object[formalParameters.Length];
-			var dependencies = formalParameters.Length > 0 ? new List<ContainerService>() : null;
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
 				var dependency = InstantiateDependency(formalParameter, implementation, service);
 				service.UnionUsedContracts(dependency);
-				dependencies.Add(dependency);
+				service.AddDependency(dependency);
 				object dependencyValue;
 				if (IsEnumerable(formalParameter.ParameterType))
 					dependencyValue = dependency.AsEnumerable();
@@ -422,7 +420,6 @@ namespace SimpleContainer.Implementation
 						dependencyValue);
 				actualArguments[i] = castedValue;
 			}
-			service.SetDependencies(dependencies);
 			service.EndResolveDependencies();
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
@@ -440,7 +437,7 @@ namespace SimpleContainer.Implementation
 					InvokeConstructor(constructor, null, actualArguments, serviceForUsedContracts);
 					serviceForUsedContracts.AttachToContext(service.Context);
 					serviceForUsedContracts.UnionUsedContracts(service);
-					serviceForUsedContracts.SetDependencies(dependencies);
+					serviceForUsedContracts.UnionDependencies(service);
 					serviceForUsedContracts.EndResolveDependencies();
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}

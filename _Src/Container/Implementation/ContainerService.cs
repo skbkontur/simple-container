@@ -23,7 +23,7 @@ namespace SimpleContainer.Implementation
 		public IObjectAccessor Arguments { get; private set; }
 		public bool CreateNew { get; private set; }
 		public ResolutionContext Context { get; private set; }
-		public List<ContainerService> Dependencies { get; private set; }
+		private List<ContainerService> dependencies;
 
 		public ContainerService(Type type)
 		{
@@ -61,9 +61,22 @@ namespace SimpleContainer.Implementation
 			instances.Add(instance);
 		}
 
+		public void AddDependency(ContainerService dependency)
+		{
+			if (dependencies == null)
+				dependencies = new List<ContainerService>();
+			if (!dependencies.Contains(dependency))
+				dependencies.Add(dependency);
+		}
+
 		public IReadOnlyList<object> Instances
 		{
 			get { return instances; }
+		}
+
+		public IReadOnlyList<ContainerService> Dependencies
+		{
+			get { return dependencies; }
 		}
 
 		public void FilterInstances(Func<object, bool> filter)
@@ -93,7 +106,15 @@ namespace SimpleContainer.Implementation
 			foreach (var instance in other.instances)
 				if (!instances.Contains(instance))
 					instances.Add(instance);
+			UnionDependencies(other);
 			UnionUsedContracts(other);
+		}
+
+		public void UnionDependencies(ContainerService other)
+		{
+			if (other.dependencies != null)
+				foreach (var dependency in other.dependencies)
+					AddDependency(dependency);
 		}
 
 		public void UseContractWithIndex(int index)
@@ -107,11 +128,6 @@ namespace SimpleContainer.Implementation
 		public void EndResolveDependencies()
 		{
 			FinalUsedContracts = GetUsedContractNamesFromContext();
-		}
-
-		public void SetDependencies(List<ContainerService> dependencies)
-		{
-			Dependencies = dependencies;
 		}
 
 		public List<string> GetUsedContractNames()

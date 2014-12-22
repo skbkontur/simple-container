@@ -25,7 +25,7 @@ namespace SimpleContainer.Factories
 					if (topService != hostService) 
 						return container.Create(type, requiredContractNames, arguments);
 					var dependency = container.Create(type, requiredContractNames, arguments, containerService.Context);
-					containerService.Dependencies.Add(dependency);
+					containerService.AddDependency(dependency);
 					return dependency.SingleInstance(true);
 				};
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
