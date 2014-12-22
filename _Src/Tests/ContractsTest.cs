@@ -5,6 +5,7 @@ using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -16,7 +17,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly OuterClass outerClass;
 
-				public ContainerClass1([RequireContract("c1")] OuterClass outerClass)
+				public ContainerClass1([TestContract("c1")] OuterClass outerClass)
 				{
 					this.outerClass = outerClass;
 				}
@@ -26,7 +27,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly OuterClass outerClass;
 
-				public ContainerClass2([RequireContract("c2")] OuterClass outerClass)
+				public ContainerClass2([TestContract("c2")] OuterClass outerClass)
 				{
 					this.outerClass = outerClass;
 				}
@@ -84,7 +85,7 @@ namespace SimpleContainer.Tests
 				public readonly B bc1;
 				public readonly B bc2;
 
-				public A([RequireContract("c1")] B bc1, [RequireContract("c2")] B bc2)
+				public A([TestContract("c1")] B bc1, [TestContract("c2")] B bc2)
 				{
 					this.bc1 = bc1;
 					this.bc2 = bc2;
@@ -134,7 +135,7 @@ namespace SimpleContainer.Tests
 				public readonly B bc1;
 				public readonly B bc2;
 
-				public A([RequireContract("c1")] B bc1, [RequireContract("c2")] B bc2)
+				public A([TestContract("c1")] B bc1, [TestContract("c2")] B bc2)
 				{
 					this.bc1 = bc1;
 					this.bc2 = bc2;
@@ -200,7 +201,7 @@ namespace SimpleContainer.Tests
 				public readonly Service service;
 				public readonly SingletonService singletonService;
 
-				public ServiceClient1([RequireContract("c1")] Service service, SingletonService singletonService)
+				public ServiceClient1([TestContract("c1")] Service service, SingletonService singletonService)
 				{
 					this.service = service;
 					this.singletonService = singletonService;
@@ -212,7 +213,7 @@ namespace SimpleContainer.Tests
 				public readonly Service service;
 				public SingletonService singletonService;
 
-				public ServiceClient2([RequireContract("c2")] Service service, SingletonService singletonService)
+				public ServiceClient2([TestContract("c2")] Service service, SingletonService singletonService)
 				{
 					this.service = service;
 					this.singletonService = singletonService;
@@ -264,7 +265,7 @@ namespace SimpleContainer.Tests
 		{
 			public class Wrap
 			{
-				public Wrap([RequireContract("c1")] Service service)
+				public Wrap([TestContract("c1")] Service service)
 				{
 				}
 			}
@@ -313,7 +314,7 @@ namespace SimpleContainer.Tests
 				public readonly A a1;
 				public readonly A a2;
 
-				public Wrap([RequireContract("a1")] A a1, [RequireContract("a2")] A a2)
+				public Wrap([TestContract("a1")] A a1, [TestContract("a2")] A a2)
 				{
 					this.a1 = a1;
 					this.a2 = a2;
@@ -344,7 +345,7 @@ namespace SimpleContainer.Tests
 				public readonly ServiceWrap wrap;
 				public readonly OtherService otherService;
 
-				public Client([RequireContract("c1")] ServiceWrap wrap, OtherService otherService)
+				public Client([TestContract("c1")] ServiceWrap wrap, OtherService otherService)
 				{
 					this.wrap = wrap;
 					this.otherService = otherService;
@@ -404,7 +405,7 @@ namespace SimpleContainer.Tests
 				public readonly X first;
 				public readonly X second;
 
-				public Wrap([RequireContract("first")] X first, [RequireContract("second")] X second)
+				public Wrap([TestContract("first")] X first, [TestContract("second")] X second)
 				{
 					this.first = first;
 					this.second = second;
@@ -453,7 +454,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly ServiceWrap[] wraps;
 
-				public AllWrapsHost([RequireContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
+				public AllWrapsHost([TestContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
 				{
 					this.wraps = wraps.ToArray();
 				}
@@ -504,7 +505,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly Service[] wraps;
 
-				public ServiceWrap([RequireContract("composite-contract")] IEnumerable<Service> wraps)
+				public ServiceWrap([TestContract("composite-contract")] IEnumerable<Service> wraps)
 				{
 					this.wraps = wraps.ToArray();
 				}
@@ -547,7 +548,7 @@ namespace SimpleContainer.Tests
 				public readonly IService serviceA;
 				public readonly IService serviceB;
 
-				public Wrap([RequireContract("A")] IService serviceA, [RequireContract("B")] IService serviceB)
+				public Wrap([TestContract("A")] IService serviceA, [TestContract("B")] IService serviceB)
 				{
 					this.serviceA = serviceA;
 					this.serviceB = serviceB;
@@ -588,7 +589,7 @@ namespace SimpleContainer.Tests
 				public readonly C c1;
 				public readonly C c2;
 
-				public A([RequireContract("x")] Wrap wrap, [RequireContract("x")] C c1, C c2)
+				public A([TestContract("x")] Wrap wrap, [TestContract("x")] C c1, C c2)
 				{
 					this.wrap = wrap;
 					this.c1 = c1;
@@ -596,7 +597,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[RequireContract("not-used")]
+			[TestContract("not-used")]
 			public class Wrap
 			{
 				public readonly B b;
@@ -699,7 +700,7 @@ namespace SimpleContainer.Tests
 
 		public class ContractAttachedOnClassIsUsedOnGet : ContractsTest
 		{
-			[RequireContract("a")]
+			[TestContract("a")]
 			public class A
 			{
 				public readonly ISomeInterface someInterface;
@@ -737,7 +738,7 @@ namespace SimpleContainer.Tests
 				public readonly IInterface1 s1;
 				public readonly IInterface1 s2;
 
-				public Wrap([RequireContract("a1")] IInterface1 s1, [RequireContract("a2")] IInterface1 s2)
+				public Wrap([TestContract("a1")] IInterface1 s1, [TestContract("a2")] IInterface1 s2)
 				{
 					this.s1 = s1;
 					this.s2 = s2;
@@ -753,7 +754,7 @@ namespace SimpleContainer.Tests
 				public readonly IInterface2 s1;
 				public readonly IInterface2 s2;
 
-				public Impl1([RequireContract("b1")] IInterface2 s1, [RequireContract("b2")] IInterface2 s2)
+				public Impl1([TestContract("b1")] IInterface2 s1, [TestContract("b2")] IInterface2 s2)
 				{
 					this.s1 = s1;
 					this.s2 = s2;
@@ -802,13 +803,13 @@ namespace SimpleContainer.Tests
 			{
 				public readonly A a;
 
-				public Wrap([RequireContract("a")] A a)
+				public Wrap([TestContract("a")] A a)
 				{
 					this.a = a;
 				}
 			}
 
-			[RequireContract("b")]
+			[TestContract("b")]
 			public class A
 			{
 				public readonly B b;
@@ -862,7 +863,7 @@ namespace SimpleContainer.Tests
 				public readonly A a1;
 				public readonly A a2;
 
-				public H([RequireContract("x")] A a1, A a2)
+				public H([TestContract("x")] A a1, A a2)
 				{
 					this.a1 = a1;
 					this.a2 = a2;
@@ -873,7 +874,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([RequireContract("y")] B b)
+				public A([TestContract("y")] B b)
 				{
 					this.b = b;
 				}
@@ -911,7 +912,7 @@ namespace SimpleContainer.Tests
 				public readonly Wrap s1;
 				public readonly Wrap s2;
 
-				public A([RequireContract("a")] Wrap s1, Wrap s2)
+				public A([TestContract("a")] Wrap s1, Wrap s2)
 				{
 					this.s1 = s1;
 					this.s2 = s2;
@@ -969,19 +970,19 @@ namespace SimpleContainer.Tests
 				public readonly B b;
 				public readonly C c;
 
-				public A([RequireContract("x")] B b, [RequireContract("y")] C c)
+				public A([TestContract("x")] B b, [TestContract("y")] C c)
 				{
 					this.b = b;
 					this.c = c;
 				}
 			}
 
-			[RequireContract("not-used")]
+			[TestContract("not-used")]
 			public class B
 			{
 				public readonly U u;
 
-				public B([RequireContract("y")] U u)
+				public B([TestContract("y")] U u)
 				{
 					this.u = u;
 				}
@@ -991,7 +992,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly U u;
 
-				public C([RequireContract("x")] U u)
+				public C([TestContract("x")] U u)
 				{
 					this.u = u;
 				}
@@ -1061,13 +1062,13 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([RequireContract("x")] B b)
+				public A([TestContract("x")] B b)
 				{
 					this.b = b;
 				}
 			}
 
-			[RequireContract("x")]
+			[TestContract("x")]
 			public class B
 			{
 			}
@@ -1087,7 +1088,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly A a;
 
-				public Wrap([RequireContract("b")] A a)
+				public Wrap([TestContract("b")] A a)
 				{
 					this.a = a;
 				}
@@ -1123,7 +1124,7 @@ namespace SimpleContainer.Tests
 
 		public class ConstructionLogForFactory : ContractsTest
 		{
-			[RequireContract("a")]
+			[TestContract("a")]
 			public class A
 			{
 				public readonly Func<B> func;
@@ -1149,7 +1150,7 @@ namespace SimpleContainer.Tests
 
 		public class DumpUsedContractsBeforeFinalConstruction : ContractsTest
 		{
-			[RequireContract("a")]
+			[TestContract("a")]
 			public class A
 			{
 				public readonly int parameter;
@@ -1188,7 +1189,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly A a;
 
-				public Wrap([RequireContract("x")] A a)
+				public Wrap([TestContract("x")] A a)
 				{
 					this.a = a;
 				}
@@ -1224,7 +1225,7 @@ namespace SimpleContainer.Tests
 				public readonly B b1;
 				public readonly B b2;
 
-				public A([RequireContract("x")] B b1, [RequireContract("y")] B b2)
+				public A([TestContract("x")] B b1, [TestContract("y")] B b2)
 				{
 					this.b1 = b1;
 					this.b2 = b2;
@@ -1258,7 +1259,7 @@ namespace SimpleContainer.Tests
 				public readonly C cy;
 				public readonly C c;
 
-				public A([RequireContract("x")] B b, [RequireContract("x")] C cx, [RequireContract("y")] C cy, C c)
+				public A([TestContract("x")] B b, [TestContract("x")] C cx, [TestContract("y")] C cy, C c)
 				{
 					this.b = b;
 					this.cx = cx;
@@ -1271,7 +1272,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly C c;
 
-				public B([RequireContract("y")] C c)
+				public B([TestContract("y")] C c)
 				{
 					this.c = c;
 				}
@@ -1313,7 +1314,7 @@ namespace SimpleContainer.Tests
 				public readonly C y1C;
 				public readonly C y2C;
 
-				public A([RequireContract("x")] B b, [RequireContract("y1")] C y1C, [RequireContract("y2")] C y2C)
+				public A([TestContract("x")] B b, [TestContract("y1")] C y1C, [TestContract("y2")] C y2C)
 				{
 					this.b = b;
 					this.y1C = y1C;
@@ -1325,7 +1326,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly IEnumerable<C> enumerable;
 
-				public B([RequireContract("unioned")] IEnumerable<C> enumerable)
+				public B([TestContract("unioned")] IEnumerable<C> enumerable)
 				{
 					this.enumerable = enumerable;
 				}
@@ -1366,7 +1367,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([RequireContract("x")] B b)
+				public A([TestContract("x")] B b)
 				{
 					this.b = b;
 				}
@@ -1376,7 +1377,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly IEnumerable<C> enumerable;
 
-				public B([RequireContract("unioned")] IEnumerable<C> enumerable)
+				public B([TestContract("unioned")] IEnumerable<C> enumerable)
 				{
 					this.enumerable = enumerable;
 				}
@@ -1429,7 +1430,7 @@ namespace SimpleContainer.Tests
 
 		public class NotDefinedContractsCanBeUsedLaterToRestrictOtherContracts : ContractsTest
 		{
-			[RequireContract("a")]
+			[TestContract("a")]
 			public class A
 			{
 				public readonly X x;
@@ -1439,8 +1440,8 @@ namespace SimpleContainer.Tests
 					this.x = x;
 				}
 			}
-			
-			[RequireContract("b")]
+
+			[TestContract("b")]
 			public class B
 			{
 				public readonly X x;
@@ -1451,7 +1452,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[RequireContract("x")]
+			[TestContract("x")]
 			public class X
 			{
 				public readonly int parameter;
@@ -1482,7 +1483,7 @@ namespace SimpleContainer.Tests
 				public readonly B b;
 				public readonly C c;
 
-				public A([RequireContract("x1")] B b, [RequireContract("x2")] C c)
+				public A([TestContract("x1")] B b, [TestContract("x2")] C c)
 				{
 					this.b = b;
 					this.c = c;
@@ -1493,7 +1494,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly C c;
 
-				public B([RequireContract("x2")] C c)
+				public B([TestContract("x2")] C c)
 				{
 					this.c = c;
 				}

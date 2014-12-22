@@ -1679,7 +1679,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly IEnumerable<A> listOfA;
 
-				public Wrap([RequireContract("unioned")] IEnumerable<A> listOfA)
+				public Wrap([TestContract("unioned")] IEnumerable<A> listOfA)
 				{
 					this.listOfA = listOfA;
 				}

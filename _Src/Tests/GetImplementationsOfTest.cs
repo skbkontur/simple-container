@@ -3,9 +3,9 @@ using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class GetImplementationsOf : SimpleContainerTestBase
+	public abstract class GetImplementationsOfTest : SimpleContainerTestBase
 	{
-		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : GetImplementationsOf
+		public class DontUseIsTakenIntoAccountWhenDetectingImplementations : GetImplementationsOfTest
 		{
 			[Test]
 			public void Test()
@@ -27,7 +27,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ExplicitlyConfiguredImplementations : GetImplementationsOf
+		public class ExplicitlyConfiguredImplementations : GetImplementationsOfTest
 		{
 			public interface IInterface
 			{

@@ -98,7 +98,7 @@ namespace SimpleContainer.Tests
 				public readonly B b;
 				public readonly C c;
 
-				public A([RequireContract("x")] B b, [RequireContract("x")] C c)
+				public A([TestContract("x")] B b, [TestContract("x")] C c)
 				{
 					this.b = b;
 					this.c = c;
@@ -316,7 +316,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly IEnumerable<IX> instances;
 
-				public A([RequireContract("u")] IEnumerable<IX> instances)
+				public A([TestContract("u")] IEnumerable<IX> instances)
 				{
 					this.instances = instances;
 				}

@@ -5,6 +5,7 @@ using SimpleContainer.Configuration;
 using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -55,7 +56,7 @@ namespace SimpleContainer.Tests
 
 		public class CanInjectFactoryWithContract : BuildUpTest
 		{
-			[Inject] [RequireContract("x")] private Func<B> createB;
+			[Inject] [TestContract("x")] private Func<B> createB;
 
 			public class B
 			{
@@ -131,8 +132,8 @@ namespace SimpleContainer.Tests
 			}
 
 			[Inject] private A a;
-			[Inject] [RequireContract("c1")] private A ac1;
-			[Inject] [RequireContract("c2")] private A ac2;
+			[Inject] [TestContract("c1")] private A ac1;
+			[Inject] [TestContract("c2")] private A ac2;
 
 			[Test]
 			public void Test()

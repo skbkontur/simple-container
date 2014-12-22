@@ -6,7 +6,7 @@ using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
-using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -239,7 +239,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly IEnumerable<IInterface> instances;
 
-				public Wrap([RequireContract("composite-contract")] IEnumerable<IInterface> instances)
+				public Wrap([TestContract("composite-contract")] IEnumerable<IInterface> instances)
 				{
 					this.instances = instances;
 				}

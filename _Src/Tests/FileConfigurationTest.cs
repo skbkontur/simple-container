@@ -2,7 +2,6 @@
 using System.IO;
 using NUnit.Framework;
 using SimpleContainer.Implementation;
-using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -60,7 +59,7 @@ namespace SimpleContainer.Tests
 				public readonly B by;
 				public readonly B b;
 
-				public A([RequireContract("x")] B bx, [RequireContract("y")] B by, B b)
+				public A([TestContract("x")] B bx, [TestContract("y")] B by, B b)
 				{
 					this.bx = bx;
 					this.by = by;

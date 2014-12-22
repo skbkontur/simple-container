@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
-	public class InstanceFilter : ContractsTest
+	public class InstanceFilterTest : ContractsTest
 	{
 		public class FileAccessor
 		{
@@ -22,7 +22,7 @@ namespace SimpleContainer.Tests
 		{
 			public readonly IEnumerable<FileAccessorWrap> fileAccessors;
 
-			public Wrap([RequireContract("all")] IEnumerable<FileAccessorWrap> fileAccessors)
+			public Wrap([TestContract("all")] IEnumerable<FileAccessorWrap> fileAccessors)
 			{
 				this.fileAccessors = fileAccessors;
 			}
