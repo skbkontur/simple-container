@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -305,6 +306,52 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				container.Run<A>(null);
 				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
+			}
+		}
+
+		public class EnumerableDependencies : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<IX> dependencies;
+
+				public A(IEnumerable<IX> dependencies)
+				{
+					this.dependencies = dependencies;
+				}
+			}
+
+			public interface IX
+			{
+			}
+
+			public class B : IX, IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			public class C : IX, IComponent
+			{
+				public static bool runCalled;
+
+				public void Run()
+				{
+					runCalled = true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Run<A>();
+				Assert.That(B.runCalled);
+				Assert.That(C.runCalled);
 			}
 		}
 

@@ -402,13 +402,17 @@ namespace SimpleContainer.Implementation
 				var formalParameter = formalParameters[i];
 				var dependency = InstantiateDependency(formalParameter, implementation, service);
 				service.UnionUsedContracts(dependency);
-				if (dependency.Instances.Count == 0)
+				dependencies.Add(dependency);
+				object dependencyValue;
+				if (IsEnumerable(formalParameter.ParameterType))
+					dependencyValue = dependency.AsEnumerable();
+				else if (dependency.Instances.Count == 0)
 				{
 					service.EndResolveDependencies();
 					return;
 				}
-				dependencies.Add(dependency);
-				var dependencyValue = dependency.SingleInstance(false);
+				else
+					dependencyValue = dependency.SingleInstance(false);
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
 					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
@@ -461,15 +465,6 @@ namespace SimpleContainer.Implementation
 			result.AddInstance(instance);
 			if (ReflectionHelpers.simpleTypes.Contains(formalParameter.ParameterType))
 				context.LogSimpleType(formalParameter.Name, result, this);
-			return result;
-		}
-
-		private static ContainerService DependentService(object instance, ContainerService dependency)
-		{
-			var result = new ContainerService(null);
-			result.AttachToContext(dependency.Context);
-			result.AddInstance(instance);
-			result.UnionUsedContracts(dependency);
 			return result;
 		}
 
@@ -538,7 +533,7 @@ namespace SimpleContainer.Implementation
 			}
 			var result = service.Context.Resolve(dependencyType, formalParameter.Name, this, contracts);
 			if (isEnumerable)
-				return DependentService(result.AsEnumerable(), result);
+				return result;
 			if (result.Instances.Count == 0)
 			{
 				if (formalParameter.HasDefaultValue)
@@ -557,13 +552,18 @@ namespace SimpleContainer.Implementation
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)
 		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+			if (IsEnumerable(type))
 			{
 				result = type.GetGenericArguments()[0];
 				return true;
 			}
 			result = null;
 			return false;
+		}
+
+		private static bool IsEnumerable(Type type)
+		{
+			return type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>);
 		}
 
 		private static Type UnwrapEnumerable(Type type)
