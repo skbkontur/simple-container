@@ -49,9 +49,9 @@ namespace SimpleContainer.Helpers
 			catch (BadImageFormatException e)
 			{
 				const string messageFormat = "bad assembly image, assembly name [{0}], " +
-				                             "assembly processor architecture [{1}], process is [{2}]";
+				                             "process is [{1}],\r\nFusionLog\r\n{2}";
 				throw new SimpleContainerException(string.Format(messageFormat,
-					name.Name, name.ProcessorArchitecture, Environment.Is64BitProcess ? "x64" : "x86"), e);
+					e.FileName, Environment.Is64BitProcess ? "x64" : "x86", e.FusionLog), e);
 			}
 		}
 

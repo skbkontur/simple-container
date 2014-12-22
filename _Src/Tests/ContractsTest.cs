@@ -1199,7 +1199,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
- 				Assert.That(error.Message,
+				Assert.That(error.Message,
 					Is.StringContaining("A[a]->[a]!\r\n\tparameter -> 78\r\n\tB!\r\n\t\tparameter! - <---------------"));
 			}
 		}
@@ -1220,7 +1220,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([Infection.Optional] B b)
+				public A([Optional] B b)
 				{
 					this.b = b;
 				}
@@ -1352,7 +1352,7 @@ namespace SimpleContainer.Tests
 					this.enumerable = enumerable;
 				}
 			}
-			
+
 			public class C
 			{
 				public readonly int parameter;
