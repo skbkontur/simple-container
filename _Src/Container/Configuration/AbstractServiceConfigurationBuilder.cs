@@ -43,6 +43,12 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf Bind(object value)
+		{
+			builder.Bind<TService>(value);
+			return Self;
+		}
+
 		public TSelf WithInstanceFilter(Func<TService, bool> filter)
 		{
 			builder.WithInstanceFilter(filter);
