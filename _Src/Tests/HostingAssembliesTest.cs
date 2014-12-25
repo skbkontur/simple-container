@@ -381,26 +381,14 @@ namespace SimpleContainer.Tests
 				{
 					try
 					{
-						return InternalInvoker.DoInvoke();
+						new ContainerFactory()
+							.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+							.FromDefaultBinDirectory(false);
+						return "can't reach here";
 					}
 					catch (Exception e)
 					{
 						return e.ToString();
-					}
-				}
-
-				private static class InternalInvoker
-				{
-					static InternalInvoker()
-					{
-						new ContainerFactory()
-							.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
-							.FromDefaultBinDirectory(false);
-					}
-
-					public static string DoInvoke()
-					{
-						return "can't reach here";
 					}
 				}
 			}

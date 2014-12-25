@@ -69,14 +69,34 @@ namespace SimpleContainer
 				})
 				.NotNull()
 				.Where(assembliesFilter)
-				.Select(InternalHelpers.LoadAssembly)
-				.Distinct();
+				.AsParallel()
+				.Select(InternalHelpers.LoadAssembly);
 			return FromAssemblies(assemblies);
 		}
 
 		public IStaticContainer FromAssemblies(IEnumerable<Assembly> assemblies)
 		{
-			var types = LoadTypes(assemblies);
+			return FromAssemblies(assemblies.AsParallel());
+		}
+
+		private IStaticContainer FromAssemblies(ParallelQuery<Assembly> assemblies)
+		{
+			var types = assemblies
+				.Where(x => assembliesFilter(x.GetName()))
+				.SelectMany(a =>
+				{
+					try
+					{
+						return a.GetTypes();
+					}
+					catch (ReflectionTypeLoadException e)
+					{
+						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
+						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
+						throw new SimpleContainerException(string.Format(messageFormat, a.GetName().Name, loaderExceptionsText), e);
+					}
+				})
+				.ToArray();
 			return FromTypes(types);
 		}
 
@@ -122,26 +142,6 @@ namespace SimpleContainer
 			foreach (var type in types)
 				genericsProcessor.SecondRun(builder, type);
 			return builder.Build();
-		}
-
-		private Type[] LoadTypes(IEnumerable<Assembly> assemblies)
-		{
-			return assemblies
-				.Where(x => assembliesFilter(x.GetName()))
-				.SelectMany(a =>
-				{
-					try
-					{
-						return a.GetTypes();
-					}
-					catch (ReflectionTypeLoadException e)
-					{
-						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
-						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
-						throw new SimpleContainerException(string.Format(messageFormat, a.GetName().Name, loaderExceptionsText), e);
-					}
-				})
-				.ToArray();
 		}
 	}
 }
