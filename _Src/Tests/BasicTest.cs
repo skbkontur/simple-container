@@ -487,6 +487,37 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class AnyContainerConstructorAttribute : BasicTest
+		{
+			public class ContainerConstructorAttribute : Attribute
+			{
+				
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<Service>().CtorName, Is.EqualTo("second"));
+			}
+
+			public class Service
+			{
+				public Service(string someValue)
+				{
+					CtorName = "first";
+				}
+
+				[ContainerConstructor]
+				public Service()
+				{
+					CtorName = "second";
+				}
+
+				public string CtorName { get; private set; }
+			}
+		}
+
 		public class CrashDuringConstruction_WrapWithContainerException : BasicTest
 		{
 			[Test]
