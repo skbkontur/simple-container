@@ -110,7 +110,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoreImplementation]
+			[IgnoredImplementation]
 			public class B
 			{
 			}
@@ -120,7 +120,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<A>().b, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - IgnoreImplementation"));
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - IgnoredImplementation"));
 			}
 		}
 

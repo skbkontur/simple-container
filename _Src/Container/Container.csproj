@@ -97,7 +97,7 @@
     <Compile Include="Infection\StaticAttribute.cs" />
     <Compile Include="Infection\FrameworkBoundaryAttribute.cs" />
     <Compile Include="Infection\FromResourceAttribute.cs" />
-    <Compile Include="Infection\IgnoreImplementationAttribute.cs" />
+    <Compile Include="Infection\IgnoredImplementationAttribute.cs" />
     <Compile Include="Infection\InjectAttribute.cs" />
     <Compile Include="Infection\RequireContractAttribute.cs" />
     <Compile Include="Configuration\InterfaceConfiguration.cs" />

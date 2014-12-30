@@ -382,5 +382,10 @@ namespace SimpleContainer.Helpers
 			typeof (DateTime),
 			typeof (TimeSpan)
 		};
+
+		public static bool HasAttribute(this ICustomAttributeProvider customAttributeProvider, string attributeName)
+		{
+			return customAttributeProvider.GetCustomAttributes(true).Any(a => a.GetType().Name == attributeName);
+		}
 	}
 }

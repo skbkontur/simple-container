@@ -864,8 +864,17 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			[IgnoreImplementation]
+			[Infection.IgnoredImplementation]
 			public class Impl2 : IInterface
+			{
+			}
+
+			public class IgnoredImplementationAttribute : Attribute
+			{
+			}
+
+			[IgnoredImplementation]
+			public class Impl3 : IInterface
 			{
 			}
 		}
@@ -1625,7 +1634,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoreImplementation]
+			[IgnoredImplementation]
 			public class C
 			{
 			}

@@ -306,9 +306,9 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateImplementation(ContainerService service)
 		{
-			if (service.Type.IsDefined<IgnoreImplementationAttribute>())
+			if (service.Type.HasAttribute("IgnoredImplementationAttribute"))
 			{
-				service.Context.Report("IgnoreImplementation");
+				service.Context.Report("IgnoredImplementation");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -541,10 +541,9 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private static bool IsOptional(ICustomAttributeProvider customAttributeProvider)
+		private static bool IsOptional(ICustomAttributeProvider attributes)
 		{
-			return customAttributeProvider.IsDefined<OptionalAttribute>() ||
-			       customAttributeProvider.GetCustomAttributes(true).Any(x => x.GetType().Name == "CanBeNullAttribute");
+			return attributes.IsDefined<OptionalAttribute>() || attributes.HasAttribute("CanBeNullAttribute");
 		}
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)
