@@ -39,6 +39,7 @@ namespace SimpleContainer.Implementation
 		private readonly StaticContainer staticContainer;
 		internal readonly CacheLevel cacheLevel;
 		protected readonly LogError errorLogger;
+		protected readonly ISet<Type> staticServices;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
@@ -49,7 +50,7 @@ namespace SimpleContainer.Implementation
 		private bool disposed;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel, LogError errorLogger)
+			StaticContainer staticContainer, CacheLevel cacheLevel, LogError errorLogger, ISet<Type> staticServices)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
@@ -62,6 +63,7 @@ namespace SimpleContainer.Implementation
 				var context = new ResolutionContext(configuration, key.contracts);
 				return ResolveSingleton(key.type, null, context);
 			};
+			this.staticServices = staticServices;
 		}
 
 		public object Get(Type serviceType, IEnumerable<string> contracts)
@@ -187,15 +189,25 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public IContainer Clone()
+		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel, errorLogger);
+			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
+				cacheLevel, errorLogger, staticServices);
+		}
+
+		protected IContainerConfiguration CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
+		{
+			if (configure == null)
+				return configuration;
+			var builder = new ContainerConfigurationBuilder(staticServices, cacheLevel == CacheLevel.Static);
+			configure(builder);
+			return builder.Build();
 		}
 
 		internal virtual CacheLevel GetCacheLevel(Type type)
 		{
-			return staticContainer.GetCacheLevel(type);
+			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		internal ContainerService ResolveSingleton(Type type, string name, ResolutionContext context)

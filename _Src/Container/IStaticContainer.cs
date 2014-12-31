@@ -9,6 +9,6 @@ namespace SimpleContainer
 		IContainer CreateLocalContainer(string name, Assembly primaryAssembly, Action<ContainerConfigurationBuilder> configure);
 
 		//hack, kill
-		new IStaticContainer Clone();
+		new IStaticContainer Clone(Action<ContainerConfigurationBuilder> configure);
 	}
 }

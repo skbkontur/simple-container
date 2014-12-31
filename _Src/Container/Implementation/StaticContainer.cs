@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
@@ -11,23 +10,16 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConfigurationContext configurationContext;
-		private readonly ISet<Type> staticServices;
 		private readonly Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
 			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator, LogError logError)
-			: base(configuration, inheritors, null, CacheLevel.Static, logError)
+			: base(configuration, inheritors, null, CacheLevel.Static, logError, staticServices)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
-			this.staticServices = staticServices;
 			this.fileConfigurator = fileConfigurator;
-		}
-
-		internal override CacheLevel GetCacheLevel(Type type)
-		{
-			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
 		}
 
 		public IContainer CreateLocalContainer(string name, Assembly primaryAssembly,
@@ -49,13 +41,14 @@ namespace SimpleContainer.Implementation
 			if (fileConfigurator != null)
 				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local, errorLogger);
+			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local,
+				errorLogger, staticServices);
 		}
 
-		public new IStaticContainer Clone()
+		public new IStaticContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new StaticContainer(configuration, inheritors, assemblyFilter,
+			return new StaticContainer(CloneConfiguration(configure), inheritors, assemblyFilter,
 				configurationContext, staticServices, fileConfigurator, errorLogger);
 		}
 	}
