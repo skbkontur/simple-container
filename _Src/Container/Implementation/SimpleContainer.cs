@@ -202,7 +202,7 @@ namespace SimpleContainer.Implementation
 				return configuration;
 			var builder = new ContainerConfigurationBuilder(staticServices, cacheLevel == CacheLevel.Static);
 			configure(builder);
-			return builder.Build();
+			return new MergedConfiguration(configuration, builder.Build());
 		}
 
 		internal virtual CacheLevel GetCacheLevel(Type type)

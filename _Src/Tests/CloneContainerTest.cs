@@ -95,13 +95,32 @@ namespace SimpleContainer.Tests
 				}
 			}
 
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
 			[Test]
 			public void Test()
 			{
-				var container = Container(b => b.BindDependency<A>("parameter", 1));
+				var container = Container(b =>
+				{
+					b.BindDependency<A>("parameter", 1);
+					b.BindDependency<B>("parameter", 2);
+				});
 				Assert.That(container.Get<A>().parameter, Is.EqualTo(1));
-				using (var clonedContainer = container.Clone(b => b.BindDependency<A>("parameter", 2)))
-					Assert.That(clonedContainer.Get<A>().parameter, Is.EqualTo(2));
+				Assert.That(container.Get<B>().parameter, Is.EqualTo(2));
+				using (var clonedContainer = container.Clone(b => b.BindDependency<A>("parameter", 3)))
+				{
+					Assert.That(clonedContainer.Get<A>().parameter, Is.EqualTo(3));
+					Assert.That(clonedContainer.Get<B>().parameter, Is.EqualTo(2));
+				}
+					
 			}
 		}
 	}
