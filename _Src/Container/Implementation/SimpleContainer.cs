@@ -38,6 +38,7 @@ namespace SimpleContainer.Implementation
 		protected readonly IInheritanceHierarchy inheritors;
 		private readonly StaticContainer staticContainer;
 		internal readonly CacheLevel cacheLevel;
+		protected readonly LogError errorLogger;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
 			new ConcurrentDictionary<CacheKey, ContainerService>();
@@ -48,12 +49,13 @@ namespace SimpleContainer.Implementation
 		private bool disposed;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel)
+			StaticContainer staticContainer, CacheLevel cacheLevel, LogError errorLogger)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
+			this.errorLogger = errorLogger;
 			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
@@ -188,7 +190,7 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone()
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel);
+			return new SimpleContainer(configuration, inheritors, staticContainer, cacheLevel, errorLogger);
 		}
 
 		internal virtual CacheLevel GetCacheLevel(Type type)
@@ -609,7 +611,12 @@ namespace SimpleContainer.Implementation
 				}
 			}
 			if (exceptions.Count > 0)
-				throw new AggregateException("error disposing services", exceptions);
+			{
+				var error = new AggregateException("SimpleContainer dispose error", exceptions);
+				if (errorLogger == null)
+					throw error;
+				errorLogger(error.Message, error);
+			}
 		}
 
 		private static void DisposeService(ServiceInstance<IDisposable> disposable)

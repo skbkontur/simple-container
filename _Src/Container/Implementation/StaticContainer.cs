@@ -16,8 +16,8 @@ namespace SimpleContainer.Implementation
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
-			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator)
-			: base(configuration, inheritors, null, CacheLevel.Static)
+			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator, LogError logError)
+			: base(configuration, inheritors, null, CacheLevel.Static, logError)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
@@ -49,14 +49,14 @@ namespace SimpleContainer.Implementation
 			if (fileConfigurator != null)
 				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local);
+			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local, errorLogger);
 		}
 
 		public new IStaticContainer Clone()
 		{
 			EnsureNotDisposed();
 			return new StaticContainer(configuration, inheritors, assemblyFilter,
-				configurationContext, staticServices, fileConfigurator);
+				configurationContext, staticServices, fileConfigurator, errorLogger);
 		}
 	}
 }

@@ -1,12 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Tests
@@ -300,11 +299,44 @@ namespace SimpleContainer.Tests
 					var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null);
 					container.Get<Component1>();
 					var error = Assert.Throws<AggregateException>(container.Dispose);
-					Assert.That(error.Message, Is.EqualTo("error disposing services"));
+					Assert.That(error.Message, Is.EqualTo("SimpleContainer dispose error"));
 					Assert.That(error.InnerExceptions[0].Message, Is.EqualTo("error disposing [Component1]"));
 					Assert.That(error.InnerExceptions[0].InnerException.Message, Is.EqualTo("test component1 crash"));
 					Assert.That(error.InnerExceptions[1].Message, Is.EqualTo("error disposing [Component2]"));
 					Assert.That(error.InnerExceptions[1].InnerException.Message, Is.EqualTo("test component2 crash"));
+				}
+			}
+		}
+
+		public class CanUseLogErrorDelegate : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				public void Dispose()
+				{
+					throw new InvalidOperationException("my test crash");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				string disposeErrorMessage = null;
+				Exception disposeError = null;
+				LogError logger = delegate(string message, Exception error)
+				{
+					disposeErrorMessage = message;
+					disposeError = error;
+				};
+				using (var staticContainer = CreateStaticContainer(f => f.WithErrorLogger(logger)))
+				{
+					using (var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null))
+						container.Get<A>();
+					Assert.That(disposeErrorMessage, Is.EqualTo("SimpleContainer dispose error"));
+					var aggregateException = (AggregateException) disposeError;
+					var disposeException = aggregateException.InnerExceptions.Single();
+					Assert.That(disposeException.Message, Is.EqualTo("error disposing [A]"));
+					Assert.That(disposeException.InnerException.Message, Is.EqualTo("my test crash"));
 				}
 			}
 		}
