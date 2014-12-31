@@ -1,5 +1,7 @@
 using System;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -80,6 +82,50 @@ namespace SimpleContainer.Tests
 					LogBuilder.Clear();
 				}
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("Component0.Dispose "));
+			}
+		}
+
+		public class OverrideContractConfiguration : CloneContainerTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("x")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x").BindDependency<B>("parameter", 12));
+				using (var clonedContainer = container.Clone(b => b.BindDependency<C>("parameter", 13)))
+				{
+					Assert.That(clonedContainer.Get<A>().b.parameter, Is.EqualTo(12));
+					Assert.That(clonedContainer.Get<C>().parameter, Is.EqualTo(13));
+				}
 			}
 		}
 

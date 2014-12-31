@@ -146,7 +146,7 @@ namespace SimpleContainer.Implementation
 
 		private ContractConfiguration[] GetContractConfigurationsOrDefault(string s)
 		{
-			var result = configuration.GetContractConfigurations(s).ToArray();
+			var result = configuration.GetContractConfigurations(s).OrderBy(x => x.RequiredContracts.Count).ToArray();
 			return result.Length == 0
 				? new[] {new ContractConfiguration(s, new List<string>(), new Dictionary<Type, object>(), null)}
 				: result;

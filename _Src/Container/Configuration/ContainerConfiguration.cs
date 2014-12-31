@@ -15,9 +15,9 @@ namespace SimpleContainer.Configuration
 			this.contractsConfigurators = contractsConfigurators;
 		}
 
-		public IEnumerable<ContractConfiguration> GetContractConfigurations(string contract)
+		public ContractConfiguration[] GetContractConfigurations(string contract)
 		{
-			return contractsConfigurators.Where(x => x.Name == contract).OrderBy(x => x.RequiredContracts.Count);
+			return contractsConfigurators.Where(x => x.Name == contract).ToArray();
 		}
 	}
 }
