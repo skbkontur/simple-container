@@ -1065,7 +1065,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ReportManyCtors : BasicTest
+		public class CommentManyCtors : BasicTest
 		{
 			[Test]
 			public void Test()
@@ -1098,7 +1098,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ReportSkipMessageForPrivateCtors : BasicTest
+		public class CommentSkipMessageForPrivateCtors : BasicTest
 		{
 			[Test]
 			public void Test()

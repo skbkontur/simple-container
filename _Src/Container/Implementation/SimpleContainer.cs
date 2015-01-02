@@ -277,7 +277,7 @@ namespace SimpleContainer.Implementation
 			}
 			if (service.Type.IsGenericType && service.Type.ContainsGenericParameters)
 			{
-				service.Context.Report("has open generic arguments");
+				service.Context.Comment("has open generic arguments");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -299,7 +299,7 @@ namespace SimpleContainer.Implementation
 			var localTypesArray = localTypes.ToArray();
 			if (localTypesArray.Length == 0)
 			{
-				service.Context.Report("has no implementations");
+				service.Context.Comment("has no implementations");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -322,14 +322,14 @@ namespace SimpleContainer.Implementation
 		{
 			if (service.Type.HasAttribute("IgnoredImplementationAttribute"))
 			{
-				service.Context.Report("IgnoredImplementation");
+				service.Context.Comment("IgnoredImplementation");
 				service.EndResolveDependencies();
 				return;
 			}
 			var implementationConfiguration = service.Context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 			{
-				service.Context.Report("DontUse");
+				service.Context.Comment("DontUse");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -346,7 +346,7 @@ namespace SimpleContainer.Implementation
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
 				service.FilterInstances(implementationConfiguration.InstanceFilter);
-				service.Context.Report("instance filter");
+				service.Context.Comment("instance filter");
 			}
 		}
 
@@ -465,7 +465,7 @@ namespace SimpleContainer.Implementation
 					serviceForUsedContracts.ReleaseInstantiateLock();
 				}
 			else
-				service.Context.Report("reused");
+				service.Context.Comment("reused");
 			foreach (var instance in serviceForUsedContracts.Instances)
 				service.AddInstance(instance);
 		}

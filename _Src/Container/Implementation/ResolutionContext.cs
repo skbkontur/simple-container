@@ -224,7 +224,7 @@ namespace SimpleContainer.Implementation
 			throw new SimpleContainerException(string.Format(format, args) + "\r\n" + Format());
 		}
 
-		public void Report(string message, params object[] args)
+		public void Comment(string message, params object[] args)
 		{
 			current[current.Count - 1].message = string.Format(message, args);
 		}

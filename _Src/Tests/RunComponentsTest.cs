@@ -471,7 +471,7 @@ namespace SimpleContainer.Tests
 					return new ActionDisposable(() => log.Append(component.FormatName() + ".finish\r\n"));
 				}
 
-				public void TRASH_DumpConstructionLog(string constructionLog)
+				public void DumpConstructionLog(string constructionLog)
 				{
 				}
 			}

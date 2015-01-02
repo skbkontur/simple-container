@@ -93,14 +93,14 @@ namespace SimpleContainer
 
 		public static void RunComponents(this IContainer container, Type type, params string[] contracts)
 		{
-			var runLogger = container.GetAll<IComponentLogger>().SingleOrDefault();
-			if (runLogger != null)
+			var logger = container.GetAll<IComponentLogger>().SingleOrDefault();
+			if (logger != null)
 			{
 				var constructionLog = container.GetConstructionLog(type, InternalHelpers.FormatContractsKey(contracts), true);
-				runLogger.TRASH_DumpConstructionLog(constructionLog);
+				logger.DumpConstructionLog(constructionLog);
 			}
 			foreach (var c in container.GetClosure<IComponent>(type, contracts))
-				using (runLogger != null ? runLogger.OnRunComponent(c) : null)
+				using (logger != null ? logger.OnRunComponent(c) : null)
 					c.Instance.Run();
 		}
 	}

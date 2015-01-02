@@ -200,7 +200,7 @@ namespace SimpleContainer.Implementation
 
 		public void Throw(string format, params object[] args)
 		{
-			Context.Report("<---------------");
+			Context.Comment("<---------------");
 			Context.Throw(format, args);
 		}
 	}

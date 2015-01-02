@@ -73,7 +73,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ReportExplicitDontUse : ConstructionLogTest
+		public class CommentExplicitDontUse : ConstructionLogTest
 		{
 			public class A
 			{
@@ -98,7 +98,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
-		public class ReportIgnoreImplementation : ConstructionLogTest
+		public class CommentIgnoreImplementation : ConstructionLogTest
 		{
 			public class A
 			{

@@ -1218,7 +1218,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ExplicitlyReportReuseFromUsedContracts : ContractsTest
+		public class ExplicitlyCommentReuseFromUsedContracts : ContractsTest
 		{
 			public class A
 			{
