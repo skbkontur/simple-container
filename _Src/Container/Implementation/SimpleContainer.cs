@@ -12,11 +12,6 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
-	//todo отпилить этап анализа зависимостей => meta, contractUsage + factories
-	//todo перевести на явную стек машину
-	//todo заинлайнить GenericConfigurator
-	//todo обработка запросов на явные generic-и
-	//todo избавиться от идиотского EndResolveDependencies
 	internal class SimpleContainer : IContainer
 	{
 		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =

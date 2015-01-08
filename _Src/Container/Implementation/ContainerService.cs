@@ -7,8 +7,6 @@ using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
-	//todo распилить эту помойку
-	//todo придумать нормальную абстракцию над стеком контрактов + usedContracts
 	internal class ContainerService
 	{
 		private List<int> usedContractIndexes;

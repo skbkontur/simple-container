@@ -433,8 +433,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		//todo сомнительная фича, выпились при возможности
-
 		public class CannotResolveServiceFactory_NoFallback : BasicTest
 		{
 			[Test]
@@ -1286,8 +1284,6 @@ namespace SimpleContainer.Tests
 			{
 			}
 		}
-
-		//todo по неабстактному родителю зарезолвить все реализации, в том числе его самого ???
 
 		public class SimpleWithParent : BasicTest
 		{

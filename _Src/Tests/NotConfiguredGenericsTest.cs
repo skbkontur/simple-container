@@ -32,7 +32,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		//todo
 		//public class SimpleWithInterfaces : NotConfiguredGenericsTest
 		//{
 		//	public class Generic<T> : IGenericInterface<T>

@@ -3,7 +3,6 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {
-	//todo remove duplicate with FactoryWithArgumentsPlugin
 	internal class SimpleFactoryPlugin : IFactoryPlugin
 	{
 		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)

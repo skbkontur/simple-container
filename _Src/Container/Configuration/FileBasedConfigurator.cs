@@ -55,11 +55,11 @@ namespace SimpleContainer.Configuration
 			{
 				parsedValue = convertible.ToType(targetType, CultureInfo.InvariantCulture);
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
 				const string message = "can't parse [{0}.{1}] from [{2}] as [{3}]";
 				throw new SimpleContainerException(string.Format(message, type.FormatName(), dependencyName,
-					dependencyText, formalParameter.ParameterType.FormatName()));
+					dependencyText, formalParameter.ParameterType.FormatName()), e);
 			}
 			builder.BindDependency(type, dependencyName, parsedValue);
 		}
