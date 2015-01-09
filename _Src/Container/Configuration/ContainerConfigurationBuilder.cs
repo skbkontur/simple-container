@@ -31,7 +31,7 @@ namespace SimpleContainer.Configuration
 		public ContractConfigurationBuilder Contract<T>()
 			where T : RequireContractAttribute, new()
 		{
-			return Contract(new T().ContractName);
+			return Contract(InternalHelpers.NameOf<T>());
 		}
 
 		public ContractConfigurationBuilder Contract(params string[] contracts)
@@ -48,7 +48,8 @@ namespace SimpleContainer.Configuration
 				.SingleOrDefault(x => InternalHelpers.FormatContractsKey(x.RequiredContracts) == requiredContractsKey);
 			if (result == null)
 			{
-				result = new ContractConfigurationBuilder(contractName, requiredContracts, staticServices, isStaticConfiguration);
+				result = new ContractConfigurationBuilder(this, contractName, requiredContracts,
+					staticServices, isStaticConfiguration);
 				contractConfigurators.Add(result);
 			}
 			return result;

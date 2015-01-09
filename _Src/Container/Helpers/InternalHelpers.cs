@@ -14,6 +14,11 @@ namespace SimpleContainer.Helpers
 			return contracts == null ? null : string.Join("->", contracts);
 		}
 
+		public static string NameOf<T>() where T : RequireContractAttribute, new()
+		{
+			return new T().ContractName;
+		}
+
 		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
 			var requireContractAttribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();

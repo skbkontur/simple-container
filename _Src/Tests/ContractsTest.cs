@@ -1428,6 +1428,73 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanUseContractOnContractConfiguratorForRestriction : ContractsTest
+		{
+			public class Contract1Attribute : RequireContractAttribute
+			{
+				public Contract1Attribute() : base("contract-1")
+				{
+				}
+			}
+
+			public class Contract2Attribute : RequireContractAttribute
+			{
+				public Contract2Attribute() : base("contract-2")
+				{
+				}
+			}
+
+			public class A
+			{
+				public readonly B contract1B;
+				public readonly B b;
+
+				public A([Contract1] B contract1B, B b)
+				{
+					this.contract1B = contract1B;
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B([Contract2] C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class CConfigurator:IServiceConfigurator<C>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<C> builder)
+				{
+					builder.Contract<Contract1Attribute>().Contract<Contract2Attribute>().Dependencies(new {parameter = 1});
+					builder.Contract<Contract2Attribute>().Dependencies(new {parameter = 2});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				Assert.That(a.contract1B.c.parameter, Is.EqualTo(1));
+				Assert.That(a.b.c.parameter, Is.EqualTo(2));
+			}
+		}
+
 		public class NotDefinedContractsCanBeUsedLaterToRestrictOtherContracts : ContractsTest
 		{
 			[TestContract("a")]
