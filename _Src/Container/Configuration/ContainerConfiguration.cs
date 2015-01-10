@@ -1,23 +1,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Configuration
 {
 	internal class ContainerConfiguration : ConfigurationRegistry, IContainerConfiguration
 	{
-		private readonly IEnumerable<ContractConfiguration> contractsConfigurators;
+		private readonly IDictionary<string, ContractConfiguration[]> contractsConfigurators;
 
 		public ContainerConfiguration(IDictionary<Type, object> configurations,
 			IEnumerable<ContractConfiguration> contractsConfigurators)
 			: base(configurations)
 		{
-			this.contractsConfigurators = contractsConfigurators;
+			this.contractsConfigurators = contractsConfigurators
+				.GroupBy(x => x.Name)
+				.ToDictionary(x => x.Key, x => x.OrderBy(c => c.RequiredContracts.Count).ToArray());
 		}
 
 		public ContractConfiguration[] GetContractConfigurations(string contract)
 		{
-			return contractsConfigurators.Where(x => x.Name == contract).ToArray();
+			return contractsConfigurators.GetOrDefault(contract);
 		}
 	}
 }

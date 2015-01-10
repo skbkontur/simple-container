@@ -20,8 +20,7 @@ namespace SimpleContainer.Configuration
 
 		public ContractConfiguration[] GetContractConfigurations(string contract)
 		{
-			var result = child.GetContractConfigurations(contract);
-			return result.Length == 0 ? parent.GetContractConfigurations(contract) : result;
+			return child.GetContractConfigurations(contract) ?? parent.GetContractConfigurations(contract);
 		}
 	}
 }
