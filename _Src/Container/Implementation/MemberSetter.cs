@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace SimpleContainer.Implementation
 {
-	public struct MemberSetter
+	internal struct MemberSetter
 	{
 		public MemberInfo member;
 		public Action<object, object> setter;

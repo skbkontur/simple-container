@@ -1,6 +1,6 @@
 namespace SimpleContainer.Implementation
 {
-	public enum CacheLevel
+	internal enum CacheLevel
 	{
 		Static = 2,
 		Local = 1

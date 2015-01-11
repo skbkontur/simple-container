@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
@@ -24,7 +23,7 @@ namespace SimpleContainer.Implementation
 		public bool TryGetConstructor(out ConstructorInfo constructor)
 		{
 			return publicConstructors.SafeTrySingle(out constructor) ||
-					publicConstructors.SafeTrySingle(c => c.HasAttribute("ContainerConstructorAttribute"), out constructor);
+			       publicConstructors.SafeTrySingle(c => c.HasAttribute("ContainerConstructorAttribute"), out constructor);
 		}
 
 		public void SetConfiguration(IContainerConfiguration configuration)
