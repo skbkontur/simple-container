@@ -45,10 +45,11 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 		private bool disposed;
-		private ComponentsRunner componentsRunner;
+		private readonly ComponentsRunner componentsRunner;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger, LogInfo infoLogger)
+			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
+			LogInfo infoLogger)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;

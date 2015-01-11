@@ -22,7 +22,7 @@ namespace SimpleContainer.Factories
 				arguments =>
 				{
 					var topService = containerService.Context.GetTopService();
-					if (topService != hostService) 
+					if (topService != hostService)
 						return container.Create(type, requiredContractNames, arguments);
 					var dependency = container.Create(type, requiredContractNames, arguments, containerService.Context);
 					containerService.AddDependency(dependency);

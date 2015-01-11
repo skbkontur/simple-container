@@ -46,7 +46,7 @@ namespace SimpleContainer
 			errorLogger = logger;
 			return this;
 		}
-		
+
 		public ContainerFactory WithInfoLogger(LogInfo logger)
 		{
 			infoLogger = logger;

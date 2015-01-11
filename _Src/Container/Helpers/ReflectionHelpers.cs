@@ -239,7 +239,7 @@ namespace SimpleContainer.Helpers
 			var dynamicMethod = new DynamicMethod("",
 				typeof (object),
 				new[] {typeof (object), typeof (object[])},
-				typeof(ReflectionHelpers),
+				typeof (ReflectionHelpers),
 				true);
 			var il = dynamicMethod.GetILGenerator();
 			if (!targetMethod.IsStatic && !targetMethod.IsConstructor)
