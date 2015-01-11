@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -14,7 +13,7 @@ namespace SimpleContainer.Tests
 		{
 			private const string a1Code = @"
 					using System.Collections.Specialized;
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 
 					namespace A1
 					{
@@ -29,7 +28,7 @@ namespace SimpleContainer.Tests
 
 			private const string a2Code = @"
 					using System.Collections.Specialized;
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 
 					namespace A2
 					{
@@ -62,7 +61,7 @@ namespace SimpleContainer.Tests
 		{
 			private const string a1Code = @"
 					using System.Collections.Specialized;
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 
 					namespace A1
 					{
@@ -102,7 +101,7 @@ namespace SimpleContainer.Tests
 		{
 			private const string a1Code = @"
 					using System.Collections.Specialized;
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 
 					namespace A1
 					{
@@ -142,7 +141,7 @@ namespace SimpleContainer.Tests
 		public class DoNotUseConfiguratorsFromUnreferencedAssemblies : HostingAssembliesTest
 		{
 			private const string mainAssemblyCode = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 					using System;
 
 					namespace A1
@@ -184,7 +183,7 @@ namespace SimpleContainer.Tests
 				";
 
 			private const string entryAssemblyCode = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 					using SimpleContainer.Infection;
 					using System;
 
@@ -397,7 +396,7 @@ namespace SimpleContainer.Tests
 		public class UseAssembliesFilterForExplicitlySpecifiedAssemblies : HostingAssembliesTest
 		{
 			private const string primaryAssemblyCode = @"
-					using SimpleContainer.Hosting;
+					using SimpleContainer.Interface;
 
 					namespace A1
 					{

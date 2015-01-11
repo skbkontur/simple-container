@@ -21,8 +21,9 @@ namespace SimpleContainer.Tests
 
 		protected override void TearDown()
 		{
-			foreach (var disposable in disposables)
-				disposable.Dispose();
+			if (disposables != null)
+				foreach (var disposable in disposables)
+					disposable.Dispose();
 			base.TearDown();
 		}
 
