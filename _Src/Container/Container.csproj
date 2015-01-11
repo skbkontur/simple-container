@@ -77,7 +77,6 @@
     <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
-    <Compile Include="Hosting\IComponentLogger.cs" />
     <Compile Include="Configuration\FileBasedConfigurator.cs" />
     <Compile Include="Implementation\Implementation.cs" />
     <Compile Include="Implementation\MemberSetter.cs" />

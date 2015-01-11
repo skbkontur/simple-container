@@ -15,12 +15,12 @@ namespace SimpleContainer
 
 		public static object Get(this IContainer container, Type type, string contract = null)
 		{
-			return container.Get(type, contract == null ? new string[0] : new[] {contract});
+			return container.Get(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
 		{
-			return (T) container.Create(typeof (T), contract == null ? new string[0] : new[] {contract}, arguments);
+			return (T) container.Create(typeof (T), string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
 		}
 
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)
