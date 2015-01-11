@@ -209,7 +209,8 @@ namespace SimpleContainer.Tests
 			{
 				var mainAssembly = AssemblyCompiler.Compile(mainAssemblyCode);
 				var unreferencedAssembly = AssemblyCompiler.Compile(unreferencedAssemblyCode, mainAssembly);
-				var entryAssembly = AssemblyCompiler.Compile(string.Format(entryAssemblyCode, mainAssembly.GetName().Name), mainAssembly);
+				var entryAssembly = AssemblyCompiler.Compile(string.Format(entryAssemblyCode, mainAssembly.GetName().Name),
+					mainAssembly);
 
 				using (var staticContainer = Factory().FromAssemblies(new[] {mainAssembly, unreferencedAssembly, entryAssembly}))
 				using (var localContainer = staticContainer.CreateLocalContainer(null, entryAssembly, null))

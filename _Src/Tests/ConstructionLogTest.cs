@@ -97,7 +97,7 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - DontUse"));
 			}
 		}
-		
+
 		public class CommentIgnoreImplementation : ConstructionLogTest
 		{
 			public class A

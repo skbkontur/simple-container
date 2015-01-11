@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -1477,7 +1476,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class CConfigurator:IServiceConfigurator<C>
+			public class CConfigurator : IServiceConfigurator<C>
 			{
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<C> builder)
 				{

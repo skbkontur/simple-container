@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -420,7 +419,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly Func<B> createB;
 
-				public A(Func<B>  createB)
+				public A(Func<B> createB)
 				{
 					this.createB = createB;
 				}
@@ -507,8 +506,10 @@ namespace SimpleContainer.Tests
 				using (var localContainer = LocalContainer(staticContainer, null))
 				{
 					localContainer.Get<ComponentA>();
-					const string componentALog = "ComponentA - ComponentA run started ComponentA.Run\r\nComponentA - ComponentA run finished";
-					const string componentBLog = "ComponentB - ComponentB run started ComponentB.Run\r\nComponentB - ComponentB run finished";
+					const string componentALog =
+						"ComponentA - ComponentA run started ComponentA.Run\r\nComponentA - ComponentA run finished";
+					const string componentBLog =
+						"ComponentB - ComponentB run started ComponentB.Run\r\nComponentB - ComponentB run finished";
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
 			}

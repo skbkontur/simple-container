@@ -1,6 +1,5 @@
 using System;
 using NUnit.Framework;
-using SimpleContainer.Configuration;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -166,7 +165,6 @@ namespace SimpleContainer.Tests
 					Assert.That(clonedContainer.Get<A>().parameter, Is.EqualTo(3));
 					Assert.That(clonedContainer.Get<B>().parameter, Is.EqualTo(2));
 				}
-					
 			}
 		}
 	}

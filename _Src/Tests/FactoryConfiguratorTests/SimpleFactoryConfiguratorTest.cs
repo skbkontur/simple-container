@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests

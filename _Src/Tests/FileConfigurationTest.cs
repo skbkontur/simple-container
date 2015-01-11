@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using NUnit.Framework;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -185,7 +184,6 @@ namespace SimpleContainer.Tests
 				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
 				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [Int32]"));
 			}
-
 		}
 
 		public class DependencyNotFound : FileConfigurationTest

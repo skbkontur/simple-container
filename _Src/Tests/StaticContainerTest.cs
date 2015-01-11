@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
@@ -323,7 +322,7 @@ namespace SimpleContainer.Tests
 				using (var staticContainer = CreateStaticContainer())
 				{
 					var a = staticContainer.Get<A>();
-					Assert.That(a.b.parameter,Is.EqualTo(41));
+					Assert.That(a.b.parameter, Is.EqualTo(41));
 					using (var localContainer = LocalContainer(staticContainer, null))
 					{
 						var localB = localContainer.Get<B>();

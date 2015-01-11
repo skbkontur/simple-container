@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -542,7 +541,7 @@ namespace SimpleContainer.Tests
 			{
 				public Token CreateToken()
 				{
-					return new Token { value = 78 };
+					return new Token {value = 78};
 				}
 			}
 

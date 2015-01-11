@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -490,7 +489,6 @@ namespace SimpleContainer.Tests
 		{
 			public class ContainerConstructorAttribute : Attribute
 			{
-				
 			}
 
 			[Test]
@@ -736,7 +734,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container(builder => builder.Bind<ChildService>(c => new ChildService(c.target)));
+				var container = Container(builder => builder.Bind(c => new ChildService(c.target)));
 				Assert.That(container.Get<SomeService>().ChildService.ParentService, Is.EqualTo(typeof (SomeService)));
 				Assert.That(container.Get<ChildService>().ParentService, Is.Null);
 			}
