@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using SimpleContainer.Helpers;
+using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
@@ -15,6 +16,7 @@ namespace SimpleContainer.Implementation
 		private readonly object lockObject = new object();
 		private bool instantiated;
 		private bool failed;
+		private volatile bool runCalled;
 		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
 		public List<string> FinalUsedContracts { get; private set; }
@@ -33,11 +35,6 @@ namespace SimpleContainer.Implementation
 			return new ContainerService(type) {CreateNew = true}.WithArguments(ObjectAccessor.Get(arguments));
 		}
 
-		public IEnumerable<ServiceInstance<object>> GetInstances()
-		{
-			return Instances.Select(y => new ServiceInstance<object>(y, InternalHelpers.FormatContractsKey(FinalUsedContracts)));
-		}
-
 		public ContainerService WithArguments(IObjectAccessor arguments)
 		{
 			Arguments = arguments;
@@ -52,6 +49,25 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<object> AsEnumerable()
 		{
 			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
+		}
+
+		public void EnsureRunCalled(ComponentsRunner runner)
+		{
+			if (!runCalled)
+				lock (lockObject)
+					if (!runCalled)
+					{
+						if (dependencies != null)
+							foreach (var dependency in dependencies)
+								dependency.EnsureRunCalled(runner);
+						runner.EnsureRunCalled(this);
+						runCalled = true;
+					}
+		}
+
+		public IEnumerable<ServiceInstance> GetInstances()
+		{
+			return Instances.Select(y => new ServiceInstance(y, this));
 		}
 
 		public void AddInstance(object instance)
@@ -70,11 +86,6 @@ namespace SimpleContainer.Implementation
 		public IReadOnlyList<object> Instances
 		{
 			get { return instances; }
-		}
-
-		public IReadOnlyList<ContainerService> Dependencies
-		{
-			get { return dependencies; }
 		}
 
 		public void FilterInstances(Func<object, bool> filter)

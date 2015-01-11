@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
-using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer
@@ -69,39 +68,6 @@ namespace SimpleContainer
 			container.DumpConstructionLog(type, contractName == null ? new string[0] : new[] {contractName},
 				entireResolutionContext, logWriter);
 			return logWriter.GetText();
-		}
-
-		public static IEnumerable<ServiceInstance<T>> GetClosure<T>(this IContainer container, Type type,
-			IEnumerable<string> contracts)
-		{
-			return container.GetClosure(type, contracts)
-				.Where(x => x.Instance is T)
-				.Select(x => x.Cast<T>());
-		}
-
-		public static object Run(this IContainer container, Type type, params string[] contracts)
-		{
-			var result = container.Get(type, contracts);
-			RunComponents(container, type, contracts);
-			return result;
-		}
-
-		public static T Run<T>(this IContainer container, params string[] contracts)
-		{
-			return (T) container.Run(typeof (T), contracts);
-		}
-
-		public static void RunComponents(this IContainer container, Type type, params string[] contracts)
-		{
-			var logger = container.GetAll<IComponentLogger>().SingleOrDefault();
-			if (logger != null)
-			{
-				var constructionLog = container.GetConstructionLog(type, InternalHelpers.FormatContractsKey(contracts), true);
-				logger.DumpConstructionLog(constructionLog);
-			}
-			foreach (var c in container.GetClosure<IComponent>(type, contracts))
-				using (logger != null ? logger.OnRunComponent(c) : null)
-					c.Instance.Run();
 		}
 	}
 }

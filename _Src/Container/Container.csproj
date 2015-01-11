@@ -58,6 +58,7 @@
     <Compile Include="Implementation\CacheKey.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
+    <Compile Include="Hosting\ComponentsRunner.cs" />
     <Compile Include="Implementation\ConfiguratorRunner.cs" />
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
@@ -107,6 +108,7 @@
     <Compile Include="Configuration\MergedConfiguration.cs" />
     <Compile Include="Helpers\ObjectAccessor.cs" />
     <Compile Include="LogError.cs" />
+    <Compile Include="LogInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\AttributesCache.cs" />
     <Compile Include="Helpers\ReflectionEmit\BoxingCaster.cs" />

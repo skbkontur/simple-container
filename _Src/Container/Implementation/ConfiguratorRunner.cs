@@ -46,7 +46,7 @@ namespace SimpleContainer.Implementation
 		{
 			public ConfigurationContainer(CacheLevel cacheLevel, IContainerConfiguration configuration,
 				IInheritanceHierarchy inheritors)
-				: base(configuration, inheritors, null, cacheLevel, null, new HashSet<Type>())
+				: base(configuration, inheritors, null, cacheLevel, new HashSet<Type>(), null, null)
 			{
 			}
 

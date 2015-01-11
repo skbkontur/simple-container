@@ -96,7 +96,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				container.BuildUp(this, null);
-				container.RunComponents(GetType());
+				container.Get(GetType());
 				Assert.That(A.runCalled);
 			}
 		}

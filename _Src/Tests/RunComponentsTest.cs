@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
@@ -84,49 +83,10 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.Run<ComponentWrap>(null);
+				container.Get<ComponentWrap>();
 				const string constructorsLog = "Component0.ctor Component1.ctor IntermediateService.ctor Component2.ctor ";
 				const string runLog = "Component0.Run Component1.Run Component2.Run ";
 				Assert.That(LogBuilder.ToString(), Is.EqualTo(constructorsLog + runLog));
-			}
-		}
-
-		public class CorrectOrderingWhenContractsUsed : RunComponentsTest
-		{
-			public class A
-			{
-				public readonly B b;
-				public readonly C c;
-
-				public A([TestContract("x")] B b, [TestContract("x")] C c)
-				{
-					this.b = b;
-					this.c = c;
-				}
-			}
-
-			public class B
-			{
-				public readonly C c;
-
-				public B(C c)
-				{
-					this.c = c;
-				}
-			}
-
-			public class C
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(x => x.Contract("x"));
-				container.Get<A>();
-				var instanceCache = container.GetClosure(typeof (A), null);
-				Assert.That(instanceCache.Select(x => x.Instance.GetType()).ToArray(),
-					Is.EqualTo(new[] {typeof (C), typeof (B), typeof (A)}));
 			}
 		}
 
@@ -174,7 +134,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.DontUse<D>());
-				container.Run<A>(null);
+				container.Get<A>();
 				Assert.That(C.runCalled);
 			}
 		}
@@ -221,7 +181,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.WithInstanceFilter<FilteredService>(x => false));
-				var a = container.Run<A>(null);
+				var a = container.Get<A>();
 				Assert.That(a.b, Is.Null);
 				Assert.That(logBuilder.ToString(), Is.Empty);
 			}
@@ -264,7 +224,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				container.Get<B>();
-				container.Run<A>(null);
+				container.Get<A>();
 				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
 			}
 		}
@@ -305,7 +265,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.Run<A>(null);
+				container.Get<A>();
 				Assert.That(logBuilder.ToString(), Is.EqualTo("Run "));
 			}
 		}
@@ -356,7 +316,7 @@ namespace SimpleContainer.Tests
 					b.Contract("u").UnionOf("a", "b");
 				});
 
-				container.Run<A>();
+				container.Get<A>();
 				Assert.That(B.runCalled);
 				Assert.That(C.runCalled);
 			}
@@ -402,7 +362,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.Run<A>();
+				container.Get<A>();
 				Assert.That(Component.runCalled);
 			}
 		}
@@ -447,9 +407,55 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.Run<A>();
+				container.Get<A>();
 				Assert.That(B.runCalled);
 				Assert.That(C.runCalled);
+			}
+		}
+
+		public class RunComponentsCreatedInFactories : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly Func<B> createB;
+
+				public A(Func<B>  createB)
+				{
+					this.createB = createB;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C : IComponent
+			{
+				public static int runCallCount;
+
+				public void Run()
+				{
+					runCallCount ++;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				Assert.That(C.runCallCount, Is.EqualTo(0));
+				var b1 = a.createB();
+				Assert.That(C.runCallCount, Is.EqualTo(1));
+				var b2 = a.createB();
+				Assert.That(C.runCallCount, Is.EqualTo(1));
+				Assert.That(b1, Is.Not.SameAs(b2));
 			}
 		}
 
@@ -463,19 +469,6 @@ namespace SimpleContainer.Tests
 				log = new StringBuilder();
 			}
 
-			public class SimpleComponentLogger : IComponentLogger
-			{
-				public IDisposable OnRunComponent(ServiceInstance<IComponent> component)
-				{
-					log.Append(component.FormatName() + ".start\r\n");
-					return new ActionDisposable(() => log.Append(component.FormatName() + ".finish\r\n"));
-				}
-
-				public void DumpConstructionLog(string constructionLog)
-				{
-				}
-			}
-
 			public class ComponentA : IComponent
 			{
 				public readonly ComponentB componentB;
@@ -487,7 +480,7 @@ namespace SimpleContainer.Tests
 
 				public void Run()
 				{
-					log.Append("ComponentA.Run\r\n");
+					log.Append(" ComponentA.Run\r\n");
 				}
 			}
 
@@ -495,18 +488,28 @@ namespace SimpleContainer.Tests
 			{
 				public void Run()
 				{
-					log.Append("ComponentB.Run\r\n");
+					log.Append(" ComponentB.Run\r\n");
 				}
 			}
 
 			[Test]
 			public void Test()
 			{
-				var container = Container();
-				container.Run<ComponentA>(null);
-				const string componentALog = "ComponentA.start\r\nComponentA.Run\r\nComponentA.finish\r\n";
-				const string componentBLog = "ComponentB.start\r\nComponentB.Run\r\nComponentB.finish\r\n";
-				Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
+				Action<ContainerFactory> configureFactory = f => f
+					.WithInfoLogger(delegate(Type type, string message)
+					{
+						log.Append(type.Name);
+						log.Append(" - ");
+						log.Append(message);
+					});
+				using (var staticContainer = CreateStaticContainer(configureFactory))
+				using (var localContainer = LocalContainer(staticContainer, null))
+				{
+					localContainer.Get<ComponentA>();
+					const string componentALog = "ComponentA - ComponentA run started ComponentA.Run\r\nComponentA - ComponentA run finished";
+					const string componentBLog = "ComponentB - ComponentB run started ComponentB.Run\r\nComponentB - ComponentB run finished";
+					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
+				}
 			}
 		}
 	}

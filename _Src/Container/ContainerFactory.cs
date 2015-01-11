@@ -19,6 +19,7 @@ namespace SimpleContainer
 		private Func<Type, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
+		private LogInfo infoLogger;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -42,6 +43,12 @@ namespace SimpleContainer
 		public ContainerFactory WithErrorLogger(LogError logger)
 		{
 			errorLogger = logger;
+			return this;
+		}
+		
+		public ContainerFactory WithInfoLogger(LogInfo logger)
+		{
+			infoLogger = logger;
 			return this;
 		}
 
@@ -121,7 +128,7 @@ namespace SimpleContainer
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger);
+				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()

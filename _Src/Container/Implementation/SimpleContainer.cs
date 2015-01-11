@@ -8,6 +8,7 @@ using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
 using SimpleContainer.Helpers;
+using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
@@ -34,6 +35,7 @@ namespace SimpleContainer.Implementation
 		private readonly StaticContainer staticContainer;
 		internal readonly CacheLevel cacheLevel;
 		protected readonly LogError errorLogger;
+		protected readonly LogInfo infoLogger;
 		protected readonly ISet<Type> staticServices;
 
 		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
@@ -43,15 +45,15 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private int topSortIndex;
 		private bool disposed;
+		private ComponentsRunner componentsRunner;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel, LogError errorLogger, ISet<Type> staticServices)
+			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger, LogInfo infoLogger)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
-			this.errorLogger = errorLogger;
 			dependenciesInjector = new DependenciesInjector(this);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
@@ -59,6 +61,9 @@ namespace SimpleContainer.Implementation
 				return ResolveSingleton(key.type, null, context);
 			};
 			this.staticServices = staticServices;
+			this.errorLogger = errorLogger;
+			this.infoLogger = infoLogger;
+			componentsRunner = new ComponentsRunner(infoLogger);
 		}
 
 		public object Get(Type serviceType, IEnumerable<string> contracts)
@@ -71,10 +76,14 @@ namespace SimpleContainer.Implementation
 					.SingleInstance(false);
 		}
 
+		//todo bug: if createInstanceDelegate would not fail when called for the second time there can be many instances of singleton service
 		private ContainerService GetInternal(CacheKey cacheKey)
 		{
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
-			return result.WaitForSuccessfullResolve() ? result : createInstanceDelegate(cacheKey);
+			if (!result.WaitForSuccessfullResolve())
+				return createInstanceDelegate(cacheKey);
+			result.EnsureRunCalled(componentsRunner);
+			return result;
 		}
 
 		public IEnumerable<object> GetAll(Type serviceType)
@@ -89,6 +98,7 @@ namespace SimpleContainer.Implementation
 			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
 			context.Instantiate(null, result, this);
+			result.EnsureRunCalled(componentsRunner);
 			if (result.Arguments != null)
 			{
 				var unused = result.Arguments.GetUnused().ToArray();
@@ -138,31 +148,7 @@ namespace SimpleContainer.Implementation
 				containerService.Context.Format(type, cacheKey.contractsKey, writer);
 		}
 
-		public IEnumerable<ServiceInstance<object>> GetClosure(Type type, IEnumerable<string> contracts)
-		{
-			EnsureNotDisposed();
-			var contractsArray = contracts == null ? null : contracts.ToArray();
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contractsArray, type));
-			return dependenciesInjector.GetResolvedDependencies(cacheKey)
-				.DefaultIfEmpty(type)
-				.Select(t => new CacheKey(t, InternalHelpers.ToInternalContracts(contractsArray, t)))
-				.Select(delegate(CacheKey k)
-				{
-					ContainerService containerService;
-					return instanceCache.TryGetValue(k, out containerService) && containerService.WaitForSuccessfullResolve()
-						? containerService
-						: null;
-				})
-				.NotNull()
-				.Closure(s => s.Dependencies ?? Enumerable.Empty<ContainerService>())
-				.Where(x => x.FinalUsedContracts != null)
-				.OrderBy(x => x.TopSortIndex)
-				.SelectMany(x => x.GetInstances())
-				.Distinct(new ServiceInstanceEqualityComparer())
-				.ToArray();
-		}
-
-		private IEnumerable<ServiceInstance<object>> GetInstanceCache(Type interfaceType)
+		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
 		{
 			var result = instanceCache.Values
 				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && interfaceType.IsAssignableFrom(x.Type))
@@ -171,14 +157,14 @@ namespace SimpleContainer.Implementation
 			return result.SelectMany(x => x.GetInstances()).Distinct(new ServiceInstanceEqualityComparer()).ToArray();
 		}
 
-		private class ServiceInstanceEqualityComparer : IEqualityComparer<ServiceInstance<object>>
+		private class ServiceInstanceEqualityComparer : IEqualityComparer<ServiceInstance>
 		{
-			public bool Equals(ServiceInstance<object> x, ServiceInstance<object> y)
+			public bool Equals(ServiceInstance x, ServiceInstance y)
 			{
 				return ReferenceEquals(x.Instance, y.Instance);
 			}
 
-			public int GetHashCode(ServiceInstance<object> obj)
+			public int GetHashCode(ServiceInstance obj)
 			{
 				return obj.Instance.GetHashCode();
 			}
@@ -188,7 +174,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
-				cacheLevel, errorLogger, staticServices);
+				cacheLevel, staticServices, errorLogger, infoLogger);
 		}
 
 		protected IContainerConfiguration CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
@@ -600,7 +586,6 @@ namespace SimpleContainer.Implementation
 			if (disposed)
 				return;
 			var servicesToDispose = GetInstanceCache(typeof (IDisposable))
-				.Select(x => x.Cast<IDisposable>())
 				.Where(x => !ReferenceEquals(x.Instance, this))
 				.Reverse()
 				.ToArray();
@@ -626,11 +611,11 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private static void DisposeService(ServiceInstance<IDisposable> disposable)
+		private static void DisposeService(ServiceInstance disposable)
 		{
 			try
 			{
-				disposable.Instance.Dispose();
+				((IDisposable) disposable.Instance).Dispose();
 			}
 			catch (Exception e)
 			{
