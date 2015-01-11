@@ -2,6 +2,7 @@
 using System.IO;
 using NUnit.Framework;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests

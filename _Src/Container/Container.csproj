@@ -82,7 +82,7 @@
     <Compile Include="Implementation\MemberSetter.cs" />
     <Compile Include="Implementation\MemberInjectionsProvider.cs" />
     <Compile Include="Interface\OptionalService.cs" />
-    <Compile Include="Infection\ServiceCouldNotBeCreatedException.cs" />
+    <Compile Include="Interface\ServiceCouldNotBeCreatedException.cs" />
     <Compile Include="Infection\ContainerReferenceAttribute.cs" />
     <Compile Include="Implementation\StaticContainer.cs" />
     <Compile Include="ContainerFactory.cs" />

@@ -7,6 +7,7 @@ using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -1664,7 +1665,7 @@ namespace SimpleContainer.Tests
 			{
 				public B1()
 				{
-					throw new Infection.ServiceCouldNotBeCreatedException();
+					throw new Interface.ServiceCouldNotBeCreatedException();
 				}
 			}
 

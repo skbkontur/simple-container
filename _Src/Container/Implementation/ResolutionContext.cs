@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {

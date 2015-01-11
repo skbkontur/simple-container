@@ -1,6 +1,6 @@
 ﻿using SimpleContainer.Infection;
 
-namespace SimpleContainer.Implementation
+namespace SimpleContainer.Interface
 {
 	public class OptionalService<T>
 	{

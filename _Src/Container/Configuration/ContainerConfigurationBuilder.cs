@@ -4,6 +4,7 @@ using System.Linq;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {

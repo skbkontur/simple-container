@@ -6,6 +6,7 @@ using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests

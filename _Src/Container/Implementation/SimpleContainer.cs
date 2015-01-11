@@ -9,6 +9,7 @@ using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {

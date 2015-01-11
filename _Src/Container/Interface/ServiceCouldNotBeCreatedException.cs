@@ -1,6 +1,6 @@
 using System;
 
-namespace SimpleContainer.Infection
+namespace SimpleContainer.Interface
 {
 	public class ServiceCouldNotBeCreatedException : Exception
 	{

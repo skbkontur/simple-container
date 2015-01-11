@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer
 {

@@ -9,6 +9,7 @@ using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer
 {

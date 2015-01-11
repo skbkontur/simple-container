@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace SimpleContainer.Implementation
+namespace SimpleContainer.Interface
 {
 	public class SimpleTextLogWriter : ISimpleLogWriter
 	{

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Tests
 {

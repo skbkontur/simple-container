@@ -1,6 +1,6 @@
 using System;
 
-namespace SimpleContainer.Implementation
+namespace SimpleContainer.Interface
 {
 	[Serializable]
 	public class SimpleContainerException : Exception

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace SimpleContainer.Implementation
+namespace SimpleContainer.Interface
 {
 	public class FactoryContext
 	{

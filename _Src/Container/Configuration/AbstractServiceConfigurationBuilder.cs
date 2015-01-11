@@ -1,5 +1,6 @@
 using System;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
