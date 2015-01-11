@@ -1,6 +1,6 @@
 using System;
 
-namespace SimpleContainer
+namespace SimpleContainer.Implementation
 {
 	public delegate void LogInfo(Type targetType, string message);
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using SimpleContainer.Helpers;
-using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation

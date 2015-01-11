@@ -8,7 +8,6 @@ using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
 using SimpleContainer.Helpers;
-using SimpleContainer.Hosting;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation

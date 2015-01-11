@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Hosting;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Tests.Helpers
 {

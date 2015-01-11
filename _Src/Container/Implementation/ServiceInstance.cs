@@ -1,7 +1,6 @@
 ﻿using SimpleContainer.Helpers;
-using SimpleContainer.Implementation;
 
-namespace SimpleContainer
+namespace SimpleContainer.Implementation
 {
 	internal class ServiceInstance
 	{

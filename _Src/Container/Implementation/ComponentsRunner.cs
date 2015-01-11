@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Concurrent;
-using SimpleContainer.Implementation;
 
-namespace SimpleContainer.Hosting
+namespace SimpleContainer.Implementation
 {
 	internal class ComponentsRunner
 	{

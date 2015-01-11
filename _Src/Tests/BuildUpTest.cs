@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;

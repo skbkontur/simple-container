@@ -58,7 +58,7 @@
     <Compile Include="Implementation\CacheKey.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
-    <Compile Include="Hosting\ComponentsRunner.cs" />
+    <Compile Include="Implementation\ComponentsRunner.cs" />
     <Compile Include="Implementation\ConfiguratorRunner.cs" />
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
@@ -103,11 +103,11 @@
     <Compile Include="Configuration\InterfaceConfiguration.cs" />
     <Compile Include="Helpers\IObjectAccessor.cs" />
     <Compile Include="Implementation\ISimpleLogWriter.cs" />
-    <Compile Include="Hosting\IComponent.cs" />
+    <Compile Include="Implementation\IComponent.cs" />
     <Compile Include="Configuration\MergedConfiguration.cs" />
     <Compile Include="Helpers\ObjectAccessor.cs" />
-    <Compile Include="LogError.cs" />
-    <Compile Include="LogInfo.cs" />
+    <Compile Include="Implementation\LogError.cs" />
+    <Compile Include="Implementation\LogInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\AttributesCache.cs" />
     <Compile Include="Helpers\ReflectionEmit\BoxingCaster.cs" />
@@ -126,7 +126,7 @@
     <Compile Include="Implementation\SimpleContainerException.cs" />
     <Compile Include="ContainerExtensions.cs" />
     <Compile Include="Implementation\SimpleTextLogWriter.cs" />
-    <Compile Include="ServiceInstance.cs" />
+    <Compile Include="Implementation\ServiceInstance.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

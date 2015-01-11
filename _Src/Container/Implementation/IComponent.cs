@@ -1,4 +1,4 @@
-namespace SimpleContainer.Hosting
+namespace SimpleContainer.Implementation
 {
 	public interface IComponent
 	{

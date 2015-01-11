@@ -2,7 +2,6 @@
 using System.IO;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Hosting;
 using SimpleContainer.Implementation;
 using SimpleContainer.Tests.Helpers;
 
