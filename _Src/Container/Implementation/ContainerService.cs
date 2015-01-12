@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -14,7 +15,7 @@ namespace SimpleContainer.Implementation
 		private IEnumerable<object> typedArray;
 		private readonly object lockObject = new object();
 		private bool instantiated;
-		private bool failed;
+		private ExceptionDispatchInfo exception;
 		private volatile bool runCalled;
 		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
@@ -165,16 +166,21 @@ namespace SimpleContainer.Implementation
 
 		public bool WaitForSuccessfullResolve()
 		{
-			if (!instantiated && !failed)
+			if (!instantiated && exception == null)
 				lock (lockObject)
-					while (!instantiated && !failed)
+					while (!instantiated && exception == null)
 						Monitor.Wait(lockObject);
-			if (!failed && FinalUsedContracts == null)
+			if (exception == null && FinalUsedContracts == null)
 			{
 				const string messageFormat = "assertion failure: FinalUsedContracts == null, type [{0}]";
 				throw new InvalidOperationException(string.Format(messageFormat, Type));
 			}
 			return instantiated;
+		}
+
+		public void Throw()
+		{
+			exception.Throw();
 		}
 
 		public bool AcquireInstantiateLock()
@@ -192,12 +198,12 @@ namespace SimpleContainer.Implementation
 		{
 			TopSortIndex = topSortIndex;
 			instantiated = true;
-			failed = false;
+			exception = null;
 		}
 
-		public void InstantiatedUnsuccessfully()
+		public void InstantiatedUnsuccessfully(Exception e)
 		{
-			failed = true;
+			exception = ExceptionDispatchInfo.Capture(e);
 		}
 
 		public void ReleaseInstantiateLock()

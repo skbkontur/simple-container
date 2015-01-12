@@ -79,14 +79,14 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		//todo bug: if createInstanceDelegate would not fail when called for the second time there can be many instances of singleton service
 		private ContainerService GetInternal(CacheKey cacheKey, bool dumpConstructionLog)
 		{
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
-			if (!result.WaitForSuccessfullResolve())
-				return createInstanceDelegate(cacheKey);
+			var succeeded = result.WaitForSuccessfullResolve();
 			if (dumpConstructionLog)
 				infoLogger(cacheKey.type, this.GetConstructionLog(cacheKey.type, cacheKey.contracts));
+			if (!succeeded)
+				result.Throw();
 			result.EnsureRunCalled(componentsRunner, true);
 			return result;
 		}
@@ -209,9 +209,9 @@ namespace SimpleContainer.Implementation
 					context.Instantiate(name, result, this);
 					result.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
-				catch
+				catch (Exception e)
 				{
-					result.InstantiatedUnsuccessfully();
+					result.InstantiatedUnsuccessfully(e);
 					throw;
 				}
 				finally
@@ -442,9 +442,9 @@ namespace SimpleContainer.Implementation
 					serviceForUsedContracts.EndResolveDependencies();
 					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
-				catch
+				catch (Exception e)
 				{
-					serviceForUsedContracts.InstantiatedUnsuccessfully();
+					serviceForUsedContracts.InstantiatedUnsuccessfully(e);
 					throw;
 				}
 				finally
