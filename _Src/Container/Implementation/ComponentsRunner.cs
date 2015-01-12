@@ -15,14 +15,14 @@ namespace SimpleContainer.Implementation
 			this.infoLogger = infoLogger;
 		}
 
-		public void EnsureRunCalled(ContainerService containerService)
+		public void EnsureRunCalled(ContainerService containerService, bool useCache)
 		{
 			foreach (var instance in containerService.Instances)
 			{
 				var componentInstance = instance as IComponent;
 				if (componentInstance == null)
 					continue;
-				var component = components.GetOrAdd(instance, createComponent);
+				var component = useCache ? components.GetOrAdd(instance, createComponent) : new Component();
 				if (!component.runCalled)
 					lock (component)
 						if (!component.runCalled)

@@ -73,7 +73,8 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			var result = TryUnwrapEnumerable(serviceType, out enumerableItem)
 				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)), dumpConstructionLog)
+				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)),
+					dumpConstructionLog)
 					.SingleInstance(false);
 			return result;
 		}
@@ -86,7 +87,7 @@ namespace SimpleContainer.Implementation
 				return createInstanceDelegate(cacheKey);
 			if (dumpConstructionLog)
 				infoLogger(cacheKey.type, this.GetConstructionLog(cacheKey.type, cacheKey.contracts));
-			result.EnsureRunCalled(componentsRunner);
+			result.EnsureRunCalled(componentsRunner, true);
 			return result;
 		}
 
@@ -114,7 +115,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			var result = Create(type, contracts, arguments, null);
-			result.EnsureRunCalled(componentsRunner);
+			result.EnsureRunCalled(componentsRunner, false);
 			return result.SingleInstance(false);
 		}
 

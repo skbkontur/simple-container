@@ -50,7 +50,7 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
 		}
 
-		public void EnsureRunCalled(ComponentsRunner runner)
+		public void EnsureRunCalled(ComponentsRunner runner, bool useCache)
 		{
 			if (!runCalled)
 				lock (lockObject)
@@ -58,8 +58,8 @@ namespace SimpleContainer.Implementation
 					{
 						if (dependencies != null)
 							foreach (var dependency in dependencies)
-								dependency.EnsureRunCalled(runner);
-						runner.EnsureRunCalled(this);
+								dependency.EnsureRunCalled(runner, true);
+						runner.EnsureRunCalled(this, useCache);
 						runCalled = true;
 					}
 		}
