@@ -459,6 +459,67 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class FactoryCallInConstructor_DelayRunUntilEntireDependencyTreeIsConstructed : RunComponentsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b = null)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+				public readonly D d;
+
+				public B(C c, D d)
+				{
+					this.c = c;
+					this.d = d;
+				}
+			}
+
+			public class D
+			{
+			}
+
+			public class C
+			{
+				public readonly E e1;
+				public readonly E e2;
+
+				public C(Func<E> createE)
+				{
+					e1 = createE();
+					e2 = createE();
+				}
+			}
+
+			public class E : IComponent
+			{
+				public static int runCallCount;
+
+				public void Run()
+				{
+					runCallCount++;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.DontUse<D>());
+				Assert.That(container.Get<A>().b, Is.Null);
+				Assert.That(E.runCallCount, Is.EqualTo(0));
+				container.Get<C>();
+				Assert.That(E.runCallCount, Is.EqualTo(2));
+			}
+		}
+
 		public class RunWithRunLogger : RunComponentsTest
 		{
 			private static StringBuilder log;

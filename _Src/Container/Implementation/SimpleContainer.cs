@@ -95,11 +95,9 @@ namespace SimpleContainer.Implementation
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
-			EnsureNotDisposed();
 			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
 			context.Instantiate(null, result, this);
-			result.EnsureRunCalled(componentsRunner);
 			if (result.Arguments != null)
 			{
 				var unused = result.Arguments.GetUnused().ToArray();
@@ -111,7 +109,10 @@ namespace SimpleContainer.Implementation
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
-			return Create(type, contracts, arguments, null).SingleInstance(false);
+			EnsureNotDisposed();
+			var result = Create(type, contracts, arguments, null);
+			result.EnsureRunCalled(componentsRunner);
+			return result.SingleInstance(false);
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
