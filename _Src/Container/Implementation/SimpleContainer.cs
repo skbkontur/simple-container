@@ -67,22 +67,25 @@ namespace SimpleContainer.Implementation
 			componentsRunner = new ComponentsRunner(infoLogger);
 		}
 
-		public object Get(Type serviceType, IEnumerable<string> contracts)
+		public object Get(Type serviceType, IEnumerable<string> contracts, bool dumpConstructionLog = false)
 		{
 			EnsureNotDisposed();
 			Type enumerableItem;
-			return TryUnwrapEnumerable(serviceType, out enumerableItem)
+			var result = TryUnwrapEnumerable(serviceType, out enumerableItem)
 				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)))
+				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)), dumpConstructionLog)
 					.SingleInstance(false);
+			return result;
 		}
 
 		//todo bug: if createInstanceDelegate would not fail when called for the second time there can be many instances of singleton service
-		private ContainerService GetInternal(CacheKey cacheKey)
+		private ContainerService GetInternal(CacheKey cacheKey, bool dumpConstructionLog)
 		{
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
 			if (!result.WaitForSuccessfullResolve())
 				return createInstanceDelegate(cacheKey);
+			if (dumpConstructionLog)
+				infoLogger(cacheKey.type, this.GetConstructionLog(cacheKey.type, cacheKey.contracts));
 			result.EnsureRunCalled(componentsRunner);
 			return result;
 		}
@@ -90,7 +93,7 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<object> GetAll(Type serviceType)
 		{
 			EnsureNotDisposed();
-			return GetInternal(new CacheKey(serviceType, null)).AsEnumerable();
+			return GetInternal(new CacheKey(serviceType, null), false).AsEnumerable();
 		}
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)

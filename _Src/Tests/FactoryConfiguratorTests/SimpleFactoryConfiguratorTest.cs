@@ -177,7 +177,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var a = container.Get<A>();
 				a.createB();
-				var constructionLog = container.GetConstructionLog(typeof (A), null, true);
+				var constructionLog = container.GetConstructionLog(typeof (A), entireResolutionContext: true);
 				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>"));
 			}
 		}

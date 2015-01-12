@@ -8,14 +8,14 @@ namespace SimpleContainer
 {
 	public static class ContainerExtensions
 	{
-		public static T Get<T>(this IContainer container, string contract = null)
+		public static T Get<T>(this IContainer container, string contract = null, bool dumpConstructionLog = false)
 		{
-			return (T) container.Get(typeof (T), contract);
+			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
 		}
 
-		public static object Get(this IContainer container, Type type, string contract = null)
+		public static object Get(this IContainer container, Type type, string contract = null, bool dumpConstructionLog = false)
 		{
-			return container.Get(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
+			return container.Get(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, dumpConstructionLog);
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
@@ -64,9 +64,14 @@ namespace SimpleContainer
 		public static string GetConstructionLog(this IContainer container, Type type, string contractName = null,
 			bool entireResolutionContext = false)
 		{
+			return container.GetConstructionLog(type, contractName == null ? new string[0] : new[] { contractName }, entireResolutionContext);
+		}
+
+		public static string GetConstructionLog(this IContainer container, Type type, IEnumerable<string> contracts,
+			bool entireResolutionContext = false)
+		{
 			var logWriter = new SimpleTextLogWriter();
-			container.DumpConstructionLog(type, contractName == null ? new string[0] : new[] {contractName},
-				entireResolutionContext, logWriter);
+			container.DumpConstructionLog(type, contracts, entireResolutionContext, logWriter);
 			return logWriter.GetText();
 		}
 	}
