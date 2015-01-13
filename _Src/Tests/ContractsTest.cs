@@ -1303,6 +1303,56 @@ namespace SimpleContainer.Tests
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
+				Assert.That(container.GetConstructionLog(typeof(A)), Is.StringStarting("A\r\n\tB[x]->[x]\r\n\t\tC[x->y]->[x->y]\r\n\t\t\tcontext -> xy"));
+			}
+		}
+
+		public class DoNotDuplicateRequiredContractsInConstructionLog : ContractsTest
+		{
+			[TestContract("c1")]
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("c2")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+				public readonly C c;
+
+				public B(int parameter, C c)
+				{
+					this.parameter = parameter;
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b =>
+				{
+					b.Contract("c1").Contract("c2").BindDependency<B>("parameter", 14);
+					b.Contract("c2").BindDependency<C>("parameter", 55);
+				});
+				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
+				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
+				Assert.That(container.GetConstructionLog(typeof (A)), Is.StringStarting("A[c1]->[c1]\r\n\tB[c1->c2]->[c1->c2]"));
 			}
 		}
 

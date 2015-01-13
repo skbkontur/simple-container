@@ -41,6 +41,14 @@ namespace SimpleContainer.Implementation
 			return this;
 		}
 
+		public bool AllContractsUsed()
+		{
+			foreach (var requiredContract in Context.requiredContracts)
+				if (!FinalUsedContracts.Contains(requiredContract.configuration.Name))
+					return false;
+			return true;
+		}
+
 		public void AttachToContext(ResolutionContext context)
 		{
 			Context = context;
@@ -148,7 +156,7 @@ namespace SimpleContainer.Implementation
 		{
 			return usedContractIndexes == null
 				? new List<string>(0)
-				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].configuration.Name).ToList();
+				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].configuration.Name).Distinct().ToList();
 		}
 
 		public object SingleInstance(bool inConstructor)

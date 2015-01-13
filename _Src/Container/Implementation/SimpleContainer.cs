@@ -425,7 +425,7 @@ namespace SimpleContainer.Implementation
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
 				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
-			if (service.FinalUsedContracts.Count == service.Context.requiredContracts.Count)
+			if (service.AllContractsUsed())
 			{
 				InvokeConstructor(constructor, null, actualArguments, service);
 				return;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
@@ -35,7 +36,7 @@ namespace SimpleContainer.Implementation
 
 		public List<string> RequiredContractNames()
 		{
-			return requiredContracts.Select(x => x.configuration.Name).ToList();
+			return requiredContracts.Select(x => x.configuration.Name).Distinct().ToList();
 		}
 
 		public T GetConfiguration<T>(Type type) where T : class
@@ -165,7 +166,7 @@ namespace SimpleContainer.Implementation
 					{
 						const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
 						throw new SimpleContainerException(string.Format(messageFormat,
-							c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.configuration.Name)), Format()));
+							c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.configuration.Name).ToList()), Format()));
 					}
 				}
 				List<int> requiredIndexes;

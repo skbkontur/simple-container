@@ -9,7 +9,7 @@ namespace SimpleContainer.Helpers
 {
 	internal static class InternalHelpers
 	{
-		public static string FormatContractsKey(IEnumerable<string> contracts)
+		public static string FormatContractsKey(List<string> contracts)
 		{
 			return contracts == null ? null : string.Join("->", contracts);
 		}
