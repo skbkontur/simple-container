@@ -180,6 +180,27 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanConfigureStaticContainerWithDelegate : StaticContainerTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Action<ContainerFactory> configureFactory = f => f.ConfigureWith(b => b.BindDependency<A>("parameter", 42));
+				using (var container = CreateStaticContainer(configureFactory))
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
+			}
+		}
+
 		public class SimpleStaticConfigurators : StaticContainerTest
 		{
 			[Static]
