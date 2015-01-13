@@ -17,12 +17,13 @@ namespace SimpleContainer.Configuration
 			ApplicationName = "global";
 		}
 
-		internal ConfigurationContext Local(string name, Assembly primaryAssembly)
+		internal ConfigurationContext Local(string name, Assembly primaryAssembly, IParametersSource parameters)
 		{
 			return new ConfigurationContext(profile, settingsLoader)
 			{
 				ApplicationName = name,
-				PrimaryAssembly = primaryAssembly
+				PrimaryAssembly = primaryAssembly,
+				Parameters = parameters
 			};
 		}
 
@@ -34,6 +35,7 @@ namespace SimpleContainer.Configuration
 
 		public string ApplicationName { get; private set; }
 		public Assembly PrimaryAssembly { get; private set; }
+		public IParametersSource Parameters { get; private set; }
 
 		public T Settings<T>()
 		{

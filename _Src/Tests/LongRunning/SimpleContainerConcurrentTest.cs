@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests.LongRunning
 {

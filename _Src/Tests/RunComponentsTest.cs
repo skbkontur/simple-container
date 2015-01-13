@@ -564,7 +564,7 @@ namespace SimpleContainer.Tests
 						log.Append(message);
 					});
 				using (var staticContainer = CreateStaticContainer(configureFactory))
-				using (var localContainer = LocalContainer(staticContainer, null))
+				using (var localContainer = LocalContainer(staticContainer))
 				{
 					localContainer.Get<ComponentA>();
 					const string componentALog =

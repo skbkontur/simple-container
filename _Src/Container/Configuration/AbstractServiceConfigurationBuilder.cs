@@ -24,6 +24,12 @@ namespace SimpleContainer.Configuration
 			builder.BindDependencies<TService>(values);
 			return Self;
 		}
+		
+		public TSelf Dependencies(IParametersSource parameters)
+		{
+			builder.BindDependencies<TService>(parameters);
+			return Self;
+		}
 
 		public TSelf Bind<TImplementation>(bool clearOld = false) where TImplementation : TService
 		{

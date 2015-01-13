@@ -5,6 +5,7 @@ using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -37,8 +38,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				using (var staticContainer = CreateStaticContainer())
-				using (var localContainer1 = LocalContainer(staticContainer, null))
-				using (var localContainer2 = LocalContainer(staticContainer, null))
+				using (var localContainer1 = LocalContainer(staticContainer))
+				using (var localContainer2 = LocalContainer(staticContainer))
 				{
 					var localService1 = localContainer1.Get<LocalService>();
 					var localService2 = localContainer2.Get<LocalService>();
@@ -72,9 +73,9 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					using (var localContainer1 = LocalContainer(staticContainer, _ => { }))
+					using (var localContainer1 = LocalContainer(staticContainer))
 						Assert.That(localContainer1.Get<SomeService>(), Is.SameAs(staticContainer.Get<SomeService>()));
-					using (var localContainer2 = LocalContainer(staticContainer, _ => { }))
+					using (var localContainer2 = LocalContainer(staticContainer))
 						Assert.That(localContainer2.Get<SomeService>(), Is.SameAs(staticContainer.Get<SomeService>()));
 				}
 			}
@@ -111,11 +112,11 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					using (var localContainer = LocalContainer(staticContainer, null))
+					using (var localContainer = LocalContainer(staticContainer))
 						localContainer.Get<LocalService>();
 					Assert.That(LogBuilder.ToString(), Is.EqualTo("LocalService.Dispose "));
 					LogBuilder.Clear();
-					using (var localContainer = LocalContainer(staticContainer, null))
+					using (var localContainer = LocalContainer(staticContainer))
 						localContainer.Get<LocalService>();
 					Assert.That(LogBuilder.ToString(), Is.EqualTo("LocalService.Dispose "));
 					LogBuilder.Clear();
@@ -167,7 +168,7 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					using (var localContainer = LocalContainer(staticContainer, null))
+					using (var localContainer = LocalContainer(staticContainer))
 					{
 						var wrap = localContainer.Get<Wrap>();
 						Assert.That(wrap.interfaces.Select(x => x.GetType()).ToArray(),
@@ -177,27 +178,6 @@ namespace SimpleContainer.Tests
 					LogBuilder.Clear();
 				}
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("StaticImpl.Dispose "));
-			}
-		}
-
-		public class CanConfigureStaticContainerWithDelegate : StaticContainerTest
-		{
-			public class A
-			{
-				public readonly int parameter;
-
-				public A(int parameter)
-				{
-					this.parameter = parameter;
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				Action<ContainerFactory> configureFactory = f => f.ConfigureWith(b => b.BindDependency<A>("parameter", 42));
-				using (var container = CreateStaticContainer(configureFactory))
-					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
@@ -274,7 +254,7 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, _ => { }));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
 					Assert.That(error.Message, Is.EqualTo("can't make type [Service] static using non static configurator"));
 				}
 			}
@@ -344,7 +324,7 @@ namespace SimpleContainer.Tests
 				{
 					var a = staticContainer.Get<A>();
 					Assert.That(a.b.parameter, Is.EqualTo(41));
-					using (var localContainer = LocalContainer(staticContainer, null))
+					using (var localContainer = LocalContainer(staticContainer))
 					{
 						var localB = localContainer.Get<B>();
 						Assert.That(localB.parameter, Is.EqualTo(42));
@@ -373,7 +353,7 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, _ => { }));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
 					Assert.That(error.Message, Is.EqualTo("can't configure static service [B] using non static configurator"));
 				}
 			}

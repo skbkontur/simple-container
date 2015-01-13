@@ -21,7 +21,6 @@ namespace SimpleContainer
 		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
-		private Action<ContainerConfigurationBuilder> configure;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -60,12 +59,6 @@ namespace SimpleContainer
 				throw new SimpleContainerException(string.Format("profile type [{0}] must inherit from IProfile",
 					newProfile.FormatName()));
 			profile = newProfile;
-			return this;
-		}
-
-		public ContainerFactory ConfigureWith(Action<ContainerConfigurationBuilder> newConfigure)
-		{
-			configure = newConfigure;
 			return this;
 		}
 
@@ -133,8 +126,6 @@ namespace SimpleContainer
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
 			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
 				runner.Run(builder, x => true);
-			if (configure != null)
-				configure(builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,

@@ -24,14 +24,14 @@ namespace SimpleContainer.Implementation
 		}
 
 		public IContainer CreateLocalContainer(string name, Assembly primaryAssembly,
-			Action<ContainerConfigurationBuilder> configure)
+			IParametersSource parameters, Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
 			var targetAssemblies = Utils.Closure(primaryAssembly, x => x.ReferencedAssemblies(assemblyFilter)).ToSet();
 			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
-			var localContext = configurationContext.Local(name, primaryAssembly);
+			var localContext = configurationContext.Local(name, primaryAssembly, parameters);
 			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext))
 			{
 				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);

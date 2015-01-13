@@ -486,6 +486,9 @@ namespace SimpleContainer.Implementation
 			object actualArgument;
 			if (service.Arguments != null && service.Arguments.TryGet(formalParameter.Name, out actualArgument))
 				return IndependentService(formalParameter, actualArgument, service.Context);
+			var parameters = implementation.GetParameters();
+			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualArgument))
+				return IndependentService(formalParameter, actualArgument, service.Context);
 			var dependencyConfiguration = implementation.GetDependencyConfiguration(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)

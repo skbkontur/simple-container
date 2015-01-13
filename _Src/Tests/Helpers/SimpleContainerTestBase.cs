@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using SimpleContainer.Configuration;
+using SimpleContainer.Interface;
 
-namespace SimpleContainer.Tests
+namespace SimpleContainer.Tests.Helpers
 {
 	public abstract class SimpleContainerTestBase : UnitTestBase
 	{
@@ -39,19 +40,19 @@ namespace SimpleContainer.Tests
 			return factory.FromTypes(targetTypes);
 		}
 
-		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null, Type profile = null)
+		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null, Type profile = null, IParametersSource parameters = null)
 		{
 			var staticContainer = CreateStaticContainer(null, profile);
 			disposables.Add(staticContainer);
-			var result = LocalContainer(staticContainer, configure);
+			var result = LocalContainer(staticContainer, parameters, configure);
 			disposables.Add(result);
 			return result;
 		}
 
 		protected static IContainer LocalContainer(IStaticContainer staticContainer,
-			Action<ContainerConfigurationBuilder> configure)
+			IParametersSource parameters = null, Action<ContainerConfigurationBuilder> configure = null)
 		{
-			return staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), configure);
+			return staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), parameters, configure);
 		}
 	}
 }

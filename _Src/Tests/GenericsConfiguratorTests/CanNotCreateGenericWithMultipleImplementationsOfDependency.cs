@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using SimpleContainer.Interface;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests.GenericsConfiguratorTests
 {

@@ -234,7 +234,7 @@ namespace SimpleContainer.Tests
 					.WithConfigFile(configFileName);
 				using (var staticContainer = factory.FromAssemblies(new[] {assembly}))
 				{
-					var e = Assert.Throws<SimpleContainerException>(() => staticContainer.CreateLocalContainer(null, assembly, null));
+					var e = Assert.Throws<SimpleContainerException>(() => staticContainer.CreateLocalContainer(null, assembly, null, null));
 					Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
 				}
 			}
@@ -262,7 +262,7 @@ namespace SimpleContainer.Tests
 			File.WriteAllText(configFileName, configText);
 			var staticContainer = CreateStaticContainer(f => f.WithConfigFile(configFileName));
 			disposables.Add(staticContainer);
-			var result = LocalContainer(staticContainer, null);
+			var result = LocalContainer(staticContainer);
 			disposables.Add(result);
 			return result;
 		}

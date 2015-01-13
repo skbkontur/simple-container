@@ -134,6 +134,12 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf BindDependencies<T>(IParametersSource parameters)
+		{
+			GetOrCreate<ImplementationConfiguration>(typeof (T)).ParametersSource = parameters;
+			return Self;
+		}
+
 		public TSelf BindDependencyValue(Type type, Type dependencyType, object value)
 		{
 			ConfigureDependency(type, dependencyType).UseValue(value);

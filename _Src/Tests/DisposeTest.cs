@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
@@ -297,7 +298,7 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null);
+					var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null, null);
 					container.Get<Component1>();
 					var error = Assert.Throws<AggregateException>(container.Dispose);
 					Assert.That(error.Message, Is.EqualTo("SimpleContainer dispose error"));
@@ -331,7 +332,7 @@ namespace SimpleContainer.Tests
 				};
 				using (var staticContainer = CreateStaticContainer(f => f.WithErrorLogger(logger)))
 				{
-					using (var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null))
+					using (var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null, null))
 						container.Get<A>();
 					Assert.That(disposeErrorMessage, Is.EqualTo("SimpleContainer dispose error"));
 					var aggregateException = (AggregateException) disposeError;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -41,5 +42,6 @@ namespace SimpleContainer.Configuration
 		}
 
 		public Func<object, bool> InstanceFilter { get; set; }
+		public IParametersSource ParametersSource { get; set; }
 	}
 }

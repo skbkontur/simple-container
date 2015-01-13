@@ -82,7 +82,7 @@ namespace SimpleContainer.Tests
 			{
 				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (var localContainer = LocalContainer(staticContainer, null))
+				using (var localContainer = LocalContainer(staticContainer))
 				{
 					var instance = localContainer.Get<Service>();
 					Assert.That(instance.parameter, Is.EqualTo("abc"));
@@ -99,7 +99,7 @@ namespace SimpleContainer.Tests
 					return new MySubsystemSettings {MyParameter = "abc"};
 				};
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (LocalContainer(staticContainer, null))
+				using (LocalContainer(staticContainer))
 				{
 				}
 				Assert.That(log.ToString(), Is.EqualTo("load MySubsystemSettings "));
@@ -143,7 +143,7 @@ namespace SimpleContainer.Tests
 			{
 				using (var staticContainer = CreateStaticContainer())
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
 					Assert.That(error.Message, Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
 				}
 			}
@@ -154,7 +154,7 @@ namespace SimpleContainer.Tests
 				Func<Type, object> loadSettings = t => null;
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
 					Assert.That(error.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
 				}
 			}
@@ -165,7 +165,7 @@ namespace SimpleContainer.Tests
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer, null));
+					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
 					Assert.That(error.Message,
 						Is.EqualTo("invalid settings type, required [MySubsystemSettings], actual [OtherSubsystemSettings]"));
 				}
@@ -301,7 +301,7 @@ namespace SimpleContainer.Tests
 			{
 				Func<Type, object> loadSettings = t => new MySettings {value = 87};
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-					Assert.That(LocalContainer(staticContainer, null).Get<SomeService>().Value, Is.EqualTo(87));
+					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo(87));
 			}
 		}
 
@@ -591,12 +591,59 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var staticContainer = CreateStaticContainer();
-				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null))
+				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null, null))
 				{
 					var a = c.Get<A>();
 					Assert.That(a.ApplicationName, Is.EqualTo("my-app-name"));
 					Assert.That(a.PrimaryAssembly, Is.SameAs(Assembly.GetExecutingAssembly()));
 				}
+			}
+		}
+
+		public class CanUseParametersSourceFromContext : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(context.Parameters);
+				}
+			}
+
+			public class SimpleParametersSource : IParametersSource
+			{
+				private readonly IDictionary<string, object> values;
+
+				public SimpleParametersSource(IDictionary<string, object> values)
+				{
+					this.values = values;
+				}
+
+				public bool TryGet(string name, Type type, out object value)
+				{
+					if (!values.TryGetValue(name, out value))
+						return false;
+					Assert.That(value.GetType(), Is.SameAs(type));
+					return true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var parameters = new SimpleParametersSource(new Dictionary<string, object> {{"parameter", 42}});
+				var container = Container(parameters: parameters);
+				Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 

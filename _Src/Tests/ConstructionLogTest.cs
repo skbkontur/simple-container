@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Infection;
+using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
@@ -50,6 +51,11 @@ namespace SimpleContainer.Implementation
 			if (dependencyConfiguration == null && definitionConfiguration != null)
 				dependencyConfiguration = definitionConfiguration.GetOrNull(formalParameter);
 			return dependencyConfiguration;
+		}
+
+		public IParametersSource GetParameters()
+		{
+			return implementationConfiguration == null ? null : implementationConfiguration.ParametersSource;
 		}
 
 		public IEnumerable<string> GetUnusedDependencyConfigurationNames()

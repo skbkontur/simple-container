@@ -48,10 +48,10 @@ namespace SimpleContainer.Tests
 				var a2 = AssemblyCompiler.Compile(a2Code);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
 				{
-					using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null))
+					using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null, null))
 						Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("A1Component"));
 
-					using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
+					using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null, null))
 						Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("A2Component"));
 				}
 			}
@@ -92,7 +92,7 @@ namespace SimpleContainer.Tests
 				var a1 = AssemblyCompiler.Compile(a1Code);
 				var a2 = AssemblyCompiler.Compile(a2Code, a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null, null))
 					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
 			}
 		}
@@ -133,7 +133,7 @@ namespace SimpleContainer.Tests
 				var a1 = AssemblyCompiler.Compile(a1Code);
 				var a2 = AssemblyCompiler.Compile(string.Format(a2CodeFormat, a1.GetName().Name), a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a1, a2}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null, null))
 					Assert.That(localContainer.Get<IComponent>().GetType().Name, Is.EqualTo("Component1"));
 			}
 		}
@@ -213,7 +213,7 @@ namespace SimpleContainer.Tests
 					mainAssembly);
 
 				using (var staticContainer = Factory().FromAssemblies(new[] {mainAssembly, unreferencedAssembly, entryAssembly}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, entryAssembly, null))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, entryAssembly, null, null))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => localContainer.Get<IComponent>());
 					Assert.That(error.Message, Is.StringContaining("many implementations for IServiceProvider\r\n\tImpl1\r\n\tImpl2"));
@@ -279,7 +279,7 @@ namespace SimpleContainer.Tests
 				var a1 = AssemblyCompiler.Compile(referencedAssemblycode);
 				var a2 = AssemblyCompiler.Compile(primaryAssemblyCode, a1);
 				using (var staticContainer = Factory().FromAssemblies(new[] {a2, a1}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null, null))
 					Assert.That(localContainer.Get<IServiceProvider>().GetType().Name, Is.EqualTo("Impl2"));
 			}
 		}
@@ -417,7 +417,7 @@ namespace SimpleContainer.Tests
 				var factory = new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp2_"));
 				using (var staticContainer = factory.FromAssemblies(new[] {a1}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, a1, null, null))
 					Assert.That(localContainer.GetAll<IComponent>(), Is.Empty);
 			}
 		}
