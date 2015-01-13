@@ -14,6 +14,12 @@ namespace SimpleContainer.Interface
 			return (T) result;
 		}
 
+		public static T GetOrDefault<T>(this IParametersSource parameters, string name, T defaultValue = default (T))
+		{
+			T result;
+			return parameters.TryGet(name, out result) ? result : defaultValue;
+		}
+
 		public static bool TryGet<T>(this IParametersSource parameters, string name, out T result)
 		{
 			object resultObject;
