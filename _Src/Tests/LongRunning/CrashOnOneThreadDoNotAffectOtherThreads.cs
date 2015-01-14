@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,7 +48,8 @@ namespace SimpleContainer.Tests.LongRunning
 			});
 			var isValidException = Is.StringStarting("can't create simple type\r\nA!\r\n\tServiceWithDelay\r\n\tparameter!");
 			Assert.That(error.Message, isValidException);
-			Assert.That(otherThreadTask.Exception.InnerExceptions.Single().Message, isValidException);
+			var otherTaskException = Assert.Throws<AggregateException>(otherThreadTask.Wait);
+			Assert.That(otherTaskException.InnerExceptions.Single().Message, isValidException);
 		}
 	}
 }

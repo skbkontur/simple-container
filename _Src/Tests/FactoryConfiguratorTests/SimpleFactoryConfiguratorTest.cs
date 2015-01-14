@@ -138,11 +138,11 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			public void Test()
 			{
 				var container = Container();
-				var a = container.Get<A>();
-				var constructionLog = container.GetConstructionLog(typeof (A));
+				var a = container.Resolve<A>();
+				var constructionLog = a.GetConstructionLog();
 				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\tB\r\n\t\tC\r\n\tB"));
-				Assert.That(container.Get<B>(), Is.Not.SameAs(a.b1));
-				Assert.That(a.b1, Is.Not.SameAs(a.b2));
+				Assert.That(container.Get<B>(), Is.Not.SameAs(a.Single().b1));
+				Assert.That(a.Single().b1, Is.Not.SameAs(a.Single().b2));
 			}
 		}
 
@@ -176,9 +176,9 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			public void Test()
 			{
 				var container = Container();
-				var a = container.Get<A>();
-				a.createB();
-				var constructionLog = container.GetConstructionLog(typeof (A), entireResolutionContext: true);
+				var a = container.Resolve<A>();
+				a.Single().createB();
+				var constructionLog = a.GetConstructionLog(true);
 				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>"));
 			}
 		}

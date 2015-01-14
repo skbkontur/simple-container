@@ -12,19 +12,9 @@ namespace SimpleContainer.Factories
 			if (containerService.Type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
 			var type = containerService.Type.GetGenericArguments()[0];
-			var requiredContractNames = containerService.Context.RequiredContractNames();
-			var hostService = containerService.Context.GetPreviousService();
-			Func<object> factory = () =>
-			{
-				var topService = containerService.Context.GetTopService();
-				if (topService != hostService)
-					return container.Create(type, requiredContractNames, null);
-				var dependency = container.Create(type, requiredContractNames, null, containerService.Context);
-				containerService.AddDependency(dependency);
-				return dependency.SingleInstance(true);
-			};
+			var factoryWithArguments = FactoryCreator.CreateFactory(type, container, containerService);
+			Func<object> factory = () => factoryWithArguments(null);
 			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
-			containerService.UseAllRequiredContracts();
 			return true;
 		}
 	}

@@ -61,9 +61,9 @@ namespace SimpleContainer.Tests
 			var container = Container();
 			var instance = container.Get<Wrap>();
 			Assert.That(instance.fileAccessors.Select(x => x.fileAccessor.fileName).ToArray(), Is.EqualTo(new[] {"ww1", "ww2"}));
-			Assert.That(container.GetConstructionLog(typeof (FileAccessorWrap), "c1"),
+			Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(),
 				Is.EqualTo("FileAccessorWrap[c1]->[c1]! - instance filter\r\n\tFileAccessor[c1]\r\n\t\tfileName -> qq"));
-			Assert.That(container.GetConstructionLog(typeof (FileAccessorWrap), "c2"),
+			Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(),
 				Is.EqualTo("FileAccessorWrap[c2]->[c2] - instance filter\r\n\tFileAccessor[c2]\r\n\t\tfileName -> ww1"));
 		}
 	}

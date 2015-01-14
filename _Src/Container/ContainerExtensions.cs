@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Services;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
@@ -10,22 +11,42 @@ namespace SimpleContainer
 	{
 		public static T Get<T>(this IContainer container, string contract = null, bool dumpConstructionLog = false)
 		{
-			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
+			return (T)container.Get(typeof(T), contract, dumpConstructionLog);
+		}
+
+		public static ResolvedService<T> Resolve<T>(this IContainer container, params string[] contracts)
+		{
+			return new ResolvedService<T>(container.Resolve(typeof (T), contracts));
 		}
 
 		public static object Get(this IContainer container, Type type, string contract = null, bool dumpConstructionLog = false)
 		{
-			return container.Get(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, dumpConstructionLog);
+			var resolvedService = container.Resolve(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
+			resolvedService.Run(dumpConstructionLog);
+			return resolvedService.Single();
+		}
+
+		public static ResolvedService Create(this IContainer container, Type type, string contract = null, object arguments = null)
+		{
+			var result = container.Create(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
+			result.Run();
+			return result;
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
 		{
-			return (T) container.Create(typeof (T), string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
+			var result = container.Create(typeof (T), contract, arguments);
+			return (T) result.Single();
 		}
 
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)
 		{
 			return container.GetImplementationsOf(typeof (T));
+		}
+
+		public static IEnumerable<object> GetAll(this IContainer container, Type type)
+		{
+			return container.Resolve(type, new string[0]).All();
 		}
 
 		public static T[] GetAll<T>(this IContainer container)
@@ -59,20 +80,6 @@ namespace SimpleContainer
 		public static IEnumerable<Type> GetDependenciesRecursive(this IContainer container, Type type)
 		{
 			return Utils.Closure(type, container.GetDependencies).Skip(1);
-		}
-
-		public static string GetConstructionLog(this IContainer container, Type type, string contractName = null,
-			bool entireResolutionContext = false)
-		{
-			return container.GetConstructionLog(type, contractName == null ? new string[0] : new[] { contractName }, entireResolutionContext);
-		}
-
-		public static string GetConstructionLog(this IContainer container, Type type, IEnumerable<string> contracts,
-			bool entireResolutionContext = false)
-		{
-			var logWriter = new SimpleTextLogWriter();
-			container.DumpConstructionLog(type, contracts, entireResolutionContext, logWriter);
-			return logWriter.GetText();
 		}
 	}
 }

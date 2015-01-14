@@ -271,9 +271,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var staticContainer = CreateStaticContainer();
-				staticContainer.Get<SomeStaticService>();
-				var constructionLog = staticContainer.GetConstructionLog(typeof (SomeStaticService));
-				Assert.That(constructionLog, Is.EqualTo("(s)SomeStaticService"));
+				Assert.That(staticContainer.Resolve<SomeStaticService>().GetConstructionLog(), Is.EqualTo("(s)SomeStaticService"));
 			}
 		}
 

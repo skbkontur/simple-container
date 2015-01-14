@@ -9,14 +9,9 @@ namespace SimpleContainer
 	{
 		IEnumerable<Type> GetDependencies(Type type);
 		IEnumerable<Type> GetImplementationsOf(Type interfaceType);
-		IEnumerable<object> GetAll(Type type);
-		object Get(Type type, IEnumerable<string> contracts, bool dumpConstructionLog = false);
-		object Create(Type type, IEnumerable<string> contracts, object arguments);
-		void BuildUp(object target, IEnumerable<string> contracts);
-
-		void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
-			ISimpleLogWriter writer);
-
+		ResolvedService Resolve(Type type, IEnumerable<string> contracts);
+		BuiltUpService BuildUp(object target, IEnumerable<string> contracts);
+		ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments);
 		IContainer Clone(Action<ContainerConfigurationBuilder> configure);
 	}
 }

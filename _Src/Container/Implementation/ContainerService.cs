@@ -156,7 +156,10 @@ namespace SimpleContainer.Implementation
 		{
 			return usedContractIndexes == null
 				? new List<string>(0)
-				: usedContractIndexes.OrderBy(x => x).Select(i => Context.requiredContracts[i].configuration.Name).Distinct().ToList();
+				: usedContractIndexes.OrderBy(x => x)
+					.Select(i => Context.requiredContracts[i].configuration.Name)
+					.Distinct()
+					.ToList();
 		}
 
 		public object SingleInstance(bool inConstructor)
@@ -172,7 +175,7 @@ namespace SimpleContainer.Implementation
 			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
 		}
 
-		public bool WaitForSuccessfullResolve()
+		public bool WaitForResolve()
 		{
 			if (!instantiated && exception == null)
 				lock (lockObject)
@@ -186,9 +189,10 @@ namespace SimpleContainer.Implementation
 			return instantiated;
 		}
 
-		public void Throw()
+		public void WaitForResolveOrDie()
 		{
-			exception.Throw();
+			if (!WaitForResolve())
+				exception.Throw();
 		}
 
 		public bool AcquireInstantiateLock()

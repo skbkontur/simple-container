@@ -1536,7 +1536,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<Wrap>().instances.Count(), Is.EqualTo(0));
-				Assert.That(container.GetConstructionLog(typeof (Wrap)),
+				Assert.That(container.Resolve<Wrap>().GetConstructionLog(),
 					Is.EqualTo("Wrap\r\n\tIInterface! - has no implementations"));
 			}
 		}
@@ -1597,7 +1597,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (WrapWithOptionalDependency)),
+				Assert.That(container.Resolve<WrapWithOptionalDependency>().GetConstructionLog(),
 					Is.EqualTo("WrapWithOptionalDependency\r\n\tA! - DontUse"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}

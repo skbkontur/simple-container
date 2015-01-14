@@ -334,7 +334,7 @@ namespace SimpleContainer.Tests
 					builder.Contract("a2");
 				});
 				container.Get<Wrap>();
-				Assert.That(container.GetConstructionLog(typeof (A), "a2"), Is.EqualTo("A->[a2] - reused"));
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A->[a2] - reused"));
 			}
 		}
 
@@ -693,7 +693,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract<TestContractAttribute>().Bind<IInterface, Impl2>());
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
-				Assert.That(container.GetConstructionLog(typeof (Service)),
+				Assert.That(container.Resolve<Service>().GetConstructionLog(),
 					Is.EqualTo("Service[test-contract]->[test-contract]\r\n\tIInterface[test-contract]\r\n\t\tImpl2"));
 			}
 		}
@@ -1143,8 +1143,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				container.Get<A>();
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A[a]->[a]\r\n\tFunc<B>[a]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A[a]->[a]\r\n\tFunc<B>[a]"));
 			}
 		}
 
@@ -1214,7 +1213,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (A), "x"), Is.EqualTo("A->[x]\r\n\tB[x]! - DontUse"));
+				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A->[x]\r\n\tB[x]! - DontUse"));
 			}
 		}
 
@@ -1246,7 +1245,7 @@ namespace SimpleContainer.Tests
 				});
 				var a = container.Get<A>();
 				Assert.That(a.b1, Is.SameAs(a.b2));
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y] - reused"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y] - reused"));
 			}
 		}
 
@@ -1303,7 +1302,7 @@ namespace SimpleContainer.Tests
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
-				Assert.That(container.GetConstructionLog(typeof(A)), Is.StringStarting("A\r\n\tB[x]->[x]\r\n\t\tC[x->y]->[x->y]\r\n\t\t\tcontext -> xy"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A\r\n\tB[x]->[x]\r\n\t\tC[x->y]->[x->y]\r\n\t\t\tcontext -> xy"));
 			}
 		}
 
@@ -1352,7 +1351,7 @@ namespace SimpleContainer.Tests
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.StringStarting("A[c1]->[c1]\r\n\tB[c1->c2]->[c1->c2]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A[c1]->[c1]\r\n\tB[c1->c2]->[c1->c2]"));
 			}
 		}
 

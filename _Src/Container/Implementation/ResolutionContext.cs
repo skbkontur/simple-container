@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
@@ -215,7 +214,7 @@ namespace SimpleContainer.Implementation
 		public string Format()
 		{
 			var writer = new SimpleTextLogWriter();
-			Format(null, null, writer);
+			Format(null, writer);
 			return writer.GetText();
 		}
 
@@ -229,19 +228,17 @@ namespace SimpleContainer.Implementation
 			current[current.Count - 1].message = string.Format(message, args);
 		}
 
-		public void Format(Type targetType, string contractsKey, ISimpleLogWriter writer)
+		public void Format(ContainerService containerService, ISimpleLogWriter writer)
 		{
 			var startDepth = 0;
 			var targetTypeFound = false;
 			foreach (var state in log)
 			{
-				if (targetType != null &&
-				    (state.service.Type != targetType || state.allContactsKey != contractsKey) &&
-				    !targetTypeFound)
+				if (containerService != null && state.service != containerService && !targetTypeFound)
 					continue;
 				if (targetTypeFound && state.depth <= startDepth)
 					break;
-				if (targetType != null && !targetTypeFound)
+				if (!targetTypeFound)
 				{
 					targetTypeFound = true;
 					startDepth = state.depth;

@@ -67,34 +67,16 @@ namespace SimpleContainer.Implementation
 			componentsRunner = new ComponentsRunner(infoLogger);
 		}
 
-		public object Get(Type serviceType, IEnumerable<string> contracts, bool dumpConstructionLog = false)
+		public ResolvedService Resolve(Type serviceType, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
 			Type enumerableItem;
-			var result = TryUnwrapEnumerable(serviceType, out enumerableItem)
-				? GetAll(enumerableItem)
-				: GetInternal(new CacheKey(serviceType, InternalHelpers.ToInternalContracts(contracts, serviceType)),
-					dumpConstructionLog)
-					.SingleInstance(false);
-			return result;
-		}
-
-		private ContainerService GetInternal(CacheKey cacheKey, bool dumpConstructionLog)
-		{
+			var isEnumerable = TryUnwrapEnumerable(serviceType, out enumerableItem);
+			var typeToResolve = isEnumerable ? enumerableItem : serviceType;
+			var cacheKey = new CacheKey(typeToResolve, InternalHelpers.ToInternalContracts(contracts, typeToResolve));
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
-			var succeeded = result.WaitForSuccessfullResolve();
-			if (dumpConstructionLog)
-				infoLogger(cacheKey.type, this.GetConstructionLog(cacheKey.type, cacheKey.contracts));
-			if (!succeeded)
-				result.Throw();
-			result.EnsureRunCalled(componentsRunner, true);
-			return result;
-		}
-
-		public IEnumerable<object> GetAll(Type serviceType)
-		{
-			EnsureNotDisposed();
-			return GetInternal(new CacheKey(serviceType, null), false).AsEnumerable();
+			result.WaitForResolveOrDie();
+			return new ResolvedService(result, this, isEnumerable);
 		}
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
@@ -111,12 +93,18 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		public object Create(Type type, IEnumerable<string> contracts, object arguments)
+		public ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
 			EnsureNotDisposed();
 			var result = Create(type, contracts, arguments, null);
-			result.EnsureRunCalled(componentsRunner, false);
-			return result.SingleInstance(false);
+			return new ResolvedService(result, this, false);
+		}
+
+		internal void Run(ContainerService containerService, string constructionLog)
+		{
+			if (constructionLog != null)
+				infoLogger(containerService.Type, constructionLog);
+			containerService.EnsureRunCalled(componentsRunner, true);
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
@@ -135,29 +123,16 @@ namespace SimpleContainer.Implementation
 				: Type.EmptyTypes;
 		}
 
-		public void BuildUp(object target, IEnumerable<string> contracts)
+		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-			dependenciesInjector.BuildUp(target, contracts);
-		}
-
-		public void DumpConstructionLog(Type type, IEnumerable<string> contracts, bool entireResolutionContext,
-			ISimpleLogWriter writer)
-		{
-			EnsureNotDisposed();
-			ContainerService containerService;
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
-			if (!instanceCache.TryGetValue(cacheKey, out containerService)) return;
-			if (entireResolutionContext)
-				containerService.Context.Format(null, null, writer);
-			else
-				containerService.Context.Format(type, cacheKey.contractsKey, writer);
+			return dependenciesInjector.BuildUp(target, contracts);
 		}
 
 		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
 		{
 			var result = instanceCache.Values
-				.Where(x => x.WaitForSuccessfullResolve() && !x.Type.IsAbstract && interfaceType.IsAssignableFrom(x.Type))
+				.Where(x => x.WaitForResolve() && !x.Type.IsAbstract && interfaceType.IsAssignableFrom(x.Type))
 				.ToList();
 			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
 			return result.SelectMany(x => x.GetInstances()).Distinct(new ServiceInstanceEqualityComparer()).ToArray();

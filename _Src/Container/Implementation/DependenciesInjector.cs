@@ -22,13 +22,14 @@ namespace SimpleContainer.Implementation
 			this.container = container;
 		}
 
-		public void BuildUp(object target, IEnumerable<string> contracts)
+		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
 		{
 			var type = target.GetType();
 			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
 			var dependencies = GetInjections(cacheKey);
 			foreach (var dependency in dependencies)
-				dependency.setter(target, dependency.value);
+				dependency.setter(target, dependency.value.Single());
+			return new BuiltUpService(dependencies);
 		}
 
 		public IEnumerable<Type> GetResolvedDependencies(CacheKey cacheKey)
@@ -61,7 +62,8 @@ namespace SimpleContainer.Implementation
 					: cacheKey.contracts;
 				try
 				{
-					result[i].value = container.Get(member.MemberType(), contracts);
+					result[i].value = container.Resolve(member.MemberType(), contracts);
+					result[i].value.Single();
 				}
 				catch (SimpleContainerException e)
 				{
@@ -73,10 +75,10 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private struct Injection
+		public struct Injection
 		{
 			public Action<object, object> setter;
-			public object value;
+			public ResolvedService value;
 		}
 	}
 }

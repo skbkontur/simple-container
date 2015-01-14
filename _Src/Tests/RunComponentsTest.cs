@@ -134,7 +134,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.DontUse<D>());
-				container.Get<A>();
+				container.Resolve<A>().Run();
 				Assert.That(C.runCalled);
 			}
 		}

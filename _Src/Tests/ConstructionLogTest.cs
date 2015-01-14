@@ -23,9 +23,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("parameter", 78));
-				container.Get<A>();
 				const string expectedConstructionLog = "A\r\n\tparameter -> 78";
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 
@@ -45,9 +44,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.BindDependencyFactory<A>("parameter", _ => "qq"));
-				container.Get<A>();
 				const string expectedConstructionLog = "A\r\n\tparameter -> qq";
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 
@@ -67,10 +65,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var ts = TimeSpan.FromSeconds(54).Add(TimeSpan.FromMilliseconds(17));
-				var container = Container(b => b.BindDependency<A>("parameter", ts));
-				container.Get<A>();
+				var container = Container(b => b.BindDependency<A>("parameter", ts));;
 				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 
@@ -94,8 +91,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.DontUse<B>());
-				Assert.That(container.Get<A>().b, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - DontUse"));
+				var resolvedService = container.Resolve<A>();
+				Assert.That(resolvedService.Single().b, Is.Null);
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB! - DontUse"));
 			}
 		}
 
@@ -120,8 +118,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.Get<A>().b, Is.Null);
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo("A\r\n\tB! - IgnoredImplementation"));
+				var resolvedService = container.Resolve<A>();
+				Assert.That(resolvedService.Single().b, Is.Null);
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB! - IgnoredImplementation"));
 			}
 		}
 
@@ -141,9 +140,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.Get<A>();
 				const string expectedConstructionLog = "A\r\n\tparameter -> <null>";
-				Assert.That(container.GetConstructionLog(typeof (A)), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 	}
