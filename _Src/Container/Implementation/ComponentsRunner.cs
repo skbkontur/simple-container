@@ -27,7 +27,7 @@ namespace SimpleContainer.Implementation
 					lock (component)
 						if (!component.runCalled)
 						{
-							var serviceInstance = containerService.GetName();
+							var serviceInstance = new ServiceName(instance.GetType(), containerService.FinalUsedContracts);
 							if (infoLogger != null)
 								infoLogger(serviceInstance, "run started");
 							componentInstance.Run();

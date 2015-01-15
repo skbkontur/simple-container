@@ -1,3 +1,5 @@
+using SimpleContainer.Interface;
+
 namespace SimpleContainer.Implementation
 {
 	internal class ServiceInstance
@@ -9,6 +11,13 @@ namespace SimpleContainer.Implementation
 		{
 			ContainerService = containerService;
 			Instance = instance;
+		}
+
+		public string FormatName()
+		{
+			var type = Instance == null ? ContainerService.Type : Instance.GetType();
+			var name = new ServiceName(type, ContainerService.FinalUsedContracts);
+			return name.FormatName();
 		}
 	}
 }
