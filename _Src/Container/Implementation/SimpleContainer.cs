@@ -102,8 +102,8 @@ namespace SimpleContainer.Implementation
 
 		internal void Run(ContainerService containerService, string constructionLog)
 		{
-			if (constructionLog != null)
-				infoLogger(containerService.Type, "\r\n" + constructionLog);
+			if (constructionLog != null && infoLogger != null)
+				infoLogger(containerService.GetName(), "\r\n" + constructionLog);
 			containerService.EnsureRunCalled(componentsRunner, true);
 		}
 
@@ -609,7 +609,7 @@ namespace SimpleContainer.Implementation
 				if (aggregateException != null)
 					if (aggregateException.Flatten().InnerExceptions.All(x => x is OperationCanceledException))
 						return;
-				var message = string.Format("error disposing [{0}]", disposable.FormatName());
+				var message = string.Format("error disposing [{0}]", disposable.ContainerService.GetName().FormatName());
 				throw new SimpleContainerException(message, e);
 			}
 		}

@@ -1,6 +1,4 @@
-using System;
-
 namespace SimpleContainer.Interface
 {
-	public delegate void LogInfo(Type targetType, string message);
+	public delegate void LogInfo(ServiceName name, string message);
 }

@@ -547,6 +547,13 @@ namespace SimpleContainer.Tests
 
 			public class ComponentB : IComponent
 			{
+				public readonly int parameter;
+
+				public ComponentB(int parameter)
+				{
+					this.parameter = parameter;
+				}
+
 				public void Run()
 				{
 					log.Append(" ComponentB.Run\r\n");
@@ -557,20 +564,22 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Action<ContainerFactory> configureFactory = f => f
-					.WithInfoLogger(delegate(Type type, string message)
+					.WithInfoLogger(delegate(ServiceName name, string message)
 					{
-						log.Append(type.Name);
+						log.Append(name.FormatName());
 						log.Append(" - ");
 						log.Append(message);
 					});
+				Action<ContainerConfigurationBuilder> configure = b => b.Contract("my-contract")
+					.BindDependency<ComponentB>("parameter", 42);
 				using (var staticContainer = CreateStaticContainer(configureFactory))
-				using (var localContainer = LocalContainer(staticContainer))
+				using (var localContainer = LocalContainer(staticContainer, null, configure))
 				{
-					localContainer.Get<ComponentA>();
+					localContainer.Get<ComponentA>("my-contract");
 					const string componentALog =
-						"ComponentA - ComponentA run started ComponentA.Run\r\nComponentA - ComponentA run finished";
+						"ComponentA[my-contract] - run started ComponentA.Run\r\nComponentA[my-contract] - run finished";
 					const string componentBLog =
-						"ComponentB - ComponentB run started ComponentB.Run\r\nComponentB - ComponentB run finished";
+						"ComponentB[my-contract] - run started ComponentB.Run\r\nComponentB[my-contract] - run finished";
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
 			}

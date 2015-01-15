@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
     <Compile Include="Configuration\AbstractServiceConfigurationBuilder.cs" />
@@ -130,7 +131,7 @@
     <Compile Include="Interface\SimpleContainerException.cs" />
     <Compile Include="ContainerExtensions.cs" />
     <Compile Include="Interface\SimpleTextLogWriter.cs" />
-    <Compile Include="Implementation\ServiceInstance.cs" />
+    <Compile Include="Interface\ServiceName.cs" />
     <Compile Include="Interface\ResolvedService.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

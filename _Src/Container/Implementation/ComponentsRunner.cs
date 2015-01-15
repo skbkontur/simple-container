@@ -27,13 +27,12 @@ namespace SimpleContainer.Implementation
 					lock (component)
 						if (!component.runCalled)
 						{
-							var targetType = componentInstance.GetType();
-							var serviceInstance = new ServiceInstance(instance, containerService);
+							var serviceInstance = containerService.GetName();
 							if (infoLogger != null)
-								infoLogger(targetType, string.Format("{0} run started", serviceInstance.FormatName()));
+								infoLogger(serviceInstance, "run started");
 							componentInstance.Run();
 							if (infoLogger != null)
-								infoLogger(targetType, string.Format("{0} run finished", serviceInstance.FormatName()));
+								infoLogger(serviceInstance, "run finished");
 							component.runCalled = true;
 						}
 			}

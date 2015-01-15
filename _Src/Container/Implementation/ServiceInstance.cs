@@ -1,25 +1,14 @@
-﻿using SimpleContainer.Helpers;
-
 namespace SimpleContainer.Implementation
 {
 	internal class ServiceInstance
 	{
-		private readonly ContainerService containerService;
+		public ContainerService ContainerService { get; private set; }
 		public object Instance { get; private set; }
 
 		public ServiceInstance(object instance, ContainerService containerService)
 		{
-			this.containerService = containerService;
+			ContainerService = containerService;
 			Instance = instance;
-		}
-
-		public string FormatName()
-		{
-			var result = Instance.GetType().FormatName();
-			var usedContracts = InternalHelpers.FormatContractsKey(containerService.FinalUsedContracts);
-			if (!string.IsNullOrEmpty(usedContracts))
-				result += "[" + usedContracts + "]";
-			return result;
 		}
 	}
 }

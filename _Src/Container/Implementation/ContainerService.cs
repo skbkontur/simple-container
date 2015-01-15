@@ -41,6 +41,11 @@ namespace SimpleContainer.Implementation
 			return this;
 		}
 
+		public ServiceName GetName()
+		{
+			return new ServiceName(Type, FinalUsedContracts);
+		}
+
 		public bool AllContractsUsed()
 		{
 			foreach (var requiredContract in Context.requiredContracts)
