@@ -1,4 +1,5 @@
 using System;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Factories
 {
@@ -7,7 +8,7 @@ namespace SimpleContainer.Factories
 		public static IDelegateCaster Create(Type resultType)
 		{
 			var casterType = typeof (DelegateCasterImpl<>).MakeGenericType(resultType);
-			return (IDelegateCaster) Activator.CreateInstance(casterType);
+			return (IDelegateCaster) MethodInvoker.Invoke(casterType.GetConstructor(Type.EmptyTypes), null, new object[0]);
 		}
 
 		public interface IDelegateCaster

@@ -15,12 +15,6 @@ namespace SimpleContainer.Implementation
 {
 	internal class SimpleContainer : IContainer
 	{
-		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
-			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
-
-		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
-			ReflectionHelpers.EmitCallOf;
-
 		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
 			k => new ContainerService(k.type);
 
@@ -557,8 +551,7 @@ namespace SimpleContainer.Implementation
 		{
 			try
 			{
-				var factoryMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
-				var instance = factoryMethod(self, actualArguments);
+				var instance = MethodInvoker.Invoke(method, self, actualArguments);
 				containerService.AddInstance(instance);
 			}
 			catch (ServiceCouldNotBeCreatedException)
