@@ -459,7 +459,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ContainerConstructorAttribute : BasicTest
+		public class CanChooseConstructorViaInfection : BasicTest
 		{
 			[Test]
 			public void Test()

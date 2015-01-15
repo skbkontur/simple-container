@@ -95,6 +95,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				container.BuildUp(this, null).Run();
+				Assert.That(a, Is.Not.Null);
 				Assert.That(A.runCalled);
 			}
 		}
@@ -112,6 +113,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.DontUse<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new String[0]));
+				Assert.That(a, Is.Null);
 				Assert.That(error.Message, Is.EqualTo("can't resolve member [GracefulBuildUpExceptions.a]"));
 				Assert.That(error.InnerException.Message, Is.EqualTo("no implementations for A\r\nA! - DontUse"));
 			}
