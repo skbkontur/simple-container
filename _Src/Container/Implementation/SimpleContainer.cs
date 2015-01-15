@@ -103,7 +103,7 @@ namespace SimpleContainer.Implementation
 		internal void Run(ContainerService containerService, string constructionLog)
 		{
 			if (constructionLog != null)
-				infoLogger(containerService.Type, constructionLog);
+				infoLogger(containerService.Type, "\r\n" + constructionLog);
 			containerService.EnsureRunCalled(componentsRunner, true);
 		}
 

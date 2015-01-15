@@ -11,8 +11,6 @@ todo
 
 	type, enumerable<constract> -> ContractsSet or something
 
-	SimpleFactoryPlugin: remove duplication with FactoryWithArgumentsPlugin
-
 	speed up factories: should be no reflection at runtime
 
 	reuse configurators between local containers/static container ?
