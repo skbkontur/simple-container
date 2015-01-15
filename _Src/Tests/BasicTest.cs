@@ -235,6 +235,39 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanInjectArray : BasicTest
+		{
+			public class A
+			{
+				public readonly IB[] instances;
+
+				public A(IB[] instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			public class B1 : IB
+			{
+			}
+
+			public class B2 : IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				Assert.That(a.instances.Select(x => x.GetType()), Is.EquivalentTo(new[] {typeof (B1), typeof (B2)}));
+			}
+		}
+
 		public class CanInjectFactoriesOfGenerics : BasicTest
 		{
 			[Test]

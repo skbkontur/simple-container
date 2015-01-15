@@ -378,7 +378,7 @@ namespace SimpleContainer.Implementation
 				service.UnionUsedContracts(dependency);
 				service.AddDependency(dependency);
 				object dependencyValue;
-				if (IsEnumerable(formalParameter.ParameterType))
+				if (IsEnumerable(formalParameter.ParameterType) || formalParameter.ParameterType.IsArray)
 					dependencyValue = dependency.AsEnumerable();
 				else if (dependency.Instances.Count == 0)
 				{
@@ -530,6 +530,11 @@ namespace SimpleContainer.Implementation
 			if (IsEnumerable(type))
 			{
 				result = type.GetGenericArguments()[0];
+				return true;
+			}
+			if (type.IsArray)
+			{
+				result = type.GetElementType();
 				return true;
 			}
 			result = null;
