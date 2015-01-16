@@ -30,7 +30,14 @@ namespace SimpleContainer.Implementation
 							var name = new ServiceName(instance.GetType(), containerService.FinalUsedContracts);
 							if (infoLogger != null)
 								infoLogger(name, "run started");
-							componentInstance.Run();
+							try
+							{
+								componentInstance.Run();
+							}
+							catch (Exception e)
+							{
+								throw new SimpleContainerException(string.Format("exception running {0}", name.FormatName()), e);
+							}
 							if (infoLogger != null)
 								infoLogger(name, "run finished");
 							component.runCalled = true;

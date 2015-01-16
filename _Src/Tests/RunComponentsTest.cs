@@ -520,6 +520,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class RunExceptionMustContainServiceContracts : RunComponentsTest
+		{
+			[TestContract("c1")]
+			public class A : IComponent
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+
+				public void Run()
+				{
+					throw new InvalidOperationException("test crash");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
+				var resolvedA = container.Resolve<A>();
+				var exception = Assert.Throws<SimpleContainerException>(() => resolvedA.Run());
+				Assert.That(exception.Message, Is.EqualTo("exception running A[c1]"));
+				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
+			}
+		}
+
 		public class RunWithRunLogger : RunComponentsTest
 		{
 			private static StringBuilder log;
