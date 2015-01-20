@@ -9,7 +9,7 @@ namespace SimpleContainer.Configuration
 	public class ContractConfigurationBuilder : AbstractConfigurationBuilder<ContractConfigurationBuilder>
 	{
 		private readonly ContainerConfigurationBuilder containerConfigurationBuilder;
-		private IEnumerable<string> unionContractNames;
+		private List<string> unionContractNames;
 		public List<string> RequiredContracts { get; private set; }
 		public string Name { get; private set; }
 
@@ -25,8 +25,15 @@ namespace SimpleContainer.Configuration
 
 		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames)
 		{
-			unionContractNames = contractNames;
+			if (unionContractNames == null)
+				unionContractNames = new List<string>();
+			unionContractNames.AddRange(contractNames);
 			return this;
+		}
+
+		public ContractConfigurationBuilder Union<TContract>() where TContract : RequireContractAttribute, new()
+		{
+			return UnionOf(InternalHelpers.NameOf<TContract>());
 		}
 
 		public ContractConfigurationBuilder UnionOf(params string[] contractNames)
@@ -47,8 +54,7 @@ namespace SimpleContainer.Configuration
 
 		internal ContractConfiguration Build()
 		{
-			return new ContractConfiguration(Name, RequiredContracts, configurations,
-				unionContractNames == null ? null : unionContractNames.ToList());
+			return new ContractConfiguration(Name, RequiredContracts, configurations, unionContractNames);
 		}
 	}
 }

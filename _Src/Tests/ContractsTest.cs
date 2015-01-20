@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -491,6 +492,70 @@ namespace SimpleContainer.Tests
 
 					builder.Contract("service1Contract").Bind<IService, Service1>();
 					builder.Contract("service2Contract").Bind<IService, Service2>();
+				});
+				var wrap = container.Get<AllWrapsHost>();
+				Assert.That(wrap.wraps.Length, Is.EqualTo(2));
+				Assert.That(wrap.wraps[0].service, Is.InstanceOf<Service1>());
+				Assert.That(wrap.wraps[1].service, Is.InstanceOf<Service2>());
+			}
+		}
+
+		public class ContractUnionGeneric : ContractsTest
+		{
+			public class Contract1 : RequireContractAttribute
+			{
+				public Contract1() : base("c1")
+				{
+				}
+			}
+
+			public class Contract2 : RequireContractAttribute
+			{
+				public Contract2() : base("c2")
+				{
+				}
+			}
+
+			public class AllWrapsHost
+			{
+				public readonly ServiceWrap[] wraps;
+
+				public AllWrapsHost([TestContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
+				{
+					this.wraps = wraps.ToArray();
+				}
+			}
+
+			public class ServiceWrap
+			{
+				public readonly IService service;
+
+				public ServiceWrap(IService service)
+				{
+					this.service = service;
+				}
+			}
+
+			public interface IService
+			{
+			}
+
+			public class Service1 : IService
+			{
+			}
+
+			public class Service2 : IService
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("composite-contract").Union<Contract1>().Union<Contract2>();
+					builder.Contract<Contract1>().Bind<IService, Service1>();
+					builder.Contract<Contract2>().Bind<IService, Service2>();
 				});
 				var wrap = container.Get<AllWrapsHost>();
 				Assert.That(wrap.wraps.Length, Is.EqualTo(2));
@@ -1198,7 +1263,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([Optional] B b)
+				public A([Infection.Optional] B b)
 				{
 					this.b = b;
 				}
