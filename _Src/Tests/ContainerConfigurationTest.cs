@@ -647,6 +647,34 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ConfiguratorDoNotNeedToCheckParametersSourceForNull : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly bool parametersIsNull;
+
+				public A(bool parametersIsNull)
+				{
+					this.parametersIsNull = parametersIsNull;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new { parametersIsNull = context.Parameters == null });
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>().parametersIsNull, Is.False);
+			}
+		}
+
 		public class Profiles : ContainerConfigurationTest
 		{
 			public class InMemoryProfile : IProfile

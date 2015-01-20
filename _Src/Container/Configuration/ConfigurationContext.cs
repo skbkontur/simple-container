@@ -23,8 +23,17 @@ namespace SimpleContainer.Configuration
 			{
 				ApplicationName = name,
 				PrimaryAssembly = primaryAssembly,
-				Parameters = parameters
+				Parameters = parameters ?? new EmptyParametersSource()
 			};
+		}
+
+		private class EmptyParametersSource : IParametersSource
+		{
+			public bool TryGet(string name, Type type, out object value)
+			{
+				value = null;
+				return false;
+			}
 		}
 
 		public bool ProfileIs<T>()
