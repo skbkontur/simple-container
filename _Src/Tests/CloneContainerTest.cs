@@ -1,5 +1,7 @@
 using System;
+using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -124,6 +126,40 @@ namespace SimpleContainer.Tests
 				{
 					Assert.That(clonedContainer.Get<A>().b.parameter, Is.EqualTo(12));
 					Assert.That(clonedContainer.Get<C>().parameter, Is.EqualTo(13));
+				}
+			}
+		}
+
+		public class HostOfClonedContainerShouldBeNotifiedAboutExceptionInDispose : CloneContainerTest
+		{
+			public class A : IDisposable
+			{
+				public void Dispose()
+				{
+					throw new InvalidOperationException("test crash ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var logBuilder = new StringBuilder();
+				Action<ContainerFactory> configureFactory =
+					f => f.WithErrorLogger((message, error) => logBuilder.Append(error.InnerException.InnerException.Message));
+				using (var staticContainer = CreateStaticContainer(configureFactory))
+				{
+					using (var localContainer = LocalContainer(staticContainer))
+					{
+						var exception = Assert.Throws<AggregateException>(delegate
+						{
+							using (var containerClone = localContainer.Clone(null))
+								containerClone.Get<A>();
+						});
+						Assert.That(exception.InnerException.InnerException.Message, Is.EqualTo("test crash "));
+						Assert.That(logBuilder.ToString(), Is.EqualTo(""));
+						localContainer.Get<A>();
+					}
+					Assert.That(logBuilder.ToString(), Is.EqualTo("test crash "));
 				}
 			}
 		}

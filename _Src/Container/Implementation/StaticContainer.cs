@@ -50,7 +50,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new StaticContainer(CloneConfiguration(configure), inheritors, assemblyFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger);
+				configurationContext, staticServices, fileConfigurator, null, infoLogger);
 		}
 	}
 }

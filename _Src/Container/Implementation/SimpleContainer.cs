@@ -149,7 +149,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
-				cacheLevel, staticServices, errorLogger, infoLogger);
+				cacheLevel, staticServices, null, infoLogger);
 		}
 
 		protected IContainerConfiguration CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
