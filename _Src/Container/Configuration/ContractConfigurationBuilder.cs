@@ -23,22 +23,28 @@ namespace SimpleContainer.Configuration
 			RequiredContracts = requiredContracts;
 		}
 
-		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames)
+		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames, bool clearOld = false)
 		{
-			if (unionContractNames == null)
+			if (unionContractNames == null || clearOld)
 				unionContractNames = new List<string>();
 			unionContractNames.AddRange(contractNames);
 			return this;
 		}
 
-		public ContractConfigurationBuilder Union<TContract>() where TContract : RequireContractAttribute, new()
+		public ContractConfigurationBuilder Union<TContract>(bool clearOld = false)
+			where TContract : RequireContractAttribute, new()
 		{
-			return UnionOf(InternalHelpers.NameOf<TContract>());
+			return UnionOf(clearOld, InternalHelpers.NameOf<TContract>());
 		}
 
 		public ContractConfigurationBuilder UnionOf(params string[] contractNames)
 		{
 			return UnionOf(contractNames.AsEnumerable());
+		}
+
+		public ContractConfigurationBuilder UnionOf(bool clearOld, params string[] contractNames)
+		{
+			return UnionOf(contractNames.AsEnumerable(), clearOld);
 		}
 
 		public ContractConfigurationBuilder Contract(string name)
