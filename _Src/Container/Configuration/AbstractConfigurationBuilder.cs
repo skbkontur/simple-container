@@ -68,7 +68,12 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind<T>(Func<FactoryContext, T> creator)
 		{
-			GetOrCreate<InterfaceConfiguration>(typeof (T)).Factory = c => creator(c);
+			return Bind(typeof (T), c => creator(c));
+		}
+		
+		public TSelf Bind(Type type, Func<FactoryContext, object> creator)
+		{
+			GetOrCreate<InterfaceConfiguration>(type).Factory = creator;
 			return Self;
 		}
 

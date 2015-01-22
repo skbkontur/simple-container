@@ -2,6 +2,7 @@
 using System.IO;
 using System.Reflection;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -371,7 +372,10 @@ namespace SimpleContainer.Tests
 					typeof (FactoryInvoker).FullName);
 				var exceptionText = invoker.InvokeWithCrash();
 				Assert.That(exceptionText, Is.StringContaining("A1.ISomeInterface.Do"));
-				Assert.That(exceptionText, Is.StringContaining("Unable to load one or more of the requested types"));
+
+				SubstringConstraint englishAssert = Is.StringContaining("Unable to load one or more of the requested types");
+				Assert.That(exceptionText,
+					englishAssert.Or.StringContaining("Не удается загрузить один или более запрошенных типов"));
 				Assert.That(exceptionText, Is.StringContaining(primaryAssembly.GetName().Name));
 			}
 
