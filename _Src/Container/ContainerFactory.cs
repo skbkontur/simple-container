@@ -85,7 +85,7 @@ namespace SimpleContainer
 				.NotNull()
 				.Where(assembliesFilter)
 				.AsParallel()
-				.Select(InternalHelpers.LoadAssembly);
+				.Select(AssemblyHelpers.LoadAssembly);
 			return FromAssemblies(assemblies);
 		}
 
@@ -108,7 +108,7 @@ namespace SimpleContainer
 					{
 						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
 						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
-						throw new SimpleContainerException(string.Format(messageFormat, a.GetName().Name, loaderExceptionsText), e);
+						throw new SimpleContainerException(string.Format(messageFormat, a.GetName(), loaderExceptionsText), e);
 					}
 				})
 				.ToArray();
@@ -134,7 +134,7 @@ namespace SimpleContainer
 
 		public IStaticContainer FromCurrentAppDomain()
 		{
-			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies().Closure(x => x.ReferencedAssemblies(assembliesFilter)));
+			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).Closure(assembliesFilter));
 		}
 
 		private static string GetBinDirectory()

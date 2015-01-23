@@ -43,32 +43,28 @@ namespace SimpleContainer.Helpers
 
 		public static IEnumerable<T> Closure<T>(this IEnumerable<T> roots, Func<T, IEnumerable<T>> children)
 		{
-			return roots.Closure(x => x, children, int.MaxValue);
+			return roots.Closure(x => x, (x, _) => children(x));
 		}
 
-		public static IEnumerable<TResult> Closure<T, TResult>(this IEnumerable<T> roots,
-			Func<T, TResult> map,
-			Func<TResult, IEnumerable<T>> children,
-			int? depthLimit = null)
+		public static IEnumerable<TResult> Closure<T, TResult>(this IEnumerable<T> roots, Func<T, TResult> map,
+			Func<T, TResult, IEnumerable<T>> children)
 		{
 			var seen = new HashSet<T>();
-			var stack = new Stack<Tuple<T, int>>();
+			var stack = new Stack<T>();
 			foreach (var root in roots)
-				stack.Push(new Tuple<T, int>(root, 1));
+				stack.Push(root);
 			while (stack.Count != 0)
 			{
 				var item = stack.Pop();
-
-				var content = map(item.Item1);
+				var content = map(item);
 				if (Equals(content, null))
 					continue;
-				if (seen.Contains(item.Item1))
+				if (seen.Contains(item))
 					continue;
-				seen.Add(item.Item1);
+				seen.Add(item);
 				yield return content;
-				if (!depthLimit.HasValue || item.Item2 + 1 <= depthLimit.Value)
-					foreach (var child in children(content))
-						stack.Push(new Tuple<T, int>(child, item.Item2 + 1));
+				foreach (var child in children(item, content))
+					stack.Push(child);
 			}
 		}
 

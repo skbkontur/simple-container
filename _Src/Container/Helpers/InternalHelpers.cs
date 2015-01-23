@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using SimpleContainer.Infection;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Helpers
 {
@@ -33,31 +30,7 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static IEnumerable<Assembly> ReferencedAssemblies(this Assembly assembly,
-			Func<AssemblyName, bool> assemblyFilter)
-		{
-			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
-				.Select(x => new AssemblyName(x.AssemblyName));
-			return assembly.GetReferencedAssemblies()
-				.Concat(referencedByAttribute)
-				.Where(assemblyFilter)
-				.Select(LoadAssembly);
-		}
-
-		public static Assembly LoadAssembly(AssemblyName name)
-		{
-			try
-			{
-				return Assembly.Load(name);
-			}
-			catch (BadImageFormatException e)
-			{
-				const string messageFormat = "bad assembly image, assembly name [{0}], " +
-				                             "process is [{1}],\r\nFusionLog\r\n{2}";
-				throw new SimpleContainerException(string.Format(messageFormat,
-					e.FileName, Environment.Is64BitProcess ? "x64" : "x86", e.FusionLog), e);
-			}
-		}
+		
 
 		private static void AddIfNotExists(string item, List<string> target)
 		{
