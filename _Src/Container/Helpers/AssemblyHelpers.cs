@@ -11,20 +11,40 @@ namespace SimpleContainer.Helpers
 	{
 		public static IEnumerable<Assembly> Closure(this IEnumerable<Assembly> assemblies, Func<AssemblyName, bool> filter)
 		{
-			return assemblies
-				.Select(x => new ReferencedAssembly(x))
-				.Closure(x =>
+			var assembliesArray = assemblies.ToArray();
+			var result = new HashSet<Assembly>(assembliesArray);
+			var referencesChain = new Stack<Assembly>();
+			foreach (var assembly in assembliesArray.Where(x => filter(x.GetName())))
+				ProcessAssembly(assembly, result, filter, referencesChain);
+			return result.ToArray();
+		}
+
+		private static void ProcessAssembly(Assembly assembly, ISet<Assembly> result,
+			Func<AssemblyName, bool> filter, Stack<Assembly> referencesChain)
+		{
+			referencesChain.Push(assembly);
+			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
+				.Select(x => new AssemblyName(x.AssemblyName));
+			var references = assembly.GetReferencedAssemblies()
+				.Concat(referencedByAttribute)
+				.Where(filter);
+			foreach (var name in references)
+			{
+				Assembly referencedAssembly;
+				try
 				{
-					try
-					{
-						return x.Assembly ?? LoadAssembly(x.Name);
-					}
-					catch (Exception e)
-					{
-						const string messageFormat = "exception loading assembly {0}";
-						throw new SimpleContainerException(string.Format(messageFormat, x.FormatName()), e);
-					}
-				}, (name, assembly) => assembly.ReferencedAssemblyNames(filter).Select(n => new ReferencedAssembly(n, name)));
+					referencedAssembly = LoadAssembly(name);
+				}
+				catch (Exception e)
+				{
+					const string messageFormat = "exception loading assembly [{0}], reference chain {1}";
+					var referenceChain = referencesChain.Select(x => "[" + x.GetName().Name + "]").Reverse().JoinStrings("->");
+					throw new SimpleContainerException(string.Format(messageFormat, name.Name, referenceChain), e);
+				}
+				if (result.Add(referencedAssembly))
+					ProcessAssembly(referencedAssembly, result, filter, referencesChain);
+			}
+			referencesChain.Pop();
 		}
 
 		public static Assembly LoadAssembly(AssemblyName name)
@@ -39,68 +59,6 @@ namespace SimpleContainer.Helpers
 				                             "process is [{1}],\r\nFusionLog\r\n{2}";
 				throw new SimpleContainerException(string.Format(messageFormat,
 					e.FileName, Environment.Is64BitProcess ? "x64" : "x86", e.FusionLog), e);
-			}
-		}
-
-		private static IEnumerable<AssemblyName> ReferencedAssemblyNames(this Assembly assembly,
-			Func<AssemblyName, bool> assemblyFilter)
-		{
-			var referencedByAttribute = assembly.GetCustomAttributes<ContainerReferenceAttribute>()
-				.Select(x => new AssemblyName(x.AssemblyName));
-			return assembly.GetReferencedAssemblies()
-				.Concat(referencedByAttribute)
-				.Where(assemblyFilter);
-		}
-
-		private class ReferencedAssembly
-		{
-			public AssemblyName Name { get; private set; }
-			public Assembly Assembly { get; private set; }
-			private readonly ReferencedAssembly referencedBy;
-
-			public ReferencedAssembly(AssemblyName name, ReferencedAssembly referencedBy)
-			{
-				Name = name;
-				this.referencedBy = referencedBy;
-			}
-
-			public ReferencedAssembly(Assembly assembly)
-			{
-				Assembly = assembly;
-				Name = assembly.GetName();
-			}
-
-			public string FormatName()
-			{
-				return ReferenceChain().Reverse().Select(x => "[" + x.Name + "]").JoinStrings("->");
-			}
-
-			private bool Equals(ReferencedAssembly other)
-			{
-				return Name.Equals(other.Name);
-			}
-
-			public override bool Equals(object obj)
-			{
-				if (ReferenceEquals(null, obj)) return false;
-				if (ReferenceEquals(this, obj)) return true;
-				if (obj.GetType() != GetType()) return false;
-				return Equals((ReferencedAssembly) obj);
-			}
-
-			public override int GetHashCode()
-			{
-				return Name.GetHashCode();
-			}
-
-			private IEnumerable<AssemblyName> ReferenceChain()
-			{
-				var current = this;
-				while (current != null)
-				{
-					yield return current.Name;
-					current = current.referencedBy;
-				}
 			}
 		}
 	}
