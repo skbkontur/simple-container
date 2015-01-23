@@ -58,6 +58,11 @@ namespace SimpleContainer.Interface
 			return isEnumerable ? All() : containerService.SingleInstance(false);
 		}
 
+		public bool HasInstances()
+		{
+			return containerService.Instances.Count > 0;
+		}
+
 		public IEnumerable<object> All()
 		{
 			return containerService.AsEnumerable();

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Services;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
@@ -11,7 +10,7 @@ namespace SimpleContainer
 	{
 		public static T Get<T>(this IContainer container, string contract = null, bool dumpConstructionLog = false)
 		{
-			return (T)container.Get(typeof(T), contract, dumpConstructionLog);
+			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
 		}
 
 		public static ResolvedService<T> Resolve<T>(this IContainer container, params string[] contracts)
@@ -19,14 +18,21 @@ namespace SimpleContainer
 			return new ResolvedService<T>(container.Resolve(typeof (T), contracts));
 		}
 
-		public static object Get(this IContainer container, Type type, string contract = null, bool dumpConstructionLog = false)
+		public static ResolvedService Resolve(this IContainer container, Type type, params string[] contracts)
+		{
+			return container.Resolve(type, contracts);
+		}
+
+		public static object Get(this IContainer container, Type type, string contract = null,
+			bool dumpConstructionLog = false)
 		{
 			var resolvedService = container.Resolve(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
 			resolvedService.Run(dumpConstructionLog);
 			return resolvedService.Single();
 		}
 
-		public static ResolvedService Create(this IContainer container, Type type, string contract = null, object arguments = null)
+		public static ResolvedService Create(this IContainer container, Type type, string contract = null,
+			object arguments = null)
 		{
 			var result = container.Create(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
 			result.Run();

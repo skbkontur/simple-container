@@ -431,6 +431,77 @@ namespace SimpleContainer.Tests
 				public Func<ClassA> Factory { get; set; }
 			}
 		}
+		
+		public class CanResolveSimpleFactories : BasicTest
+		{
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var factory = container.Get<Func<ClassA>>();
+				Assert.That(factory(), Is.Not.SameAs(factory()));
+			}
+
+			public class ClassA
+			{
+			}
+		}
+
+		public class CanInjectLazy : BasicTest
+		{
+			public class A
+			{
+				public readonly Lazy<B> getB;
+
+				public A(Lazy<B> getB)
+				{
+					this.getB = getB;
+				}
+			}
+
+			public class B
+			{
+				public static int ctorCallCount;
+
+				public B()
+				{
+					ctorCallCount++;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var instance = container.Get<A>();
+				Assert.That(B.ctorCallCount, Is.EqualTo(0));
+				Assert.That(instance.getB.Value, Is.Not.Null);
+				Assert.That(B.ctorCallCount, Is.EqualTo(1));
+			}
+		}
+		
+		public class CanResolveLazy : BasicTest
+		{
+			public class B
+			{
+				public static int ctorCallCount;
+
+				public B()
+				{
+					ctorCallCount++;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var lazy = container.Get<Lazy<B>>();
+				Assert.That(B.ctorCallCount, Is.EqualTo(0));
+				Assert.That(lazy.Value, Is.Not.Null);
+				Assert.That(B.ctorCallCount, Is.EqualTo(1));
+			}
+		}
 
 		public class CanResolveContainer : BasicTest
 		{

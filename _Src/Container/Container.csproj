@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Factories\LazyFactoryPlugin.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
