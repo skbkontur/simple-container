@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Remoting;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -83,14 +85,16 @@ namespace SimpleContainer.Implementation
 			depth--;
 		}
 
-		public void LogSimpleType(string name, ContainerService containerService, SimpleContainer container)
+		public void LogSimpleType(ParameterInfo formalParameter, object value, SimpleContainer container)
 		{
+			var containerService = new ContainerService(formalParameter.ParameterType);
+			containerService.AddInstance(value);
 			var requiredContractNames = RequiredContractNames();
 			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
 			var item = new ResolutionItem
 			{
 				depth = depth,
-				name = name,
+				name = formalParameter.Name,
 				allContactsKey = allContractsKey,
 				contractDeclared = false,
 				service = containerService,

@@ -21,7 +21,7 @@ namespace SimpleContainer.Tests
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
-					Is.StringContaining("can't cast [Int32] to [String] for dependency [x] with value [42]\r\nWrap!\r\n\tA!"));
+					Is.StringContaining("can't cast value [42] from [Int32] to [String] for dependency [x]\r\nWrap!\r\n\tA!"));
 			}
 
 			public class A

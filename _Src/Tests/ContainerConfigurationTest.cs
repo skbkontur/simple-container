@@ -675,6 +675,38 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class InvalidDependencyValueType : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<string> dependency;
+
+				public A(IEnumerable<string> dependency)
+				{
+					this.dependency = dependency;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {dependency = "invalidValue"});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				const string expectedMessage =
+					"can't cast value [invalidValue] from [String] to [IEnumerable<String>] for dependency [dependency]" +
+					"\r\nA! - <---------------";
+				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
+			}
+		}
+
 		public class Profiles : ContainerConfigurationTest
 		{
 			public class InMemoryProfile : IProfile

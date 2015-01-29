@@ -14,6 +14,7 @@ namespace SimpleContainer.Implementation
 		public readonly Type type;
 		private ImplementationConfiguration implementationConfiguration;
 		private ImplementationConfiguration definitionConfiguration;
+		public IObjectAccessor Arguments { get; private set; }
 
 		public Implementation(Type type)
 		{
@@ -35,12 +36,13 @@ namespace SimpleContainer.Implementation
 				: null;
 		}
 
-		public void SetContext(ResolutionContext context)
+		public void SetService(ContainerService containerService)
 		{
-			implementationConfiguration = context.GetConfiguration<ImplementationConfiguration>(type);
+			implementationConfiguration = containerService.Context.GetConfiguration<ImplementationConfiguration>(type);
 			definitionConfiguration = type.IsGenericType
-				? context.GetConfiguration<ImplementationConfiguration>(type.GetGenericTypeDefinition())
+				? containerService.Context.GetConfiguration<ImplementationConfiguration>(type.GetGenericTypeDefinition())
 				: null;
+			Arguments = containerService.Arguments;
 		}
 
 		public ImplentationDependencyConfiguration GetDependencyConfiguration(ParameterInfo formalParameter)

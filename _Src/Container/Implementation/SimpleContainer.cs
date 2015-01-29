@@ -363,32 +363,37 @@ namespace SimpleContainer.Implementation
 				service.Throw(implementation.publicConstructors.Length == 0
 					? "no public ctors, maybe ctor is private?"
 					: "many public ctors, maybe some of them should be made private?");
-			implementation.SetContext(service.Context);
+			implementation.SetService(service);
 			var formalParameters = constructor.GetParameters();
 			var actualArguments = new object[formalParameters.Length];
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
-				var dependency = InstantiateDependency(formalParameter, implementation, service);
-				service.UnionUsedContracts(dependency);
-				service.AddDependency(dependency);
+				var dependency = InstantiateDependency(formalParameter, implementation, service.Context);
 				object dependencyValue;
-				if (IsEnumerable(formalParameter.ParameterType) || formalParameter.ParameterType.IsArray)
-					dependencyValue = dependency.AsEnumerable();
-				else if (dependency.Instances.Count == 0)
-				{
-					service.EndResolveDependencies();
-					return;
-				}
+				if (dependency.service == null)
+					dependencyValue = dependency.value;
 				else
-					dependencyValue = dependency.SingleInstance(false);
+				{
+					service.UnionUsedContracts(dependency.service);
+					service.AddDependency(dependency.service);
+					if (dependency.isEnumerable)
+						dependencyValue = dependency.service.AsEnumerable();
+					else if (dependency.service.Instances.Count == 0)
+					{
+						service.EndResolveDependencies();
+						return;
+					}
+					else
+						dependencyValue = dependency.service.SingleInstance(false);
+				}
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
-					service.Throw("can't cast [{0}] to [{1}] for dependency [{2}] with value [{3}]",
+					service.Throw("can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
+						dependencyValue,
 						dependencyValue.GetType().FormatName(),
 						formalParameter.ParameterType.FormatName(),
-						formalParameter.Name,
-						dependencyValue);
+						formalParameter.Name);
 				actualArguments[i] = castedValue;
 			}
 			service.EndResolveDependencies();
@@ -427,13 +432,12 @@ namespace SimpleContainer.Implementation
 				service.AddInstance(instance);
 		}
 
-		private ContainerService IndependentService(ParameterInfo formalParameter, object instance, ResolutionContext context)
+		private DependencyValue IndependentDependency(ParameterInfo formalParameter, object instance,
+			ResolutionContext context)
 		{
-			var result = new ContainerService(formalParameter.ParameterType);
-			result.AddInstance(instance);
 			if (ReflectionHelpers.simpleTypes.Contains(formalParameter.ParameterType))
-				context.LogSimpleType(formalParameter.Name, result, this);
-			return result;
+				context.LogSimpleType(formalParameter, instance, this);
+			return new DependencyValue {value = instance};
 		}
 
 		private static List<string> GetContracts(ParameterInfo formalParameter, Type dependencyType)
@@ -450,28 +454,28 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private ContainerService InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
-			ContainerService service)
+		private DependencyValue InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
+			ResolutionContext context)
 		{
 			object actualArgument;
-			if (service.Arguments != null && service.Arguments.TryGet(formalParameter.Name, out actualArgument))
-				return IndependentService(formalParameter, actualArgument, service.Context);
+			if (implementation.Arguments != null && implementation.Arguments.TryGet(formalParameter.Name, out actualArgument))
+				return IndependentDependency(formalParameter, actualArgument, context);
 			var parameters = implementation.GetParameters();
 			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualArgument))
-				return IndependentService(formalParameter, actualArgument, service.Context);
+				return IndependentDependency(formalParameter, actualArgument, context);
 			var dependencyConfiguration = implementation.GetDependencyConfiguration(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
 			{
 				if (dependencyConfiguration.ValueAssigned)
-					return IndependentService(formalParameter, dependencyConfiguration.Value, service.Context);
+					return IndependentDependency(formalParameter, dependencyConfiguration.Value, context);
 				if (dependencyConfiguration.Factory != null)
-					return IndependentService(formalParameter, dependencyConfiguration.Factory(this), service.Context);
+					return IndependentDependency(formalParameter, dependencyConfiguration.Factory(this), context);
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
 			implementationType = implementationType ?? formalParameter.ParameterType;
 			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
-				return IndependentService(formalParameter, formalParameter.DefaultValue, service.Context);
+				return IndependentDependency(formalParameter, formalParameter.DefaultValue, context);
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
@@ -481,17 +485,17 @@ namespace SimpleContainer.Implementation
 					throw new SimpleContainerException(
 						string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
 							resourceAttribute.Name, implementation.type,
-							implementation.type.Assembly.GetName().Name, service.Context.Format()));
-				return IndependentService(formalParameter, resourceStream, service.Context);
+							implementation.type.Assembly.GetName().Name, context.Format()));
+				return IndependentDependency(formalParameter, resourceStream, context);
 			}
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
 			var dependencyType = isEnumerable ? enumerableItem : implementationType;
 			var contracts = GetContracts(formalParameter, dependencyType);
-			var interfaceConfiguration = service.Context.GetConfiguration<InterfaceConfiguration>(implementationType);
+			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(implementationType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
-				var requiredContracts = new List<string>(service.Context.RequiredContractNames());
+				var requiredContracts = new List<string>(context.RequiredContractNames());
 				if (contracts != null)
 					requiredContracts.AddRange(contracts);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
@@ -500,19 +504,26 @@ namespace SimpleContainer.Implementation
 					target = implementation.type,
 					contracts = requiredContracts
 				});
-				return IndependentService(formalParameter, instance, service.Context);
+				return IndependentDependency(formalParameter, instance, context);
 			}
-			var result = service.Context.Resolve(dependencyType, formalParameter.Name, this, contracts);
+			var result = context.Resolve(dependencyType, formalParameter.Name, this, contracts);
 			if (isEnumerable)
-				return result;
+				return new DependencyValue {isEnumerable = true, service = result};
 			if (result.Instances.Count == 0)
 			{
 				if (formalParameter.HasDefaultValue)
-					return IndependentService(formalParameter, formalParameter.DefaultValue, service.Context);
+					return IndependentDependency(formalParameter, formalParameter.DefaultValue, context);
 				if (IsOptional(formalParameter))
-					return IndependentService(formalParameter, null, service.Context);
+					return IndependentDependency(formalParameter, null, context);
 			}
-			return result;
+			return new DependencyValue {service = result};
+		}
+
+		private struct DependencyValue
+		{
+			public ContainerService service;
+			public object value;
+			public bool isEnumerable;
 		}
 
 		private static bool IsOptional(ICustomAttributeProvider attributes)
