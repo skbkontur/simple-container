@@ -277,7 +277,7 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateImplementation(ContainerService service)
 		{
-			if (service.Type.HasAttribute("IgnoredImplementationAttribute"))
+			if (service.Type.IsDefined("IgnoredImplementationAttribute"))
 			{
 				service.Context.Comment("IgnoredImplementation");
 				service.EndResolveDependencies();
@@ -492,7 +492,7 @@ namespace SimpleContainer.Implementation
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
 			var dependencyType = isEnumerable ? enumerableItem : implementationType;
 			var contracts = GetContracts(formalParameter, dependencyType);
-			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(implementationType);
+			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(dependencyType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
 				var requiredContracts = new List<string>(context.RequiredContractNames());
@@ -504,7 +504,10 @@ namespace SimpleContainer.Implementation
 					target = implementation.type,
 					contracts = requiredContracts
 				});
-				return IndependentDependency(formalParameter, instance, context);
+				var dependencyValue = IndependentDependency(formalParameter, instance, context);
+				return isEnumerable
+					? new DependencyValue {value = new[] {dependencyValue.value}.CastToArrayOf(dependencyType)}
+					: dependencyValue;
 			}
 			var result = context.Resolve(dependencyType, formalParameter.Name, this, contracts);
 			if (isEnumerable)
@@ -528,7 +531,7 @@ namespace SimpleContainer.Implementation
 
 		private static bool IsOptional(ICustomAttributeProvider attributes)
 		{
-			return attributes.IsDefined<OptionalAttribute>() || attributes.HasAttribute("CanBeNullAttribute");
+			return attributes.IsDefined<OptionalAttribute>() || attributes.IsDefined("CanBeNullAttribute");
 		}
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)

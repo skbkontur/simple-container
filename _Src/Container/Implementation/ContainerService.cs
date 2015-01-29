@@ -169,8 +169,8 @@ namespace SimpleContainer.Implementation
 			if (instances.Count == 0 && inConstructor)
 				throw new ServiceCouldNotBeCreatedException();
 			var prefix = instances.Count == 0
-				? "no implementations for " + Type.Name
-				: string.Format("many implementations for {0}\r\n{1}", Type.Name,
+				? "no implementations for " + Type.FormatName()
+				: string.Format("many implementations for {0}\r\n{1}", Type.FormatName(),
 					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
 			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
 		}

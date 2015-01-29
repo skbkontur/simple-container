@@ -1051,6 +1051,40 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ExplicitDelegateFactoryWithEnumerableInjection : BasicTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<IX> instances;
+
+				public A(IEnumerable<IX> instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			public interface IX
+			{
+			}
+
+			public class X : IX
+			{
+				public readonly Type target;
+
+				public X(Type target)
+				{
+					this.target = target;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Bind<IX>(c => new X(c.target)));
+				Assert.That(container.Get<A>().instances.Cast<X>().Single().target, Is.EqualTo(typeof (A)));
+			}
+		}
+
 		public class ImplementationWithValueConfig : BasicTest
 		{
 			[Test]

@@ -707,6 +707,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanBindArray : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<string> dependency;
+
+				public A(IEnumerable<string> dependency)
+				{
+					this.dependency = dependency;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {dependency = new[] {"a", "b"}});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var instance = container.Get<A>();
+				Assert.That(instance.dependency, Is.EqualTo(new[] {"a", "b"}));
+			}
+		}
+
 		public class Profiles : ContainerConfigurationTest
 		{
 			public class InMemoryProfile : IProfile

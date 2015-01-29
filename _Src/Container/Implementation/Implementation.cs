@@ -25,7 +25,7 @@ namespace SimpleContainer.Implementation
 		public bool TryGetConstructor(out ConstructorInfo constructor)
 		{
 			return publicConstructors.SafeTrySingle(out constructor) ||
-			       publicConstructors.SafeTrySingle(c => c.HasAttribute("ContainerConstructorAttribute"), out constructor);
+			       publicConstructors.SafeTrySingle(c => c.IsDefined("ContainerConstructorAttribute"), out constructor);
 		}
 
 		public void SetConfiguration(IContainerConfiguration configuration)

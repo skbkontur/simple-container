@@ -101,7 +101,7 @@ namespace SimpleContainer.Factories
 				var accessor = ObjectAccessor.Get(o);
 				object autoclosingParameterValue;
 				if (!accessor.TryGet(autoclosingParameter.Name, out autoclosingParameterValue))
-					throw new InvalidOperationException("can't detect type of " + implementationDefinition.Name);
+					throw new InvalidOperationException("can't detect type of " + implementationDefinition.FormatName());
 				Type[] closingTypesSequence;
 				if (autoclosingParameter.ParameterType.IsGenericParameter)
 					closingTypesSequence = new[] {autoclosingParameterValue.GetType()};
