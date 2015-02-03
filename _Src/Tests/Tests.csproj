@@ -38,6 +38,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssembliesLoadTest.cs" />
     <Compile Include="BasicTest.cs" />
     <Compile Include="ConstructionLogTest.cs" />
     <Compile Include="FileConfigurationTest.cs" />
