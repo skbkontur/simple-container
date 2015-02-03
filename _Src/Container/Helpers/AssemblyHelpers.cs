@@ -14,7 +14,7 @@ namespace SimpleContainer.Helpers
 			var assembliesArray = assemblies.ToArray();
 			var result = new HashSet<Assembly>(assembliesArray);
 			var referencesChain = new Stack<Assembly>();
-			foreach (var assembly in assembliesArray.Where(x => filter(x.GetName())))
+			foreach (var assembly in assembliesArray)
 				ProcessAssembly(assembly, result, filter, referencesChain);
 			return result.ToArray();
 		}

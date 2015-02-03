@@ -55,7 +55,7 @@ namespace SimpleContainer.Tests.Helpers
 		private static void CleanupTestAssemblies()
 		{
 			var testAssemblyFileNames = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory)
-				.Where(x => Path.GetFileName(x).StartsWith("tmp_"));
+				.Where(x => Path.GetFileName(x).StartsWith("tmp"));
 			foreach (var fileName in testAssemblyFileNames)
 				try
 				{

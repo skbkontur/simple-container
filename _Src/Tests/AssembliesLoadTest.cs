@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -56,6 +57,19 @@ namespace SimpleContainer.Tests
 				catch (Exception e)
 				{
 					return e.ToString();
+				}
+			}
+
+			public int CountOfClassInCurrentAppDomainClosure(string assembyPrefix, string primaryAssemblyName, string typeName)
+			{
+				var primaryAssembly = Assembly.Load(primaryAssemblyName);
+				var factory = new ContainerFactory()
+					.WithAssembliesFilter(x => x.Name.StartsWith(assembyPrefix));
+				using (var staticContainer = factory.FromCurrentAppDomain())
+				{
+					var type = Type.GetType(typeName);
+					using (var localContainer = staticContainer.CreateLocalContainer(null, primaryAssembly, null, null))
+						return localContainer.GetAll(type).Count();
 				}
 			}
 
@@ -147,6 +161,47 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DontStopAssemblyTreeLookupIfFilterIsNotMatched : AssembliesLoadTest
+		{
+			private const string a1Code = @"
+					using System.Collections.Specialized;
+					using SimpleContainer.Interface;
+
+					namespace A1
+					{
+						public class Component1: IComponent
+						{
+							public void Run()
+							{
+							}
+						}
+					}
+				";
+
+			private const string a2Code = @"
+					using SimpleContainer.Infection;
+
+					[assembly: ContainerReference(""{0}"")]
+				";
+
+			[Test]
+			public void Test()
+			{
+				var a1 = AssemblyCompiler.Compile(a1Code, "tmp2_" + Guid.NewGuid().ToString("N") + ".dll");
+				var a2 = AssemblyCompiler.Compile(string.Format(a2Code, a1.GetName().Name),
+					"tmp1_" + Guid.NewGuid().ToString("N") + ".dll", a1);
+
+				CopyAssemblyToTestDirectory(a1);
+				CopyAssemblyToTestDirectory(a2);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+
+				var componentsCount = GetInvoker()
+					.CountOfClassInCurrentAppDomainClosure("tmp2", a2.GetName().Name, typeof (IComponent).AssemblyQualifiedName);
+				Assert.That(componentsCount, Is.EqualTo(1));
+			}
+		}
+
 		public class DisplayReferenceChainForAssemblyLoadExceptions : AssembliesLoadTest
 		{
 			private const string a1Code = @"
@@ -173,7 +228,7 @@ namespace SimpleContainer.Tests
 
 				CopyAssemblyToTestDirectory(a2);
 				CopyAssemblyToTestDirectory(a3);
-				CopyAssemblyToTestDirectory(typeof(IContainer).Assembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
 
 				var exceptionText = GetInvoker().CreateLocalContainerWithCrash(a3.GetName().Name);
