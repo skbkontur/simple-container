@@ -455,7 +455,7 @@ namespace SimpleContainer.Implementation
 		private DependencyValue IndependentDependency(ParameterInfo formalParameter, object instance,
 			ResolutionContext context)
 		{
-			if (formalParameter.ParameterType.IsSimpleType() || formalParameter.ParameterType.IsEnum)
+			if (formalParameter.ParameterType.IsSimpleType())
 				context.LogSimpleType(formalParameter, instance, this);
 			return new DependencyValue {value = instance};
 		}
