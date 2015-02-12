@@ -136,6 +136,13 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf BindDependencyImplementation<T, TDependencyInterface, TDependencyImplementation>()
+		{
+			ConfigureDependency(typeof (T), typeof (TDependencyInterface)).ImplementationType =
+				typeof (TDependencyImplementation);
+			return Self;
+		}
+
 		public TSelf BindDependencies<T>(object dependencies)
 		{
 			foreach (var property in dependencies.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))

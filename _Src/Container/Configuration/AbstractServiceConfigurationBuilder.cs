@@ -37,6 +37,12 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf BindDependencyImplementation<TDependencyInterface, TDependencyImplementation>()
+		{
+			builder.BindDependencyImplementation<TService, TDependencyInterface, TDependencyImplementation>();
+			return Self;
+		}
+
 		public TSelf Bind<TImplementation>(bool clearOld = false) where TImplementation : TService
 		{
 			builder.Bind<TService, TImplementation>(clearOld);
