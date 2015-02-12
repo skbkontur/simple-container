@@ -62,6 +62,7 @@
     <Compile Include="GenericsConfiguratorTests\DiscardGenericsUnmachedByContstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\NonGenericChildOfGenericComponentOverridesTypesDeductionFromConstraints.cs" />
     <Compile Include="GenericsConfiguratorTests\VerifyConstraintsForDependencies.cs" />
+    <Compile Include="GenericsHandlingTest.cs" />
     <Compile Include="GetImplementationsOfTest.cs" />
     <Compile Include="Helpers\ActionDisposable.cs" />
     <Compile Include="Helpers\AssemblyCompiler.cs" />
