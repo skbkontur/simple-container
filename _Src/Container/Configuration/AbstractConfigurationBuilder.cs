@@ -53,6 +53,9 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind(Type interfaceType, object value)
 		{
+			if (interfaceType.ContainsGenericParameters)
+				throw new SimpleContainerException(string.Format("can't bind value for generic definition [{0}]",
+					interfaceType.FormatName()));
 			if (value != null && interfaceType.IsInstanceOfType(value) == false)
 				throw new SimpleContainerException(string.Format("value {0} can't be casted to required type [{1}]",
 					DumpValue(value),

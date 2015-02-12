@@ -40,6 +40,7 @@
   <ItemGroup>
     <Compile Include="AssembliesLoadTest.cs" />
     <Compile Include="BasicTest.cs" />
+    <Compile Include="ConfigurationBuilderValidationsTest.cs" />
     <Compile Include="ConstructionLogTest.cs" />
     <Compile Include="FileConfigurationTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />

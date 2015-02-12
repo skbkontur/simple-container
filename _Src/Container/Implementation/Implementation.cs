@@ -12,8 +12,7 @@ namespace SimpleContainer.Implementation
 	{
 		public readonly ConstructorInfo[] publicConstructors;
 		public readonly Type type;
-		private ImplementationConfiguration implementationConfiguration;
-		private ImplementationConfiguration definitionConfiguration;
+		private ImplementationConfiguration configuration;
 		public IObjectAccessor Arguments { get; private set; }
 
 		public Implementation(Type type)
@@ -28,42 +27,31 @@ namespace SimpleContainer.Implementation
 			       publicConstructors.SafeTrySingle(c => c.IsDefined("ContainerConstructorAttribute"), out constructor);
 		}
 
-		public void SetConfiguration(IContainerConfiguration configuration)
+		public void SetConfiguration(IContainerConfiguration containerConfiguration)
 		{
-			implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
-			definitionConfiguration = type.IsGenericType
-				? configuration.GetOrNull<ImplementationConfiguration>(type.GetGenericTypeDefinition())
-				: null;
+			configuration = containerConfiguration.GetConfiguration<ImplementationConfiguration>(type);
 		}
 
 		public void SetService(ContainerService containerService)
 		{
-			implementationConfiguration = containerService.Context.GetConfiguration<ImplementationConfiguration>(type);
-			definitionConfiguration = type.IsGenericType
-				? containerService.Context.GetConfiguration<ImplementationConfiguration>(type.GetGenericTypeDefinition())
-				: null;
+			configuration = containerService.Context.GetConfiguration<ImplementationConfiguration>(type);
 			Arguments = containerService.Arguments;
 		}
 
 		public ImplentationDependencyConfiguration GetDependencyConfiguration(ParameterInfo formalParameter)
 		{
-			ImplentationDependencyConfiguration dependencyConfiguration = null;
-			if (implementationConfiguration != null)
-				dependencyConfiguration = implementationConfiguration.GetOrNull(formalParameter);
-			if (dependencyConfiguration == null && definitionConfiguration != null)
-				dependencyConfiguration = definitionConfiguration.GetOrNull(formalParameter);
-			return dependencyConfiguration;
+			return configuration == null ? null : configuration.GetOrNull(formalParameter);
 		}
 
 		public IParametersSource GetParameters()
 		{
-			return implementationConfiguration == null ? null : implementationConfiguration.ParametersSource;
+			return configuration == null ? null : configuration.ParametersSource;
 		}
 
 		public IEnumerable<string> GetUnusedDependencyConfigurationNames()
 		{
-			return implementationConfiguration != null
-				? implementationConfiguration.GetUnusedDependencyConfigurationKeys()
+			return configuration != null
+				? configuration.GetUnusedDependencyConfigurationKeys()
 				: Enumerable.Empty<string>();
 		}
 	}

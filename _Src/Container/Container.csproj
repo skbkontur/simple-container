@@ -39,6 +39,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\IContainerConfigurationRegistry.cs" />
     <Compile Include="Factories\LazyFactoryPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />

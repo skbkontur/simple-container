@@ -59,7 +59,6 @@ namespace SimpleContainer.Generics
 			ICollection<Type> closedImplementations)
 		{
 			var closedInterfaces = closedOwner.GetInterfaces().ToArray();
-			builder.DontUse(Owner);
 			foreach (var closedInterface in closedInterfaces)
 			{
 				builder.UseAutosearch(closedInterface, true);

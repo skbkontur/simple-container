@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Remoting;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
-	internal class ResolutionContext
+	internal class ResolutionContext : IContainerConfigurationRegistry
 	{
 		private readonly IContainerConfiguration configuration;
 		private readonly List<ResolutionItem> current = new List<ResolutionItem>();
@@ -40,7 +39,7 @@ namespace SimpleContainer.Implementation
 			return requiredContracts.Select(x => x.configuration.Name).Distinct().ToList();
 		}
 
-		public T GetConfiguration<T>(Type type) where T : class
+		public T GetOrNull<T>(Type type) where T : class
 		{
 			for (var i = requiredContracts.Count - 1; i >= 0; i--)
 			{

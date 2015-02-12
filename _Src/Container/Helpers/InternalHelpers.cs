@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
@@ -30,7 +31,13 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		
+		public static T GetConfiguration<T>(this IContainerConfigurationRegistry registry, Type type) where T : class
+		{
+			var result = registry.GetOrNull<T>(type);
+			if (result == null && type.IsGenericType)
+				result = registry.GetOrNull<T>(type.GetDefinition());
+			return result;
+		}
 
 		private static void AddIfNotExists(string item, List<string> target)
 		{

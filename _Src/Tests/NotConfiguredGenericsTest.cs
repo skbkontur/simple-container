@@ -1,4 +1,7 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
+using SimpleContainer.Configuration;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -60,6 +63,28 @@ namespace SimpleContainer.Tests
 				var b = container.Get<B>();
 				Assert.That(b.a, Is.InstanceOf<A<int>>());
 				Assert.That(b.a, Is.SameAs(container.Get<IA<int>>()));
+			}
+		}
+
+		public class CanBindDefinitions : NotConfiguredGenericsTest
+		{
+			public interface IA<T>
+			{
+			}
+
+			public class A1<T> : IA<T>
+			{
+			}
+
+			public class A2<T> : IA<T>
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Bind(typeof (IA<>), typeof (A2<>)));
+				Assert.That(container.Get<IA<int>>(), Is.InstanceOf<A2<int>>());
 			}
 		}
 

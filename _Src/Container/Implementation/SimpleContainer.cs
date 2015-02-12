@@ -247,14 +247,10 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateInterface(ContainerService service, IEnumerable<Type> implementationTypes, bool useAutosearch)
 		{
-			IEnumerable<Type> localTypes;
-			if (implementationTypes == null)
-				localTypes = GetInheritors(service.Type);
-			else if (useAutosearch)
-				localTypes = implementationTypes.Union(GetInheritors(service.Type));
-			else
-				localTypes = implementationTypes;
-			var localTypesArray = localTypes.ToArray();
+			var localTypes = implementationTypes == null || useAutosearch
+				? implementationTypes.EmptyIfNull().Union(inheritors.GetOrNull(service.Type.GetDefinition()).EmptyIfNull())
+				: implementationTypes;
+			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
 			if (localTypesArray.Length == 0)
 			{
 				service.Context.Comment("has no implementations");
@@ -314,14 +310,19 @@ namespace SimpleContainer.Implementation
 			return factoryType == null ? null : factoryType.GetMethod("Create", Type.EmptyTypes);
 		}
 
-		private IEnumerable<Type> GetInheritors(Type type)
+		private static IEnumerable<Type> ProcessGenerics(Type type, IEnumerable<Type> candidates)
 		{
-			foreach (var candidate in inheritors.GetOrNull(type.GetDefinition()).EmptyIfNull())
+			foreach (var candidate in candidates)
 			{
 				if (!candidate.IsGenericType)
 				{
 					if (!type.IsGenericType || type.IsAssignableFrom(candidate))
 						yield return candidate;
+					continue;
+				}
+				if (!candidate.ContainsGenericParameters)
+				{
+					yield return candidate;
 					continue;
 				}
 				var argumentsCount = candidate.GetGenericArguments().Length;
