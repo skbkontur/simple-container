@@ -42,16 +42,6 @@ namespace SimpleContainer.Helpers
 			return (IEnumerable<Attribute>) AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
 		}
 
-		public static bool IsDefined(this ICustomAttributeProvider attributeProvider, Type type, bool inherit = true)
-		{
-			return attributeProvider.GetCustomAttributesCached(type, inherit).Any();
-		}
-
-		public static TAttribute GetCustomAttribute<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
-		{
-			return type.GetCustomAttributes<TAttribute>(inherit).Single();
-		}
-
 		public static TAttribute GetCustomAttributeOrNull<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
 		{
 			return type.GetCustomAttributes<TAttribute>(inherit).SingleOrDefault();

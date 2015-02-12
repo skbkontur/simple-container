@@ -143,9 +143,8 @@ namespace SimpleContainer.Generics
 
 		private void CloseUsingConstraints(ContainerConfigurationBuilder builder, Type type)
 		{
-			componentsWithConstraints
-				.Where(x => x.SatisfyConstraints(type))
-				.ForEach(component => component.Close(new[] {type}, builder, processedClosedTypes));
+			foreach (var component in componentsWithConstraints.Where(x => x.SatisfyConstraints(type)))
+				component.Close(new[] {type}, builder, processedClosedTypes);
 		}
 	}
 }

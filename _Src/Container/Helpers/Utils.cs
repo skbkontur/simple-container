@@ -67,11 +67,5 @@ namespace SimpleContainer.Helpers
 					stack.Push(child);
 			}
 		}
-
-		public static string[] Split(this string s, string separator,
-			StringSplitOptions options = StringSplitOptions.RemoveEmptyEntries)
-		{
-			return s.Split(new[] {separator}, options);
-		}
 	}
 }

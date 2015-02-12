@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace SimpleContainer.Helpers
@@ -19,11 +18,6 @@ namespace SimpleContainer.Helpers
 			var set = new HashSet<T>(source, comparer ?? EqualityComparer<T>.Default);
 			set.SymmetricExceptWith(other);
 			return set.IsEmpty();
-		}
-
-		public static bool TrySingle<T>(this IEnumerable<T> source, Func<T, bool> filter, out T result)
-		{
-			return source.Where(filter).TrySingle(out result);
 		}
 
 		public static bool TrySingle<T>(this IEnumerable<T> source, out T result)
@@ -68,18 +62,6 @@ namespace SimpleContainer.Helpers
 			return string.Join(separator, source.ToArray());
 		}
 
-		public static string JoinStrings<T>(this IEnumerable<T> source, string separator)
-		{
-			return source.Select(x => x.ToString()).JoinStrings(separator);
-		}
-
-		[DebuggerStepThrough]
-		public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
-		{
-			foreach (var item in source)
-				action(item);
-		}
-
 		public static IEnumerable<T> Concat<T>(this IEnumerable<T> source, params T[] value)
 		{
 			return source.Concat(value.AsEnumerable());
@@ -93,23 +75,6 @@ namespace SimpleContainer.Helpers
 		public static IEnumerable<T> Return<T>(T item)
 		{
 			yield return item;
-		}
-
-		public static bool TryFirst<T>(this IEnumerable<T> source, Func<T, bool> filter, out T result)
-		{
-			return source.Where(filter).TryFirst(out result);
-		}
-
-		public static bool TryFirst<T>(this IEnumerable<T> source, out T result)
-		{
-			var slice = source.Take(1).ToArray();
-			if (slice.Length == 1)
-			{
-				result = slice[0];
-				return true;
-			}
-			result = default(T);
-			return false;
 		}
 
 		public static IEnumerable<T> Prepend<T>(this IEnumerable<T> source, T value)

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Generics
 {
@@ -36,7 +35,8 @@ namespace SimpleContainer.Generics
 
 		public void UseAsServiceProviderFor(GenericComponent dependent)
 		{
-			dependent.GenericDependencies.Where(g => CanClose(g.Type)).ForEach(BoundDependencies.Add);
+			foreach (var dependency in dependent.GenericDependencies.Where(g => CanClose(g.Type)))
+				BoundDependencies.Add(dependency);
 		}
 
 		public bool CanClose(Type dependency)
