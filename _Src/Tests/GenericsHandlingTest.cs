@@ -1,38 +1,27 @@
 ﻿using NUnit.Framework;
-using SimpleContainer.Configuration;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
 	public abstract class GenericsHandlingTest : SimpleContainerTestBase
 	{
-		public class Bug : GenericsHandlingTest
+		public class CanCloseImplementationByInterface : GenericsHandlingTest
 		{
-			public class A<T>
+			public interface IA<T>
 			{
-				public readonly int value;
+			}
 
-				public A(int value)
-				{
-					this.value = value;
-				}
+			public class A<T> : IA<T>
+			{
 			}
 
 			public class B
 			{
-				public readonly A<int> a;
+				public readonly IA<int> a;
 
-				public B(A<int> a)
+				public B(IA<int> a)
 				{
 					this.a = a;
-				}
-			}
-
-			public class AConfigurator : IServiceConfigurator<A<int>>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A<int>> builder)
-				{
-					builder.Dependencies(new {value = 42});
 				}
 			}
 
@@ -40,7 +29,43 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.Get<B>().a.value, Is.EqualTo(42));
+				Assert.That(container.Get<B>().a, Is.SameAs(container.Get<IA<int>>()));
+			}
+		}
+
+		public class CanCloseImplementationByInterfaceBUG : GenericsHandlingTest
+		{
+			public interface IA<T>
+			{
+			}
+
+			public class A1 : IA<int>
+			{
+			}
+
+			public class A2 : IA<H>
+			{
+			}
+
+			public class H
+			{
+			}
+
+			public class B
+			{
+				public readonly IA<int> a;
+
+				public B(IA<int> a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<B>().a, Is.InstanceOf<A1>());
 			}
 		}
 	}

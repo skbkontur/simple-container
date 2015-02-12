@@ -188,6 +188,11 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		public static Type GetDefinition(this Type type)
+		{
+			return type.IsGenericType && !type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
+		}
+
 		public static readonly ISet<Type> simpleTypes = new HashSet<Type>
 		{
 			typeof (byte),

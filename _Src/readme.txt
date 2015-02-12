@@ -18,3 +18,5 @@ todo
 	run ServiceConfigurators on demand - when type is being resoved.
 	This makes sense for optional services that requires non optional parameter
 	from IParametersSource
+
+	remove duplication with MatchWith/CanClose/GetClosingTypesSequence

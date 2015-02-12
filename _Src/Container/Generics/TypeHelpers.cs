@@ -49,6 +49,30 @@ namespace SimpleContainer.Generics
 			return what == by;
 		}
 
+		public static bool MatchWith(this Type pattern, Type value, Type[] matched)
+		{
+			if (pattern.IsGenericParameter)
+			{
+				var position = pattern.GenericParameterPosition;
+				if (matched[position] != null && matched[position] != value)
+					return false;
+				matched[position] = value;
+				return true;
+			}
+			if (pattern.IsGenericType ^ value.IsGenericType)
+				return false;
+			if (!pattern.IsGenericType)
+				return pattern == value;
+			if (pattern.GetGenericTypeDefinition() != value.GetGenericTypeDefinition())
+				return false;
+			var patternArguments = pattern.GetGenericArguments();
+			var valueArguments = value.GetGenericArguments();
+			for (var i = 0; i < patternArguments.Length; i++)
+				if (!patternArguments[i].MatchWith(valueArguments[i], matched))
+					return false;
+			return true;
+		}
+
 		public static Type[] GetClosingTypesSequence(Type what, Type by)
 		{
 			return GetClosingTypesSequenceInternal(what, by)

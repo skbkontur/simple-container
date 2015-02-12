@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
+using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
@@ -315,7 +316,25 @@ namespace SimpleContainer.Implementation
 
 		private IEnumerable<Type> GetInheritors(Type type)
 		{
-			return type.IsAbstract ? inheritors.GetOrNull(type).EmptyIfNull() : EnumerableHelpers.Return(type);
+			foreach (var candidate in inheritors.GetOrNull(type.GetDefinition()).EmptyIfNull())
+			{
+				if (!candidate.IsGenericType)
+				{
+					if (!type.IsGenericType || type.IsAssignableFrom(candidate))
+						yield return candidate;
+					continue;
+				}
+				var argumentsCount = candidate.GetGenericArguments().Length;
+				var candidateInterfaces = type.IsInterface
+					? candidate.GetInterfaces()
+					: (type.IsAbstract ? candidate.ParentsOrSelf() : Enumerable.Repeat(candidate, 1));
+				foreach (var candidateInterface in candidateInterfaces)
+				{
+					var arguments = new Type[argumentsCount];
+					if (candidateInterface.MatchWith(type, arguments) && arguments.All(x => x != null))
+						yield return candidate.MakeGenericType(arguments);
+				}
+			}
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)

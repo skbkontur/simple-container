@@ -18,6 +18,11 @@ namespace SimpleContainer.Interface
 			resolvedService.Run(dumpConstructionLog);
 		}
 
+		public void CheckSingleInstance()
+		{
+			resolvedService.CheckSingleInstance();
+		}
+
 		public T Single()
 		{
 			return (T) resolvedService.Single();
@@ -51,6 +56,11 @@ namespace SimpleContainer.Interface
 		public void Run(bool dumpConstructionLog = false)
 		{
 			simpleContainer.Run(containerService, dumpConstructionLog ? GetConstructionLog() : null);
+		}
+
+		public void CheckSingleInstance()
+		{
+			Single();
 		}
 
 		public object Single()

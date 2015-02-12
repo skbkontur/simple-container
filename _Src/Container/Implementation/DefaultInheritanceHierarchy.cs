@@ -22,11 +22,11 @@ namespace SimpleContainer.Implementation
 		public static IInheritanceHierarchy Create(IEnumerable<Type> types)
 		{
 			var result = new Dictionary<Type, List<Type>>();
-			foreach (var type in types.Where(x => !x.IsNestedPrivate))
+			foreach (var type in types.Select(x => x.GetDefinition()).Where(x => !x.IsNestedPrivate))
 			{
 				if (type.IsAbstract)
 					continue;
-				foreach (var parentType in type.GetInterfaces().Union(type.ParentsOrSelf()))
+				foreach (var parentType in type.GetInterfaces().Union(type.ParentsOrSelf()).Select(x => x.GetDefinition()))
 				{
 					List<Type> children;
 					if (!result.TryGetValue(parentType, out children))
