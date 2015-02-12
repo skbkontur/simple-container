@@ -33,36 +33,70 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		//public class SimpleWithInterfaces : NotConfiguredGenericsTest
-		//{
-		//	public class Generic<T> : IGenericInterface<T>
-		//	{
-		//	}
+		public class CanCloseImplementationByInterface : NotConfiguredGenericsTest
+		{
+			public interface IA<T>
+			{
+			}
 
-		//	public interface IGenericInterface<T>
-		//	{
-		//	}
+			public class A<T> : IA<T>
+			{
+			}
 
-		//	public class GenericClient
-		//	{
-		//		public readonly IGenericInterface<A> generic;
+			public class B
+			{
+				public readonly IA<int> a;
 
-		//		public GenericClient(IGenericInterface<A> generic)
-		//		{
-		//			this.generic = generic;
-		//		}
-		//	}
+				public B(IA<int> a)
+				{
+					this.a = a;
+				}
+			}
 
-		//	public class A
-		//	{
-		//	}
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var b = container.Get<B>();
+				Assert.That(b.a, Is.InstanceOf<A<int>>());
+				Assert.That(b.a, Is.SameAs(container.Get<IA<int>>()));
+			}
+		}
 
-		//	[Test]
-		//	public void Test()
-		//	{
-		//		var container = Container();
-		//		Assert.That(container.Get<GenericClient>().generic, Is.InstanceOf<Generic<A>>());
-		//	}
-		//}
+		public class FitlerImplementationsUsingGenericArgumentsMatching : NotConfiguredGenericsTest
+		{
+			public interface IA<T>
+			{
+			}
+
+			public class A1 : IA<int>
+			{
+			}
+
+			public class A2 : IA<H>
+			{
+			}
+
+			public class H
+			{
+			}
+
+			public class B
+			{
+				public readonly IA<int> a;
+
+				public B(IA<int> a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<B>().a, Is.InstanceOf<A1>());
+			}
+		}
 	}
 }

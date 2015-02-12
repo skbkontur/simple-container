@@ -524,15 +524,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
 				Assert.That(error.Message, Is.StringContaining("GenericClass<T>! - has open generic arguments"));
 			}
 
-			public class GenericClass<T> : IInterface
-			{
-			}
-
-			public interface IInterface
+			public class GenericClass<T>
 			{
 			}
 		}

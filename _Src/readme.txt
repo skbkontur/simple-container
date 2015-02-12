@@ -1,9 +1,7 @@
 todo
-	separate phase (and data structures) for dependency analysis => meta, contractUsage + factories
+	separate phase (and data structures) for dependency analysis => meta, contractUsage + factories, generics
 
 	explicit stack machine instead of recursion
-
-	explicitly parameterized generics (SimpleWithInterfaces test), inline GenericConfigurator
 
 	refactor: get rid of stupid EndResolveDependencies
 
