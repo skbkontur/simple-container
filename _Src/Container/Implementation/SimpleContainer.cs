@@ -194,7 +194,7 @@ namespace SimpleContainer.Implementation
 
 		internal void Instantiate(ContainerService service)
 		{
-			if (ReflectionHelpers.simpleTypes.Contains(service.Type))
+			if (service.Type.IsSimpleType())
 				service.Throw("can't create simple type");
 			if (service.Type == typeof (IContainer))
 			{
@@ -368,9 +368,9 @@ namespace SimpleContainer.Implementation
 		{
 			if (typeof (Delegate).IsAssignableFrom(type))
 				return false;
-			if (ReflectionHelpers.simpleTypes.Contains(type))
+			if (type.IsSimpleType())
 				return false;
-			if (type.IsArray && ReflectionHelpers.simpleTypes.Contains(type.GetElementType()))
+			if (type.IsArray && type.GetElementType().IsSimpleType())
 				return false;
 			return true;
 		}
@@ -455,7 +455,7 @@ namespace SimpleContainer.Implementation
 		private DependencyValue IndependentDependency(ParameterInfo formalParameter, object instance,
 			ResolutionContext context)
 		{
-			if (ReflectionHelpers.simpleTypes.Contains(formalParameter.ParameterType))
+			if (formalParameter.ParameterType.IsSimpleType() || formalParameter.ParameterType.IsEnum)
 				context.LogSimpleType(formalParameter, instance, this);
 			return new DependencyValue {value = instance};
 		}
@@ -494,7 +494,7 @@ namespace SimpleContainer.Implementation
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
 			implementationType = implementationType ?? formalParameter.ParameterType;
-			if (ReflectionHelpers.simpleTypes.Contains(implementationType) && formalParameter.HasDefaultValue)
+			if (implementationType.IsSimpleType() && formalParameter.HasDefaultValue)
 				return IndependentDependency(formalParameter, formalParameter.DefaultValue, context);
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))

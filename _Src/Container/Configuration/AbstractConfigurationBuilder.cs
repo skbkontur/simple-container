@@ -229,7 +229,7 @@ namespace SimpleContainer.Configuration
 			if (value == null)
 				return "[<null>]";
 			var type = value.GetType();
-			return ReflectionHelpers.simpleTypes.Contains(type)
+			return type.IsSimpleType()
 				? string.Format("[{0}] of type [{1}]", value, type.FormatName())
 				: string.Format("of type [{0}]", type.FormatName());
 		}

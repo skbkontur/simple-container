@@ -193,7 +193,15 @@ namespace SimpleContainer.Helpers
 			return type.IsGenericType && !type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
 		}
 
-		public static readonly ISet<Type> simpleTypes = new HashSet<Type>
+		public static bool IsSimpleType(this Type type)
+		{
+			if (simpleTypes.Contains(type) || type.IsEnum)
+				return true;
+			var nullableWrapped = Nullable.GetUnderlyingType(type);
+			return nullableWrapped != null && nullableWrapped.IsSimpleType();
+		}
+
+		private static readonly ISet<Type> simpleTypes = new HashSet<Type>
 		{
 			typeof (byte),
 			typeof (short),

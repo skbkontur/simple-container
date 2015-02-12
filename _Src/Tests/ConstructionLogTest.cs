@@ -71,6 +71,54 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DumpNullablesAsSimpleTypes : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly int? value;
+
+				public A(int? value)
+				{
+					this.value = value;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("value", 21));
+				const string expectedConstructionLog = "A\r\n\tvalue -> 21";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
+		public class DumpEnumsAsSimpleTypes : ConstructionLogTest
+		{
+			public enum MyEnum
+			{
+				Val1,
+				Val2
+			}
+
+			public class A
+			{
+				public readonly MyEnum value;
+
+				public A(MyEnum value)
+				{
+					this.value = value;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("value", MyEnum.Val2));
+				const string expectedConstructionLog = "A\r\n\tvalue -> Val2";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
 		public class CommentExplicitDontUse : ConstructionLogTest
 		{
 			public class A

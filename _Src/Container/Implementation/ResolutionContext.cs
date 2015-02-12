@@ -247,7 +247,7 @@ namespace SimpleContainer.Implementation
 					startDepth = state.depth;
 				}
 				writer.WriteIndent(state.depth - startDepth);
-				var isSimpleType = ReflectionHelpers.simpleTypes.Contains(state.service.Type);
+				var isSimpleType = state.service.Type.IsSimpleType();
 				var name = state.name != null && isSimpleType ? state.name : state.service.Type.FormatName();
 				writer.WriteName(state.isStatic ? "(s)" + name : name);
 				var usedContracts = state.service.GetUsedContractNames();
