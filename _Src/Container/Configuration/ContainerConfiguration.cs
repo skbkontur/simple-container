@@ -15,7 +15,7 @@ namespace SimpleContainer.Configuration
 		{
 			this.contractsConfigurators = contractsConfigurators
 				.GroupBy(x => x.Name)
-				.ToDictionary(x => x.Key, x => x.OrderBy(c => c.RequiredContracts.Count).ToArray());
+				.ToDictionary(x => x.Key, x => x.OrderByDescending(c => c.RequiredContracts.Count).ToArray());
 		}
 
 		public ContractConfiguration[] GetContractConfigurations(string contract)

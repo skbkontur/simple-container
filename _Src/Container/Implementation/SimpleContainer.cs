@@ -172,7 +172,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (cacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
 				return staticContainer.ResolveSingleton(type, name, context);
-			var cacheKey = new CacheKey(type, context.RequiredContractNames());
+			var cacheKey = new CacheKey(type, context.DeclaredContractNames());
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
 			if (result.AcquireInstantiateLock())
 				try
@@ -218,7 +218,7 @@ namespace SimpleContainer.Implementation
 					service.AddInstance(interfaceConfiguration.Factory(new FactoryContext
 					{
 						container = this,
-						contracts = service.Context.RequiredContractNames()
+						contracts = service.Context.DeclaredContractNames()
 					}));
 					service.EndResolveDependencies();
 					return;
@@ -420,7 +420,7 @@ namespace SimpleContainer.Implementation
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
 				service.Throw("unused dependency configurations [{0}]", unusedDependencyConfigurations.JoinStrings(","));
-			if (service.AllContractsUsed())
+			if (service.AllDeclaredContractsUsed())
 			{
 				InvokeConstructor(constructor, null, actualArguments, service);
 				return;
@@ -502,14 +502,14 @@ namespace SimpleContainer.Implementation
 			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(dependencyType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
-				var requiredContracts = new List<string>(context.RequiredContractNames());
+				var definedContracts = new List<string>(context.DeclaredContractNames());
 				if (contracts != null)
-					requiredContracts.AddRange(contracts);
+					definedContracts.AddRange(contracts);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
 				{
 					container = this,
 					target = implementation.type,
-					contracts = requiredContracts
+					contracts = definedContracts
 				});
 				var dependencyValue = IndependentDependency(formalParameter, instance, context);
 				return isEnumerable

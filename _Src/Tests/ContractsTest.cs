@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -155,8 +154,8 @@ namespace SimpleContainer.Tests
 
 			public class FactoryResult
 			{
-				public IInterface intf { get; set; }
-				public int value { get; set; }
+				public IInterface intf;
+				public int value;
 
 				public FactoryResult(IInterface intf, int value)
 				{
@@ -227,10 +226,12 @@ namespace SimpleContainer.Tests
 
 			public class Service
 			{
+				public readonly IInterface @interface;
 				public readonly SingletonService singletonService;
 
 				public Service(IInterface @interface, SingletonService singletonService)
 				{
+					this.@interface = @interface;
 					this.singletonService = singletonService;
 				}
 			}
@@ -266,15 +267,23 @@ namespace SimpleContainer.Tests
 		{
 			public class Wrap
 			{
+				public readonly Service service;
+
 				public Wrap([TestContract("c1")] Service service)
 				{
+					this.service = service;
 				}
 			}
 
 			public class Service
 			{
+				public readonly SingletonService singletonService;
+				public readonly IInterface @interface;
+
 				public Service(SingletonService singletonService, IInterface @interface)
 				{
+					this.singletonService = singletonService;
+					this.@interface = @interface;
 				}
 			}
 
@@ -292,8 +301,11 @@ namespace SimpleContainer.Tests
 
 			public class Impl1 : IInterface
 			{
+				public readonly IUnimplemented unimplemented;
+
 				public Impl1(IUnimplemented unimplemented)
 				{
+					this.unimplemented = unimplemented;
 				}
 			}
 
@@ -367,7 +379,7 @@ namespace SimpleContainer.Tests
 
 			public class OtherService
 			{
-				private readonly Service service;
+				public readonly Service service;
 
 				public OtherService(Service service)
 				{
@@ -377,8 +389,11 @@ namespace SimpleContainer.Tests
 
 			public class Service
 			{
+				public readonly IInterface @interface;
+
 				public Service(IInterface @interface)
 				{
+					this.@interface = @interface;
 				}
 			}
 
@@ -698,6 +713,92 @@ namespace SimpleContainer.Tests
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.serviceA, Is.InstanceOf<ServiceA>());
 				Assert.That(wrap.serviceB, Is.InstanceOf<ServiceB>());
+			}
+		}
+
+		public class IgnoreNotDeclaredContracts : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[TestContract("not-declared")]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.DoesNotThrow(() => container.Get<A>());
+			}
+		}
+
+		public class UsedContractsForReusedServices : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly D d1;
+				public readonly D d2;
+
+				public A([TestContract("c1")] B b, [TestContract("c2")] D d1, D d2)
+				{
+					this.b = b;
+					this.d1 = d1;
+					this.d2 = d2;
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B([TestContract("c2")] C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class D
+			{
+				public readonly C c;
+
+				public D(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.BindDependency<C>("parameter", 41);
+					builder.Contract("c2").BindDependency<C>("parameter", 42);
+				});
+				var a = container.Get<A>();
+				Assert.That(a.b.c.parameter, Is.EqualTo(42));
+				Assert.That(a.d1.c, Is.SameAs(a.b.c));
+				Assert.That(a.d2.c.parameter, Is.EqualTo(41));
 			}
 		}
 
@@ -1211,32 +1312,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ProhibitDuplicatedContractInChain : ContractsTest
-		{
-			public class A
-			{
-				public readonly B b;
-
-				public A([TestContract("x")] B b)
-				{
-					this.b = b;
-				}
-			}
-
-			[TestContract("x")]
-			public class B
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Contract("x"));
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("contract [x] already required, all required contracts [x]\r\nA!"));
-			}
-		}
-
 		public class ContractUsedInEnumerableDependency : ContractsTest
 		{
 			public class Wrap
@@ -1353,7 +1428,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([Infection.Optional] B b)
+				public A([Optional] B b)
 				{
 					this.b = b;
 				}
@@ -1770,6 +1845,66 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("x").BindDependency<A>("parameter", 42));
 				var a = (A) container.Get<IA>();
 				Assert.That(a.parameter, Is.EqualTo(42));
+			}
+		}
+
+		public class ConditionalContractsRedefinitionIsProhibited : ContractsTest
+		{
+			[TestContract("c1")]
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("c2")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[TestContract("c2")]
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(builder => builder.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message,
+					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\nA->[c1]!"));
+			}
+		}
+
+		public class ContractRedefinitionIsProhibited : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("x")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[TestContract("x")]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x"));
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message, Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\nA!"));
 			}
 		}
 

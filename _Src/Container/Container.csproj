@@ -43,6 +43,7 @@
     <Compile Include="Factories\LazyFactoryPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
+    <Compile Include="Helpers\StringHelpers.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />

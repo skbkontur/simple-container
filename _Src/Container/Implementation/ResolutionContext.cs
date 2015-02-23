@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
@@ -16,8 +15,7 @@ namespace SimpleContainer.Implementation
 		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private int depth;
-		public readonly List<RequiredContract> requiredContracts = new List<RequiredContract>();
-		public object locker = new object();
+		private readonly List<ContractDeclaration> declaredContracts = new List<ContractDeclaration>();
 
 		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
 		{
@@ -26,34 +24,61 @@ namespace SimpleContainer.Implementation
 				return;
 			var contractsArray = contracts.ToArray();
 			if (contractsArray.Length > 0)
-				PushContracts(contractsArray);
+				PushContractDeclarations(contractsArray);
 		}
 
-		public struct RequiredContract
+		public List<string> DeclaredContractNames()
 		{
-			public ContractConfiguration configuration;
-			public List<int> requiredContractIndexes;
+			return declaredContracts.Select(x => x.name).ToList();
 		}
 
-		public List<string> RequiredContractNames()
+		public List<string> GetDeclaredContractsByNames(List<string> indexes)
 		{
-			return requiredContracts.Select(x => x.configuration.Name).Distinct().ToList();
+			return declaredContracts
+				.Where(x => indexes.Contains(x.name, StringComparer.OrdinalIgnoreCase))
+				.Select(x => x.name)
+				.ToList();
+		}
+
+		public int DeclaredContractsCount()
+		{
+			return declaredContracts.Count;
+		}
+
+		public bool ContractDeclared(string name)
+		{
+			return declaredContracts.Any(x => x.name.EqualsIgnoringCase(name));
+		}
+
+		public bool DeclaredContractsContainedIn(List<string> target)
+		{
+			foreach (var declaredContract in declaredContracts)
+				if (!target.Contains(declaredContract.name, StringComparer.OrdinalIgnoreCase))
+					return false;
+			return true;
+		}
+
+		public string DeclaredContractsKey()
+		{
+			return InternalHelpers.FormatContractsKey(DeclaredContractNames());
 		}
 
 		public T GetOrNull<T>(Type type) where T : class
 		{
-			for (var i = requiredContracts.Count - 1; i >= 0; i--)
+			for (var i = declaredContracts.Count - 1; i >= 0; i--)
 			{
-				var requiredContract = requiredContracts[i];
-				var result = requiredContract.configuration.GetOrNull<T>(type);
-				if (result == null)
-					continue;
-				var containerService = GetTopService();
-				containerService.UseContractWithIndex(i);
-				if (requiredContract.requiredContractIndexes != null)
-					foreach (var index in requiredContract.requiredContractIndexes)
-						containerService.UseContractWithIndex(index);
-				return result;
+				var declaration = declaredContracts[i];
+				foreach (var definition in declaration.definitions)
+				{
+					var result = definition.GetOrNull<T>(type);
+					if (result == null)
+						continue;
+					var containerService = GetTopService();
+					containerService.UseContractWithName(declaration.name);
+					foreach (var name in definition.RequiredContracts)
+						containerService.UseContractWithName(name);
+					return result;
+				}
 			}
 			return configuration.GetOrNull<T>(type);
 		}
@@ -61,15 +86,14 @@ namespace SimpleContainer.Implementation
 		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
-			var requiredContractNames = RequiredContractNames();
-			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
-			var previousContractsKey = previous == null ? "" : previous.allContactsKey ?? "";
+			var declaredContacts = DeclaredContractsKey();
+			var previousDeclaredContracts = previous == null ? "" : previous.declaredContacts ?? "";
 			var item = new ResolutionItem
 			{
 				depth = depth++,
 				name = name,
-				allContactsKey = allContractsKey,
-				contractDeclared = previousContractsKey.Length < allContractsKey.Length,
+				declaredContacts = declaredContacts,
+				contractDeclared = previousDeclaredContracts.Length < declaredContacts.Length,
 				service = containerService,
 				isStatic = container.cacheLevel == CacheLevel.Static
 			};
@@ -89,13 +113,11 @@ namespace SimpleContainer.Implementation
 		{
 			var containerService = new ContainerService(formalParameter.ParameterType);
 			containerService.AddInstance(value);
-			var requiredContractNames = RequiredContractNames();
-			var allContractsKey = InternalHelpers.FormatContractsKey(requiredContractNames);
 			var item = new ResolutionItem
 			{
 				depth = depth,
 				name = formalParameter.Name,
-				allContactsKey = allContractsKey,
+				declaredContacts = DeclaredContractsKey(),
 				contractDeclared = false,
 				service = containerService,
 				isStatic = container.cacheLevel == CacheLevel.Static
@@ -122,7 +144,7 @@ namespace SimpleContainer.Implementation
 			var unioned = internalContracts
 				.Select(delegate(string s)
 				{
-					var configurations = configuration.GetContractConfigurations(s).ToArray();
+					var configurations = configuration.GetContractConfigurations(s).EmptyIfNull().ToArray();
 					return configurations.Length == 1 ? configurations[0].UnionContractNames : null;
 				})
 				.ToArray();
@@ -130,7 +152,7 @@ namespace SimpleContainer.Implementation
 				return ResolveUsingContracts(type, name, container, internalContracts);
 			var source = new List<List<string>>();
 			for (var i = 0; i < internalContracts.Count; i++)
-				source.Add(unioned[i] ?? new List<string>(1) { internalContracts[i] });
+				source.Add(unioned[i] ?? new List<string>(1) {internalContracts[i]});
 			var result = new ContainerService(type);
 			result.AttachToContext(this);
 			foreach (var contracts in source.CartesianProduct())
@@ -145,76 +167,44 @@ namespace SimpleContainer.Implementation
 		public ContainerService ResolveUsingContracts(Type type, string name, SimpleContainer container,
 			List<string> contractNames)
 		{
-			var pushedContractsCount = PushContracts(contractNames);
+			PushContractDeclarations(contractNames);
 			var result = container.ResolveSingleton(type, name, this);
-			requiredContracts.RemoveRange(requiredContracts.Count - pushedContractsCount, pushedContractsCount);
+			declaredContracts.RemoveRange(declaredContracts.Count - contractNames.Count, contractNames.Count);
 			return result;
 		}
 
-		private ContractConfiguration[] GetContractConfigurationsOrDefault(string s)
+		private void PushContractDeclarations(IEnumerable<string> contractNames)
 		{
-			return configuration.GetContractConfigurations(s) ??
-			       new[] {new ContractConfiguration(s, new List<string>(), new Dictionary<Type, object>(), null)};
+			foreach (var c in contractNames)
+			{
+				var duplicate = declaredContracts.FirstOrDefault(x => x.name.EqualsIgnoringCase(c));
+				if (duplicate != null)
+				{
+					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]\r\n{2}";
+					throw new SimpleContainerException(string.Format(messageFormat, c, DeclaredContractsKey(), Format()));
+				}
+				var contractDeclaration = new ContractDeclaration
+				{
+					name = c,
+					definitions = configuration.GetContractConfigurations(c)
+						.EmptyIfNull()
+						.Where(x => MatchWithDeclaredContracts(x.RequiredContracts))
+						.ToList()
+				};
+				declaredContracts.Add(contractDeclaration);
+			}
 		}
 
-		private int PushContracts(IEnumerable<string> contractNames)
+		private bool MatchWithDeclaredContracts(List<string> required)
 		{
-			var pushedContractsCount = 0;
-			foreach (var c in contractNames.SelectMany(GetContractConfigurationsOrDefault))
+			for (int i = 0, j = 0; i < required.Count; j++)
 			{
-				foreach (var requiredContract in requiredContracts)
-				{
-					var alreadyRequired = requiredContract.configuration.RequiredContracts.Count == 0 &&
-					                      c.RequiredContracts.Count == 0 &&
-					                      string.Equals(requiredContract.configuration.Name, c.Name, StringComparison.OrdinalIgnoreCase);
-					if (alreadyRequired)
-					{
-						const string messageFormat = "contract [{0}] already required, all required contracts [{1}]\r\n{2}";
-						throw new SimpleContainerException(string.Format(messageFormat,
-							c.Name, InternalHelpers.FormatContractsKey(requiredContracts.Select(x => x.configuration.Name).ToList()), Format()));
-					}
-				}
-				List<int> requiredIndexes;
-				if (MatchedByRequiredContracts(c, out requiredIndexes))
-				{
-					requiredContracts.Add(new RequiredContract
-					{
-						configuration = c,
-						requiredContractIndexes = requiredIndexes
-					});
-					pushedContractsCount++;
-				}
-			}
-			return pushedContractsCount;
-		}
-
-		private bool MatchedByRequiredContracts(ContractConfiguration c, out List<int> requiredIndexes)
-		{
-			if (c.RequiredContracts.Count == 0)
-			{
-				requiredIndexes = null;
-				return true;
-			}
-			requiredIndexes = new List<int>();
-			var index = 0;
-			foreach (var t in c.RequiredContracts)
-			{
-				if (!SearchForRequiredContract(ref index, t))
+				if (j >= declaredContracts.Count)
 					return false;
-				requiredIndexes.Add(index);
+				if (required[i].EqualsIgnoringCase(declaredContracts[j].name))
+					i++;
 			}
 			return true;
-		}
-
-		private bool SearchForRequiredContract(ref int index, string name)
-		{
-			while (index < requiredContracts.Count)
-			{
-				if (requiredContracts[index].configuration.Name == name)
-					return true;
-				index++;
-			}
-			return false;
 		}
 
 		public string Format()
@@ -256,10 +246,10 @@ namespace SimpleContainer.Implementation
 				var usedContracts = state.service.GetUsedContractNames();
 				if (usedContracts != null && usedContracts.Count > 0)
 					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-				if (state.allContactsKey != null && state.contractDeclared)
+				if (state.declaredContacts != null && state.contractDeclared)
 				{
 					writer.WriteMeta("->[");
-					writer.WriteMeta(state.allContactsKey);
+					writer.WriteMeta(state.declaredContacts);
 					writer.WriteMeta("]");
 				}
 				if (state.service.Instances.Count == 0)
@@ -277,12 +267,18 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
+		private class ContractDeclaration
+		{
+			public string name;
+			public List<ContractConfiguration> definitions;
+		}
+
 		private class ResolutionItem
 		{
 			public int depth;
 			public string name;
 			public string message;
-			public string allContactsKey;
+			public string declaredContacts;
 			public bool contractDeclared;
 			public ContainerService service;
 			public bool isStatic;

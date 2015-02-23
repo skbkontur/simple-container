@@ -10,7 +10,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class ContainerService
 	{
-		private List<int> usedContractIndexes;
+		private List<string> usedContractNames;
 		private readonly List<object> instances = new List<object>();
 		private IEnumerable<object> typedArray;
 		private readonly object lockObject = new object();
@@ -41,12 +41,9 @@ namespace SimpleContainer.Implementation
 			return this;
 		}
 
-		public bool AllContractsUsed()
+		public bool AllDeclaredContractsUsed()
 		{
-			foreach (var requiredContract in Context.requiredContracts)
-				if (!FinalUsedContracts.Contains(requiredContract.configuration.Name))
-					return false;
-			return true;
+			return Context.DeclaredContractsContainedIn(FinalUsedContracts);
 		}
 
 		public void AttachToContext(ResolutionContext context)
@@ -101,21 +98,23 @@ namespace SimpleContainer.Implementation
 			instances.RemoveAll(o => !filter(o));
 		}
 
-		public void UseAllRequiredContracts()
+		public void UseAllDeclaredContracts()
 		{
-			FinalUsedContracts = Context.RequiredContractNames();
-			usedContractIndexes = Enumerable.Range(0, FinalUsedContracts.Count).Select((i, x) => i).ToList();
+			FinalUsedContracts = Context.DeclaredContractNames();
+			usedContractNames = FinalUsedContracts;
 		}
 
 		public void UnionUsedContracts(ContainerService dependency)
 		{
-			if (dependency.usedContractIndexes == null)
+			if (dependency.usedContractNames == null)
 				return;
-			if (usedContractIndexes == null)
-				usedContractIndexes = new List<int>();
-			foreach (var otherIndex in dependency.usedContractIndexes)
-				if (otherIndex < Context.requiredContracts.Count && !usedContractIndexes.Contains(otherIndex))
-					usedContractIndexes.Add(otherIndex);
+			if (usedContractNames == null)
+				usedContractNames = new List<string>();
+			var contractsToAdd = dependency.usedContractNames
+				.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+				.Where(x => Context.ContractDeclared(x));
+			foreach (var name in contractsToAdd)
+				usedContractNames.Add(name);
 		}
 
 		public void UnionFrom(ContainerService other)
@@ -134,12 +133,12 @@ namespace SimpleContainer.Implementation
 					AddDependency(dependency);
 		}
 
-		public void UseContractWithIndex(int index)
+		public void UseContractWithName(string name)
 		{
-			if (usedContractIndexes == null)
-				usedContractIndexes = new List<int>();
-			if (!usedContractIndexes.Contains(index))
-				usedContractIndexes.Add(index);
+			if (usedContractNames == null)
+				usedContractNames = new List<string>();
+			if (!usedContractNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+				usedContractNames.Add(name);
 		}
 
 		public void EndResolveDependencies()
@@ -154,12 +153,9 @@ namespace SimpleContainer.Implementation
 
 		private List<string> GetUsedContractNamesFromContext()
 		{
-			return usedContractIndexes == null
+			return usedContractNames == null
 				? new List<string>(0)
-				: usedContractIndexes.OrderBy(x => x)
-					.Select(i => Context.requiredContracts[i].configuration.Name)
-					.Distinct()
-					.ToList();
+				: Context.GetDeclaredContractsByNames(usedContractNames);
 		}
 
 		public object SingleInstance(bool inConstructor)
