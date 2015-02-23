@@ -131,9 +131,17 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[Inject] private A a;
-			[Inject] [TestContract("c1")] private A ac1;
-			[Inject] [TestContract("c2")] private A ac2;
+			public class B
+			{
+				[Inject] public A a;
+				[Inject] [TestContract("c2")] public A ac2;
+			}
+
+			public class C
+			{
+				[Inject] public A a;
+				[Inject] [TestContract("c1")] public A ac1;
+			}
 
 			[Test]
 			public void Test()
@@ -143,26 +151,22 @@ namespace SimpleContainer.Tests
 					builder.Contract("c1").BindDependency<A>("parameter", 1);
 					builder.Contract("c2").BindDependency<A>("parameter", 2);
 				});
-				container.BuildUp(this, new[] {"c1"});
-				var localA = a;
-				var localAc1 = ac1;
-				var localAc2 = ac2;
 
-				Assert.That(localA.parameter, Is.EqualTo(1));
-				Assert.That(localAc1.parameter, Is.EqualTo(1));
-				Assert.That(localAc2.parameter, Is.EqualTo(2));
+				var b = new B();
+				container.BuildUp(b, new[] {"c1"});
+				Assert.That(b.a.parameter, Is.EqualTo(1));
+				Assert.That(b.ac2.parameter, Is.EqualTo(2));
 
-				Assert.That(localAc1, Is.SameAs(a));
+				var c = new C();
+				container.BuildUp(c, new[] {"c2"});
+				Assert.That(c.a.parameter, Is.EqualTo(2));
+				Assert.That(c.ac1.parameter, Is.EqualTo(1));
 
-				container.BuildUp(this, new[] {"c2"});
+				Assert.That(b.ac2, Is.Not.SameAs(c.ac1));
+				Assert.That(b.a, Is.Not.SameAs(c.a));
 
-				Assert.That(a.parameter, Is.EqualTo(2));
-				Assert.That(ac1.parameter, Is.EqualTo(1));
-				Assert.That(ac2.parameter, Is.EqualTo(2));
-
-				Assert.That(a, Is.SameAs(localAc2));
-				Assert.That(ac1, Is.EqualTo(localAc1));
-				Assert.That(ac2, Is.EqualTo(localAc2));
+				Assert.That(b.a, Is.SameAs(c.ac1));
+				Assert.That(c.a, Is.SameAs(b.ac2));
 			}
 		}
 	}

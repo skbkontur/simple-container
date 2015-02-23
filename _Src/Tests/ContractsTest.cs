@@ -701,6 +701,41 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ClassContractIsAppliedAfterDependencyContract : ContractsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("c1")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[TestContract("c2")]
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("c1").BindDependency<B>("parameter", 42);
+					builder.Contract("c2").BindDependency<B>("parameter", 43);
+				});
+				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(43));
+			}
+		}
+
 		public class UsedContractsForServiceCreatedUsingFinalContracts : ContractsTest
 		{
 			public class A
@@ -1709,6 +1744,32 @@ namespace SimpleContainer.Tests
 				});
 				Assert.That(container.Get<A>().x.parameter, Is.EqualTo(1));
 				Assert.That(container.Get<B>().x.parameter, Is.EqualTo(2));
+			}
+		}
+
+		public class ServiceWithContractImplementsInterface : StaticContainerTest
+		{
+			public interface IA
+			{
+			}
+
+			[TestContract("x")]
+			public class A : IA
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x").BindDependency<A>("parameter", 42));
+				var a = (A) container.Get<IA>();
+				Assert.That(a.parameter, Is.EqualTo(42));
 			}
 		}
 

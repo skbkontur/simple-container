@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
@@ -112,11 +113,13 @@ namespace SimpleContainer.Implementation
 			return current.Count <= 1 ? null : current[current.Count - 2].service;
 		}
 
-		public ContainerService Resolve(Type type, string name, SimpleContainer container, List<string> contractNames)
+		public ContainerService Resolve(Type type, List<string> contractNames, string name, SimpleContainer container)
 		{
-			if (contractNames == null)
+			var internalContracts = InternalHelpers.ToInternalContracts(contractNames, type);
+			if (internalContracts == null)
 				return container.ResolveSingleton(type, name, this);
-			var unioned = contractNames
+
+			var unioned = internalContracts
 				.Select(delegate(string s)
 				{
 					var configurations = configuration.GetContractConfigurations(s).ToArray();
@@ -124,10 +127,10 @@ namespace SimpleContainer.Implementation
 				})
 				.ToArray();
 			if (unioned.All(x => x == null))
-				return ResolveUsingContracts(type, name, container, contractNames);
+				return ResolveUsingContracts(type, name, container, internalContracts);
 			var source = new List<List<string>>();
-			for (var i = 0; i < contractNames.Count; i++)
-				source.Add(unioned[i] ?? new List<string>(1) {contractNames[i]});
+			for (var i = 0; i < internalContracts.Count; i++)
+				source.Add(unioned[i] ?? new List<string>(1) { internalContracts[i] });
 			var result = new ContainerService(type);
 			result.AttachToContext(this);
 			foreach (var contracts in source.CartesianProduct())

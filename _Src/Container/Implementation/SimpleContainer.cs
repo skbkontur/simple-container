@@ -266,7 +266,7 @@ namespace SimpleContainer.Implementation
 					service.Context.Instantiate(null, childService, this);
 				}
 				else
-					childService = ResolveSingleton(implementationType, null, service.Context);
+					childService = service.Context.Resolve(implementationType, null, null, this);
 				service.UnionFrom(childService);
 			}
 			service.EndResolveDependencies();
@@ -460,20 +460,6 @@ namespace SimpleContainer.Implementation
 			return new DependencyValue {value = instance};
 		}
 
-		private static List<string> GetContracts(ParameterInfo formalParameter, Type dependencyType)
-		{
-			var parameterContract = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
-			var dependencyTypeContract = dependencyType.GetCustomAttributeOrNull<RequireContractAttribute>();
-			if (parameterContract == null && dependencyTypeContract == null)
-				return null;
-			var result = new List<string>();
-			if (parameterContract != null)
-				result.Add(parameterContract.ContractName);
-			if (dependencyTypeContract != null)
-				result.Add(dependencyTypeContract.ContractName);
-			return result;
-		}
-
 		private DependencyValue InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
 			ResolutionContext context)
 		{
@@ -511,7 +497,8 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
 			var dependencyType = isEnumerable ? enumerableItem : implementationType;
-			var contracts = GetContracts(formalParameter, dependencyType);
+			var attribute = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
+			var contracts = attribute == null ? null : new List<string>(1) {attribute.ContractName};
 			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(dependencyType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
@@ -529,7 +516,7 @@ namespace SimpleContainer.Implementation
 					? new DependencyValue {value = new[] {dependencyValue.value}.CastToArrayOf(dependencyType)}
 					: dependencyValue;
 			}
-			var result = context.Resolve(dependencyType, formalParameter.Name, this, contracts);
+			var result = context.Resolve(dependencyType, contracts, formalParameter.Name, this);
 			if (isEnumerable)
 				return new DependencyValue {isEnumerable = true, service = result};
 			if (result.Instances.Count == 0)

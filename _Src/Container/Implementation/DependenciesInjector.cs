@@ -63,7 +63,7 @@ namespace SimpleContainer.Implementation
 				try
 				{
 					result[i].value = container.Resolve(member.MemberType(), contracts);
-					result[i].value.Single();
+					result[i].value.CheckSingleInstance();
 				}
 				catch (SimpleContainerException e)
 				{

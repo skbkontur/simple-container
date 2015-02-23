@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 
@@ -19,15 +20,13 @@ namespace SimpleContainer.Helpers
 
 		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
-			var requireContractAttribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
-			if (contracts == null && requireContractAttribute == null)
-				return null;
-			var result = new List<string>();
-			if (contracts != null)
-				foreach (var contract in contracts)
-					AddIfNotExists(contract, result);
-			if (requireContractAttribute != null)
-				AddIfNotExists(requireContractAttribute.ContractName, result);
+			var attribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
+			if (attribute == null)
+				return contracts == null ? null : ((contracts as List<string>) ?? contracts.ToList());
+			if (contracts == null)
+				return new List<string>(1) {attribute.ContractName};
+			var result = contracts.ToList();
+			result.Add(attribute.ContractName);
 			return result;
 		}
 
@@ -37,12 +36,6 @@ namespace SimpleContainer.Helpers
 			if (result == null && type.IsGenericType)
 				result = registry.GetOrNull<T>(type.GetDefinition());
 			return result;
-		}
-
-		private static void AddIfNotExists(string item, List<string> target)
-		{
-			if (target.IndexOf(item) < 0)
-				target.Add(item);
 		}
 
 		public static string ByNameDependencyKey(string name)
