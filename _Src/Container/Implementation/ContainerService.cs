@@ -112,7 +112,7 @@ namespace SimpleContainer.Implementation
 				usedContractNames = new List<string>();
 			var contractsToAdd = dependency.usedContractNames
 				.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-				.Where(x => Context.ContractDeclared(x));
+				.Where(Context.ContractDeclared);
 			foreach (var name in contractsToAdd)
 				usedContractNames.Add(name);
 		}

@@ -1822,7 +1822,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ServiceWithContractImplementsInterface : StaticContainerTest
+		public class ServiceWithContractImplementsInterface : ContractsTest
 		{
 			public interface IA
 			{

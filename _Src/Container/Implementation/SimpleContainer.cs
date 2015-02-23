@@ -502,14 +502,14 @@ namespace SimpleContainer.Implementation
 			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(dependencyType);
 			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
 			{
-				var definedContracts = new List<string>(context.DeclaredContractNames());
+				var declaredContracts = new List<string>(context.DeclaredContractNames());
 				if (contracts != null)
-					definedContracts.AddRange(contracts);
+					declaredContracts.AddRange(contracts);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
 				{
 					container = this,
 					target = implementation.type,
-					contracts = definedContracts
+					contracts = declaredContracts
 				});
 				var dependencyValue = IndependentDependency(formalParameter, instance, context);
 				return isEnumerable

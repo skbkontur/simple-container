@@ -32,10 +32,10 @@ namespace SimpleContainer.Implementation
 			return declaredContracts.Select(x => x.name).ToList();
 		}
 
-		public List<string> GetDeclaredContractsByNames(List<string> indexes)
+		public List<string> GetDeclaredContractsByNames(List<string> names)
 		{
 			return declaredContracts
-				.Where(x => indexes.Contains(x.name, StringComparer.OrdinalIgnoreCase))
+				.Where(x => names.Contains(x.name, StringComparer.OrdinalIgnoreCase))
 				.Select(x => x.name)
 				.ToList();
 		}
@@ -197,12 +197,12 @@ namespace SimpleContainer.Implementation
 
 		private bool MatchWithDeclaredContracts(List<string> required)
 		{
-			for (int i = 0, j = 0; i < required.Count; j++)
+			for (int r = 0, d = 0; r < required.Count; d++)
 			{
-				if (j >= declaredContracts.Count)
+				if (d >= declaredContracts.Count)
 					return false;
-				if (required[i].EqualsIgnoringCase(declaredContracts[j].name))
-					i++;
+				if (required[r].EqualsIgnoringCase(declaredContracts[d].name))
+					r++;
 			}
 			return true;
 		}
