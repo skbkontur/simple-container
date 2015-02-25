@@ -1,0 +1,98 @@
+using System;
+using NUnit.Framework;
+using SimpleContainer.Interface;
+using SimpleContainer.Tests.Helpers;
+
+namespace SimpleContainer.Tests
+{
+	public abstract class ArgumentsCheckingTest : SimpleContainerTestBase
+	{
+		public class ExplicitArgumentNullExceptionForNullType : ArgumentsCheckingTest
+		{
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<ArgumentNullException>(() => container.Get(null));
+				Assert.That(exception.ParamName, Is.EqualTo("type"));
+			}
+		}
+
+		public class ExplicitArgumentNullExceptionForGetImplementationsOf : ArgumentsCheckingTest
+		{
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<ArgumentNullException>(() => container.GetImplementationsOf(null));
+				Assert.That(exception.ParamName, Is.EqualTo("interfaceType"));
+			}
+		}
+
+		public class NullContractsAreEquivalentToEmpty : ArgumentsCheckingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.DoesNotThrow(() => container.Resolve<A>(null));
+			}
+		}
+
+		public class ExplicitArgumentNullExceptionForBuildUp : ArgumentsCheckingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<ArgumentNullException>(() => container.BuildUp(null, new string[0]));
+				Assert.That(exception.ParamName, Is.EqualTo("target"));
+
+				var conainerException = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new string[] {null}));
+				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [<null>]"));
+			}
+		}
+
+		public class ExplicitArgumentNullExceptionForCreate : ArgumentsCheckingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<ArgumentNullException>(() => container.Create(null));
+				Assert.That(exception.ParamName, Is.EqualTo("type"));
+
+				var conainerException =
+					Assert.Throws<SimpleContainerException>(() => container.Create(typeof (A), new string[] {null}, null));
+				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [<null>]"));
+			}
+		}
+
+		public class ExplicitExceptionForNullContract : ArgumentsCheckingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var containerException = Assert.Throws<SimpleContainerException>(() => container.Resolve<A>(new[] {"a", null}));
+				Assert.That(containerException.Message, Is.EqualTo("invalid contracts [a,<null>]"));
+			}
+		}
+	}
+}

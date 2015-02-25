@@ -63,13 +63,17 @@ namespace SimpleContainer.Implementation
 			componentsRunner = new ComponentsRunner(infoLogger);
 		}
 
-		public ResolvedService Resolve(Type serviceType, IEnumerable<string> contracts)
+		public ResolvedService Resolve(Type type, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
+			if (type == null)
+				throw new ArgumentNullException("type");
+			var contractsArray = CheckContracts(contracts);
+
 			Type enumerableItem;
-			var isEnumerable = TryUnwrapEnumerable(serviceType, out enumerableItem);
-			var typeToResolve = isEnumerable ? enumerableItem : serviceType;
-			var cacheKey = new CacheKey(typeToResolve, InternalHelpers.ToInternalContracts(contracts, typeToResolve));
+			var isEnumerable = TryUnwrapEnumerable(type, out enumerableItem);
+			var typeToResolve = isEnumerable ? enumerableItem : type;
+			var cacheKey = new CacheKey(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
 			result.WaitForResolveOrDie();
 			return new ResolvedService(result, this, isEnumerable);
@@ -89,10 +93,28 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
+		private static string[] CheckContracts(IEnumerable<string> contracts)
+		{
+			if (contracts == null)
+				return null;
+			var contractsArray = contracts.ToArray();
+			foreach (var contract in contractsArray)
+				if (string.IsNullOrEmpty(contract))
+				{
+					var message = string.Format("invalid contracts [{0}]", contractsArray.Select(x => x ?? "<null>").JoinStrings(","));
+					throw new SimpleContainerException(message);
+				}
+			return contractsArray;
+		}
+
 		public ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
 			EnsureNotDisposed();
-			var result = Create(type, contracts, arguments, null);
+			if (type == null)
+				throw new ArgumentNullException("type");
+			var contractsArray = CheckContracts(contracts);
+
+			var result = Create(type, contractsArray, arguments, null);
 			return new ResolvedService(result, this, false);
 		}
 
@@ -106,6 +128,9 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
 		{
 			EnsureNotDisposed();
+			if (interfaceType == null)
+				throw new ArgumentNullException("interfaceType");
+
 			var interfaceConfiguration = configuration.GetOrNull<InterfaceConfiguration>(interfaceType);
 			if (interfaceConfiguration != null && interfaceConfiguration.ImplementationTypes != null)
 				return interfaceConfiguration.ImplementationTypes;
@@ -122,7 +147,11 @@ namespace SimpleContainer.Implementation
 		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
 		{
 			EnsureNotDisposed();
-			return dependenciesInjector.BuildUp(target, contracts);
+			if (target == null)
+				throw new ArgumentNullException("target");
+			var contractsArray = CheckContracts(contracts);
+
+			return dependenciesInjector.BuildUp(target, contractsArray);
 		}
 
 		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
@@ -248,7 +277,8 @@ namespace SimpleContainer.Implementation
 		private void InstantiateInterface(ContainerService service, IEnumerable<Type> implementationTypes, bool useAutosearch)
 		{
 			var localTypes = implementationTypes == null || useAutosearch
-				? implementationTypes.EmptyIfNull().Union(inheritors.GetOrNull(service.Type.GetDefinition()).EmptyIfNull())
+				? implementationTypes.EmptyIfNull()
+					.Union(inheritors.GetOrNull(service.Type.GetDefinition()).EmptyIfNull())
 				: implementationTypes;
 			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
 			if (localTypesArray.Length == 0)
