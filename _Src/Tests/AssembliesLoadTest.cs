@@ -235,8 +235,6 @@ namespace SimpleContainer.Tests
 				const string keyFormat = "exception loading assembly [{0}], " +
 				                         "reference chain [{1}]->[{2}], directories searched [{3}]";
 				var exceptionKey = string.Format(keyFormat, a1.GetName().Name, a3.GetName().Name, a2.GetName().Name, testDirectory);
-				var appDomainSetup = appDomain.SetupInformation;
-				Console.Out.WriteLine(appDomainSetup.PrivateBinPath);
 				Assert.That(exceptionText, Is.StringContaining(exceptionKey));
 			}
 		}
