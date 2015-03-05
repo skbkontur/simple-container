@@ -11,15 +11,15 @@ namespace SimpleContainer.Tests
 	public abstract class AssembliesLoadTest : UnitTestBase
 	{
 		protected AppDomain appDomain;
-		protected string testDirectory;
+		protected static string testDirectory = Path.GetFullPath("testDirectory");
 
 		protected override void SetUp()
 		{
 			base.SetUp();
-			testDirectory = Path.GetFullPath("testDirectory");
 			if (Directory.Exists(testDirectory))
 				Directory.Delete(testDirectory, true);
 			Directory.CreateDirectory(testDirectory);
+
 			appDomain = AppDomain.CreateDomain("test", null, new AppDomainSetup {ApplicationBase = testDirectory});
 		}
 
@@ -232,8 +232,11 @@ namespace SimpleContainer.Tests
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
 
 				var exceptionText = GetInvoker().CreateLocalContainerWithCrash(a3.GetName().Name);
-				var exceptionKey = string.Format("exception loading assembly [{0}], reference chain [{1}]->[{2}]",
-					a1.GetName().Name, a3.GetName().Name, a2.GetName().Name);
+				const string keyFormat = "exception loading assembly [{0}], " +
+				                         "reference chain [{1}]->[{2}], directories searched [{3}]";
+				var exceptionKey = string.Format(keyFormat, a1.GetName().Name, a3.GetName().Name, a2.GetName().Name, testDirectory);
+				var appDomainSetup = appDomain.SetupInformation;
+				Console.Out.WriteLine(appDomainSetup.PrivateBinPath);
 				Assert.That(exceptionText, Is.StringContaining(exceptionKey));
 			}
 		}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Infection;
@@ -37,14 +38,31 @@ namespace SimpleContainer.Helpers
 				}
 				catch (Exception e)
 				{
-					const string messageFormat = "exception loading assembly [{0}], reference chain {1}";
+					const string messageFormat = "exception loading assembly [{0}], reference chain {1}, directories searched {2}";
 					var referenceChain = referencesChain.Select(x => "[" + x.GetName().Name + "]").Reverse().JoinStrings("->");
-					throw new SimpleContainerException(string.Format(messageFormat, name.Name, referenceChain), e);
+					var searchDirectories = GetAssemblySearchDirectories(AppDomain.CurrentDomain).JoinStrings(",");
+					throw new SimpleContainerException(string.Format(messageFormat, name.Name, referenceChain, searchDirectories), e);
 				}
 				if (result.Add(referencedAssembly))
 					ProcessAssembly(referencedAssembly, result, filter, referencesChain);
 			}
 			referencesChain.Pop();
+		}
+
+		private static IEnumerable<string> GetAssemblySearchDirectories(this AppDomain appDomain)
+		{
+			if (appDomain.SetupInformation.DisallowApplicationBaseProbing)
+				return Enumerable.Empty<string>();
+			var result = new List<string>();
+			if (appDomain.SetupInformation.PrivateBinPathProbe == null)
+				result.Add(appDomain.SetupInformation.ApplicationBase);
+			if (!string.IsNullOrEmpty(appDomain.SetupInformation.PrivateBinPath))
+			{
+				var privateBinPaths = appDomain.SetupInformation.PrivateBinPath.Split(';')
+					.Select(x => Path.Combine(appDomain.SetupInformation.ApplicationBase, x));
+				result.AddRange(privateBinPaths);
+			}
+			return result.Select(x => "[" + Path.GetFullPath(x) + "]");
 		}
 
 		public static Assembly LoadAssembly(AssemblyName name)
