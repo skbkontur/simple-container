@@ -10,8 +10,8 @@ namespace SimpleContainer.Tests
 {
 	public abstract class AssembliesLoadTest : UnitTestBase
 	{
-		protected AppDomain appDomain;
-		protected static string testDirectory = Path.GetFullPath("testDirectory");
+		private AppDomain appDomain;
+		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
 
 		protected override void SetUp()
 		{
@@ -32,18 +32,18 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected void CopyAssemblyToTestDirectory(Assembly assembly)
+		private void CopyAssemblyToTestDirectory(Assembly assembly)
 		{
 			File.Copy(assembly.Location, Path.Combine(testDirectory, Path.GetFileName(assembly.Location)));
 		}
 
-		protected FactoryInvoker GetInvoker()
+		private FactoryInvoker GetInvoker()
 		{
 			return (FactoryInvoker) appDomain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().GetName().FullName,
 				typeof (FactoryInvoker).FullName);
 		}
 
-		public class FactoryInvoker : MarshalByRefObject
+		private class FactoryInvoker : MarshalByRefObject
 		{
 			public string CreateLocalContainerWithCrash(string primaryAssemblyName)
 			{

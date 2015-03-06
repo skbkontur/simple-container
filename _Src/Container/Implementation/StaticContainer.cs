@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
@@ -12,22 +13,26 @@ namespace SimpleContainer.Implementation
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConfigurationContext configurationContext;
 		private readonly Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator;
+		private readonly List<Assembly> pluginAssemblies;
 
 		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
-			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator, LogError logError, LogInfo logInfo)
+			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator, LogError logError, LogInfo logInfo,
+			List<Assembly> pluginAssemblies)
 			: base(configuration, inheritors, null, CacheLevel.Static, staticServices, logError, logInfo)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
 			this.fileConfigurator = fileConfigurator;
+			this.pluginAssemblies = pluginAssemblies;
 		}
 
 		public IContainer CreateLocalContainer(string name, Assembly primaryAssembly,
 			IParametersSource parameters, Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			var targetAssemblies = EnumerableHelpers.Return(primaryAssembly).Closure(assemblyFilter).ToSet();
+
+			var targetAssemblies = EnumerableHelpers.Return(primaryAssembly).Closure(assemblyFilter).Concat(pluginAssemblies).ToSet();
 			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
@@ -50,7 +55,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new StaticContainer(CloneConfiguration(configure), inheritors, assemblyFilter,
-				configurationContext, staticServices, fileConfigurator, null, infoLogger);
+				configurationContext, staticServices, fileConfigurator, null, infoLogger, pluginAssemblies);
 		}
 	}
 }

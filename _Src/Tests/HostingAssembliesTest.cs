@@ -310,7 +310,55 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		protected static ContainerFactory Factory()
+		public class PluginsTest : HostingAssembliesTest
+		{
+			private const string primaryAssemblyCode = @"
+					namespace A1
+					{
+						public interface ITestInterface
+						{
+						}
+
+						public class DefaultImpl: ITestInterface
+						{
+						}
+					}
+				";
+
+			private const string pluginAssemblyCode = @"
+					using SimpleContainer.Configuration;
+
+					namespace A1
+					{
+						public class TestingImpl: ITestInterface
+						{
+						}
+
+						public class ServiceConfigurator: IServiceConfigurator<ITestInterface>
+						{
+							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<ITestInterface> builder)
+							{
+								builder.Bind<TestingImpl>();
+							}
+						}
+					}
+				";
+
+			[Test]
+			public void Test()
+			{
+				var primary = AssemblyCompiler.Compile(primaryAssemblyCode);
+				var plugin = AssemblyCompiler.Compile(pluginAssemblyCode, primary);
+				var factory = new ContainerFactory()
+					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+					.WithPlugin(plugin);
+				using (var staticContainer = factory.FromAssemblies(new[] {primary}))
+				using (var localContainer = staticContainer.CreateLocalContainer(null, primary, null, null))
+					Assert.That(localContainer.Get(primary.GetType("A1.ITestInterface")).GetType().Name, Is.EqualTo("TestingImpl"));
+			}
+		}
+
+		private static ContainerFactory Factory()
 		{
 			return new ContainerFactory().WithAssembliesFilter(x => x.Name.StartsWith("tmp_"));
 		}
