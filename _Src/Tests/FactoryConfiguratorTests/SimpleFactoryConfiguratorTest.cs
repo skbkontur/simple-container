@@ -183,6 +183,40 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
+		public class FailedResolutionsCommunicatedAsSimpleContainerExceptionOutsideOfConstructor : SimpleFactoryConfiguratorTest
+		{
+			public class A
+			{
+				public readonly Func<IB> createB;
+
+				public A(Func<IB> createB)
+				{
+					this.createB = createB;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			public class B1 : IB
+			{
+			}
+
+			public class B2 : IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Get<A>();
+				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
+				Assert.That(error.Message, Is.EqualTo("many implementations for IB\r\n\tB1\r\n\tB2\r\nIB++\r\n\tB1\r\n\tB2"));
+			}
+		}
+
 		public class ArgumentsAreNotUsedForDependencies : SimpleFactoryConfiguratorTest
 		{
 			public class Wrap

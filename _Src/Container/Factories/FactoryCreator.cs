@@ -18,12 +18,10 @@ namespace SimpleContainer.Factories
 				{
 					result = container.Create(type, declaredContractNames, arguments, null);
 					container.Run(result, null);
+					return result.SingleInstance(false);
 				}
-				else
-				{
-					result = container.Create(type, declaredContractNames, arguments, containerService.Context);
-					containerService.AddDependency(result);
-				}
+				result = container.Create(type, declaredContractNames, arguments, containerService.Context);
+				containerService.AddDependency(result);
 				return result.SingleInstance(true);
 			};
 		}
