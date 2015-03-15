@@ -319,7 +319,7 @@ namespace SimpleContainer.Implementation
 			}
 			var factoryMethod = GetFactoryOrNull(service.Type);
 			if (factoryMethod == null)
-				DefaultInstantiateImplementation(service.Type, service);
+				DefaultInstantiateImplementation(service);
 			else
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, null, service.Context);
@@ -405,9 +405,9 @@ namespace SimpleContainer.Implementation
 			return true;
 		}
 
-		private void DefaultInstantiateImplementation(Type type, ContainerService service)
+		private void DefaultInstantiateImplementation(ContainerService service)
 		{
-			var implementation = new Implementation(type);
+			var implementation = new Implementation(service.Type);
 			ConstructorInfo constructor;
 			if (!implementation.TryGetConstructor(out constructor))
 				service.Throw(implementation.publicConstructors.Length == 0
@@ -455,7 +455,7 @@ namespace SimpleContainer.Implementation
 				InvokeConstructor(constructor, null, actualArguments, service);
 				return;
 			}
-			var usedContactsCacheKey = new CacheKey(type, service.FinalUsedContracts);
+			var usedContactsCacheKey = new CacheKey(service.Type, service.FinalUsedContracts);
 			var serviceForUsedContracts = instanceCache.GetOrAdd(usedContactsCacheKey, createContainerServiceDelegate);
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
