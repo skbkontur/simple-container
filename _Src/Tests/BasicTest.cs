@@ -448,7 +448,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
-				Assert.That(error.Message, Is.StringContaining("GenericClass<T>! - has open generic arguments"));
+				Assert.That(error.Message, Is.StringContaining("can't create open generic\r\nGenericClass<T>! - <---------------"));
 			}
 
 			public class GenericClass<T>

@@ -264,8 +264,7 @@ namespace SimpleContainer.Implementation
 			}
 			if (service.Type.IsGenericType && service.Type.ContainsGenericParameters)
 			{
-				service.Context.Comment("has open generic arguments");
-				service.EndResolveDependencies();
+				service.Throw("can't create open generic");
 				return;
 			}
 			if (service.Type.IsAbstract)
