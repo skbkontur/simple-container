@@ -50,14 +50,6 @@ namespace SimpleContainer.Implementation
 			return declaredContracts.Any(x => x.name.EqualsIgnoringCase(name));
 		}
 
-		public bool DeclaredContractsContainedIn(List<string> target)
-		{
-			foreach (var declaredContract in declaredContracts)
-				if (!target.Contains(declaredContract.name, StringComparer.OrdinalIgnoreCase))
-					return false;
-			return true;
-		}
-
 		public string DeclaredContractsKey()
 		{
 			return InternalHelpers.FormatContractsKey(DeclaredContractNames());

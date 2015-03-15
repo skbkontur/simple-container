@@ -41,11 +41,6 @@ namespace SimpleContainer.Implementation
 			return this;
 		}
 
-		public bool AllDeclaredContractsUsed()
-		{
-			return Context.DeclaredContractsContainedIn(FinalUsedContracts);
-		}
-
 		public void AttachToContext(ResolutionContext context)
 		{
 			Context = context;
