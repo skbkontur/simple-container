@@ -78,9 +78,9 @@ namespace SimpleContainer.Interface
 			return containerService.AsEnumerable();
 		}
 
-		public void DumpConstructionLog(ISimpleLogWriter writer, bool entireResolutionContext = false)
+		public void DumpConstructionLog(ISimpleLogWriter writer)
 		{
-			containerService.Context.Format(entireResolutionContext ? null : containerService, writer);
+			containerService.Format(writer);
 		}
 
 		public string GetConstructionLog(bool entireResolutionContext = false)

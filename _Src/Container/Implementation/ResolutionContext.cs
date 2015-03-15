@@ -11,10 +11,8 @@ namespace SimpleContainer.Implementation
 	internal class ResolutionContext : IContainerConfigurationRegistry
 	{
 		private readonly IContainerConfiguration configuration;
-		private readonly List<ResolutionItem> current = new List<ResolutionItem>();
-		private readonly List<ResolutionItem> log = new List<ResolutionItem>();
+		private readonly List<ContainerService> current = new List<ContainerService>();
 		private readonly ISet<Type> currentTypes = new HashSet<Type>();
-		private int depth;
 		private readonly List<ContractDeclaration> declaredContracts = new List<ContractDeclaration>();
 
 		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
@@ -75,56 +73,40 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
-		public void Instantiate(string name, ContainerService containerService, SimpleContainer container)
+		public void Instantiate(ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
-			var declaredContacts = DeclaredContractsKey();
-			var previousDeclaredContracts = previous == null ? "" : previous.declaredContacts ?? "";
-			var item = new ResolutionItem
-			{
-				depth = depth++,
-				name = name,
-				declaredContacts = declaredContacts,
-				contractDeclared = previousDeclaredContracts.Length < declaredContacts.Length,
-				service = containerService,
-				isStatic = container.cacheLevel == CacheLevel.Static
-			};
-			current.Add(item);
-			log.Add(item);
+			var declaredContacts = DeclaredContractNames();
+			containerService.declaredContracts = declaredContacts;
+			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
+			current.Add(containerService);
 			if (!currentTypes.Add(containerService.Type))
 				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
-					containerService.Type.FormatName(), previous == null ? "null" : previous.service.Type.FormatName(), Format()));
+					containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName(), Format()));
 			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
 			current.RemoveAt(current.Count - 1);
 			currentTypes.Remove(containerService.Type);
-			depth--;
 		}
 
 		public void LogSimpleType(ParameterInfo formalParameter, object value, SimpleContainer container)
 		{
 			var containerService = new ContainerService(formalParameter.ParameterType);
 			containerService.AddInstance(value);
-			var item = new ResolutionItem
-			{
-				depth = depth,
-				name = formalParameter.Name,
-				declaredContacts = DeclaredContractsKey(),
-				contractDeclared = false,
-				service = containerService,
-				isStatic = container.cacheLevel == CacheLevel.Static
-			};
+			containerService.declaredContracts = DeclaredContractNames();
+			containerService.name = formalParameter.Name;
+			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
 			log.Add(item);
 		}
 
 		public ContainerService GetTopService()
 		{
-			return current.Count == 0 ? null : current[current.Count - 1].service;
+			return current.Count == 0 ? null : current[current.Count - 1];
 		}
 
 		public ContainerService GetPreviousService()
 		{
-			return current.Count <= 1 ? null : current[current.Count - 2].service;
+			return current.Count <= 1 ? null : current[current.Count - 2];
 		}
 
 		public ContainerService Resolve(Type type, List<string> contractNames, string name, SimpleContainer container)
@@ -199,13 +181,6 @@ namespace SimpleContainer.Implementation
 			return true;
 		}
 
-		public string Format()
-		{
-			var writer = new SimpleTextLogWriter();
-			Format(null, writer);
-			return writer.GetText();
-		}
-
 		public void Throw(string format, params object[] args)
 		{
 			throw new SimpleContainerException(string.Format(format, args) + "\r\n" + Format());
@@ -216,64 +191,10 @@ namespace SimpleContainer.Implementation
 			current[current.Count - 1].message = string.Format(message, args);
 		}
 
-		public void Format(ContainerService containerService, ISimpleLogWriter writer)
-		{
-			var startDepth = 0;
-			var targetTypeFound = false;
-			foreach (var state in log)
-			{
-				if (containerService != null && state.service != containerService && !targetTypeFound)
-					continue;
-				if (targetTypeFound && state.depth <= startDepth)
-					break;
-				if (!targetTypeFound)
-				{
-					targetTypeFound = true;
-					startDepth = state.depth;
-				}
-				writer.WriteIndent(state.depth - startDepth);
-				var isSimpleType = state.service.Type.IsSimpleType();
-				var name = state.name != null && isSimpleType ? state.name : state.service.Type.FormatName();
-				writer.WriteName(state.isStatic ? "(s)" + name : name);
-				var usedContracts = state.service.GetUsedContractNames();
-				if (usedContracts != null && usedContracts.Count > 0)
-					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-				if (state.declaredContacts != null && state.contractDeclared)
-				{
-					writer.WriteMeta("->[");
-					writer.WriteMeta(state.declaredContacts);
-					writer.WriteMeta("]");
-				}
-				if (state.service.Instances.Count == 0)
-					writer.WriteMeta("!");
-				else if (state.service.Instances.Count > 1)
-					writer.WriteMeta("++");
-				else if (isSimpleType)
-					writer.WriteMeta(" -> " + (state.service.Instances[0] ?? "<null>"));
-				if (state.message != null)
-				{
-					writer.WriteMeta(" - ");
-					writer.WriteMeta(state.message);
-				}
-				writer.WriteNewLine();
-			}
-		}
-
 		private class ContractDeclaration
 		{
 			public string name;
 			public List<ContractConfiguration> definitions;
-		}
-
-		private class ResolutionItem
-		{
-			public int depth;
-			public string name;
-			public string message;
-			public string declaredContacts;
-			public bool contractDeclared;
-			public ContainerService service;
-			public bool isStatic;
 		}
 	}
 }

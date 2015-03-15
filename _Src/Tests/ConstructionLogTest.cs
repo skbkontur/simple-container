@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -190,6 +191,52 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				const string expectedConstructionLog = "A\r\n\tparameter -> <null>";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
+		public class MergeFailedConstructionLog : BasicTest
+		{
+			public class A
+			{
+				public readonly IB b;
+
+				public A(IB b)
+				{
+					this.b = b;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			public class B1 : IB
+			{
+			}
+
+			public class B2 : IB
+			{
+			}
+
+			public class C
+			{
+				public readonly A a;
+
+				public C(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
+				const string expectedMessage =
+					"many implementations for IB\r\n\tB1\r\n\tB2\r\nC!\r\n\tA\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
+				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
 	}

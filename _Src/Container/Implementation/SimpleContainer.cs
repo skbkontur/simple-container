@@ -83,7 +83,7 @@ namespace SimpleContainer.Implementation
 		{
 			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			var result = ContainerService.ForFactory(type, arguments);
-			context.Instantiate(null, result, this);
+			context.Instantiate(result, this);
 			if (result.Arguments != null)
 			{
 				var unused = result.Arguments.GetUnused().ToArray();
@@ -206,7 +206,7 @@ namespace SimpleContainer.Implementation
 			if (result.AcquireInstantiateLock())
 				try
 				{
-					context.Instantiate(name, result, this);
+					context.Instantiate(result, this);
 					result.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
 				catch (Exception e)
@@ -224,7 +224,9 @@ namespace SimpleContainer.Implementation
 		internal void Instantiate(ContainerService service)
 		{
 			if (service.Type.IsSimpleType())
+			{
 				service.Throw("can't create simple type");
+			}
 			if (service.Type == typeof (IContainer))
 			{
 				service.AddInstance(this);
@@ -292,7 +294,7 @@ namespace SimpleContainer.Implementation
 				if (service.CreateNew)
 				{
 					childService = new ContainerService(implementationType).WithArguments(service.Arguments);
-					service.Context.Instantiate(null, childService, this);
+					service.Context.Instantiate(childService, this);
 				}
 				else
 					childService = service.Context.Resolve(implementationType, null, null, this);
@@ -434,7 +436,14 @@ namespace SimpleContainer.Implementation
 						return;
 					}
 					else
-						dependencyValue = dependency.service.SingleInstance(false);
+					{
+						if (dependency.service.Instances.Count != 1)
+						{
+							service.EndResolveDependenciesWithFailure(dependency.service.SingleInstanceViolationMessage());
+							return;
+						}
+						dependencyValue = dependency.service.Instances[0];
+					}
 				}
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
@@ -484,9 +493,28 @@ namespace SimpleContainer.Implementation
 		private DependencyValue IndependentDependency(ParameterInfo formalParameter, object instance,
 			ResolutionContext context)
 		{
-			if (formalParameter.ParameterType.IsSimpleType())
-				context.LogSimpleType(formalParameter, instance, this);
-			return new DependencyValue {value = instance};
+			var containerService = new ContainerService(formalParameter.ParameterType);
+			containerService.AddInstance(instance);
+			containerService.declaredContracts = context.DeclaredContractNames();
+			containerService.name = formalParameter.Name;
+			containerService.isStatic = cacheLevel == CacheLevel.Static;
+			return new DependencyValue {service = containerService};
+		}
+
+		private DependencyValue FailedService(ParameterInfo formalParameter, string message,
+			ResolutionContext context)
+		{
+			return new DependencyValue
+			{
+				service = new ContainerService(formalParameter.ParameterType)
+				{
+					status = ServiceStatus.Failed,
+					message = message,
+					declaredContracts = context.DeclaredContractNames(),
+					name = formalParameter.Name,
+					isStatic = cacheLevel == CacheLevel.Static
+				}
+			};
 		}
 
 		private DependencyValue InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
@@ -517,10 +545,12 @@ namespace SimpleContainer.Implementation
 				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type,
 					resourceAttribute.Name);
 				if (resourceStream == null)
-					throw new SimpleContainerException(
-						string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]\r\n{3}",
-							resourceAttribute.Name, implementation.type,
-							implementation.type.Assembly.GetName().Name, context.Format()));
+				{
+					var message = string.Format("can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
+						resourceAttribute.Name, implementation.type,
+						implementation.type.Assembly.GetName().Name);
+					return FailedService(formalParameter, message, context);
+				}
 				return IndependentDependency(formalParameter, resourceStream, context);
 			}
 			Type enumerableItem;
@@ -610,7 +640,8 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				throw new SimpleContainerException("construction exception\r\n" + containerService.Context.Format() + "\r\n", e);
+				containerService.status = ServiceStatus.Failed;
+				containerService.constructionException = e;
 			}
 		}
 

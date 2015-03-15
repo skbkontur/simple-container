@@ -10,6 +10,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class ContainerService
 	{
+		public ServiceStatus status;
 		private List<string> usedContractNames;
 		private readonly List<object> instances = new List<object>();
 		private IEnumerable<object> typedArray;
@@ -24,6 +25,13 @@ namespace SimpleContainer.Implementation
 		public bool CreateNew { get; private set; }
 		public ResolutionContext Context { get; private set; }
 		private List<ContainerService> dependencies;
+
+		//trash
+		public string name;
+		public List<string> declaredContracts;
+		public bool isStatic;
+		public string message;
+		public Exception constructionException;
 
 		public ContainerService(Type type)
 		{
@@ -108,8 +116,8 @@ namespace SimpleContainer.Implementation
 			var contractsToAdd = dependency.usedContractNames
 				.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
 				.Where(Context.ContractDeclared);
-			foreach (var name in contractsToAdd)
-				usedContractNames.Add(name);
+			foreach (var n in contractsToAdd)
+				usedContractNames.Add(n);
 		}
 
 		public void UnionFrom(ContainerService other)
@@ -128,17 +136,25 @@ namespace SimpleContainer.Implementation
 					AddDependency(dependency);
 		}
 
-		public void UseContractWithName(string name)
+		public void UseContractWithName(string n)
 		{
 			if (usedContractNames == null)
 				usedContractNames = new List<string>();
-			if (!usedContractNames.Contains(name, StringComparer.OrdinalIgnoreCase))
-				usedContractNames.Add(name);
+			if (!usedContractNames.Contains(n, StringComparer.OrdinalIgnoreCase))
+				usedContractNames.Add(n);
 		}
 
 		public void EndResolveDependencies()
 		{
 			FinalUsedContracts = GetUsedContractNamesFromContext();
+			status = ServiceStatus.Ok;
+		}
+		
+		public void EndResolveDependenciesWithFailure(string failureMessage)
+		{
+			FinalUsedContracts = GetUsedContractNamesFromContext();
+			message = failureMessage;
+			status = ServiceStatus.Failed;
 		}
 
 		public List<string> GetUsedContractNames()
@@ -159,11 +175,16 @@ namespace SimpleContainer.Implementation
 				return instances[0];
 			if (instances.Count == 0 && inConstructor)
 				throw new ServiceCouldNotBeCreatedException();
-			var prefix = instances.Count == 0
+			var prefix = SingleInstanceViolationMessage();
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
+		}
+
+		public string SingleInstanceViolationMessage()
+		{
+			return instances.Count == 0
 				? "no implementations for " + Type.FormatName()
 				: string.Format("many implementations for {0}\r\n{1}", Type.FormatName(),
 					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
 		}
 
 		public bool WaitForResolve()
@@ -219,6 +240,56 @@ namespace SimpleContainer.Implementation
 		{
 			Context.Comment("<---------------");
 			Context.Throw(format, args);
+		}
+
+		public string Format()
+		{
+			var writer = new SimpleTextLogWriter();
+			Format(null, writer);
+			return writer.GetText();
+		}
+
+		public void Format(ISimpleLogWriter writer)
+		{
+			var startDepth = 0;
+			var targetTypeFound = false;
+			foreach (var state in log)
+			{
+				if (containerService != null && state.service != containerService && !targetTypeFound)
+					continue;
+				if (targetTypeFound && state.depth <= startDepth)
+					break;
+				if (!targetTypeFound)
+				{
+					targetTypeFound = true;
+					startDepth = state.depth;
+				}
+				writer.WriteIndent(state.depth - startDepth);
+				var isSimpleType = state.service.Type.IsSimpleType();
+				var name = state.name != null && isSimpleType ? state.name : state.service.Type.FormatName();
+				writer.WriteName(state.isStatic ? "(s)" + name : name);
+				var usedContracts = state.service.GetUsedContractNames();
+				if (usedContracts != null && usedContracts.Count > 0)
+					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
+				if (state.declaredContacts != null && state.contractDeclared)
+				{
+					writer.WriteMeta("->[");
+					writer.WriteMeta(state.declaredContacts);
+					writer.WriteMeta("]");
+				}
+				if (state.service.Instances.Count == 0)
+					writer.WriteMeta("!");
+				else if (state.service.Instances.Count > 1)
+					writer.WriteMeta("++");
+				else if (isSimpleType)
+					writer.WriteMeta(" -> " + (state.service.Instances[0] ?? "<null>"));
+				if (state.message != null)
+				{
+					writer.WriteMeta(" - ");
+					writer.WriteMeta(state.message);
+				}
+				writer.WriteNewLine();
+			}
 		}
 	}
 }
