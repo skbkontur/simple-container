@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -11,12 +10,12 @@ namespace SimpleContainer.Implementation
 	internal class ContainerService
 	{
 		public ServiceStatus status;
+		public string errorMessage;
 		private List<string> usedContractNames;
 		private readonly List<object> instances = new List<object>();
 		private IEnumerable<object> typedArray;
 		private readonly object lockObject = new object();
 		private bool instantiated;
-		private ExceptionDispatchInfo exception;
 		private volatile bool runCalled;
 		public Type Type { get; private set; }
 		public int TopSortIndex { get; private set; }
@@ -24,7 +23,7 @@ namespace SimpleContainer.Implementation
 		public IObjectAccessor Arguments { get; private set; }
 		public bool CreateNew { get; private set; }
 		public ResolutionContext Context { get; private set; }
-		private List<ContainerService> dependencies;
+		private List<ServiceDependency> dependencies;
 
 		//trash
 		public string name;
@@ -59,6 +58,14 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
 		}
 
+		public void CheckOk()
+		{
+			if (status == ServiceStatus.Ok)
+				return;
+			var constructionLog = Format();
+			throw new SimpleContainerException(errorMessage + "\r\n" + constructionLog);
+		}
+
 		public void EnsureRunCalled(ComponentsRunner runner, bool useCache)
 		{
 			if (!runCalled)
@@ -67,7 +74,7 @@ namespace SimpleContainer.Implementation
 					{
 						if (dependencies != null)
 							foreach (var dependency in dependencies)
-								dependency.EnsureRunCalled(runner, true);
+								dependency.service.EnsureRunCalled(runner, true);
 						runner.EnsureRunCalled(this, useCache);
 						runCalled = true;
 					}
@@ -86,9 +93,25 @@ namespace SimpleContainer.Implementation
 		public void AddDependency(ContainerService dependency)
 		{
 			if (dependencies == null)
-				dependencies = new List<ContainerService>();
-			if (!dependencies.Contains(dependency))
-				dependencies.Add(dependency);
+				dependencies = new List<ServiceDependency>();
+			if (dependencies.All(x => x.service != dependency))
+			{
+				status = dependency.status;
+				errorMessage = dependency.errorMessage;
+				dependencies.Add(new ServiceDependency {service = dependency});
+			}
+		}
+		
+		public void AddDependency(ServiceDependency dependency)
+		{
+			if (dependencies == null)
+				dependencies = new List<ServiceDependency>();
+			if (dependencies.All(x => x.service != dependency))
+			{
+				status = dependency.Status;
+				errorMessage = dependency.errorMessage;
+				dependencies.Add(new ServiceDependency {service = dependency});
+			}
 		}
 
 		public IReadOnlyList<object> Instances
@@ -120,12 +143,15 @@ namespace SimpleContainer.Implementation
 				usedContractNames.Add(n);
 		}
 
-		public void UnionFrom(ContainerService other)
+		public void UnionFrom(ContainerService other, bool inlineDependencies)
 		{
 			foreach (var instance in other.instances)
 				if (!instances.Contains(instance))
 					instances.Add(instance);
-			UnionDependencies(other);
+			if (inlineDependencies)
+				UnionDependencies(other);
+			else
+				AddDependency(other);
 			UnionUsedContracts(other);
 		}
 
@@ -133,7 +159,8 @@ namespace SimpleContainer.Implementation
 		{
 			if (other.dependencies != null)
 				foreach (var dependency in other.dependencies)
-					AddDependency(dependency);
+					if (dependency.service != null)
+						AddDependency(dependency.service);
 		}
 
 		public void UseContractWithName(string n)
@@ -149,11 +176,15 @@ namespace SimpleContainer.Implementation
 			FinalUsedContracts = GetUsedContractNamesFromContext();
 			status = ServiceStatus.Ok;
 		}
-		
+
 		public void EndResolveDependenciesWithFailure(string failureMessage)
 		{
 			FinalUsedContracts = GetUsedContractNamesFromContext();
-			message = failureMessage;
+			if (failureMessage != null)
+			{
+				errorMessage = failureMessage;
+				message = "<---------------";
+			}
 			status = ServiceStatus.Failed;
 		}
 
@@ -173,10 +204,10 @@ namespace SimpleContainer.Implementation
 		{
 			if (instances.Count == 1)
 				return instances[0];
+			var m = SingleInstanceViolationMessage();
 			if (instances.Count == 0 && inConstructor)
-				throw new ServiceCouldNotBeCreatedException();
-			var prefix = SingleInstanceViolationMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", prefix, Context.Format()));
+				throw new ServiceCouldNotBeCreatedException(m);
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, Format()));
 		}
 
 		public string SingleInstanceViolationMessage()
@@ -189,22 +220,22 @@ namespace SimpleContainer.Implementation
 
 		public bool WaitForResolve()
 		{
-			if (!instantiated && exception == null)
+			if (!instantiated)
 				lock (lockObject)
-					while (!instantiated && exception == null)
+					while (!instantiated)
 						Monitor.Wait(lockObject);
-			if (exception == null && FinalUsedContracts == null)
+			if (FinalUsedContracts == null)
 			{
 				const string messageFormat = "assertion failure: FinalUsedContracts == null, type [{0}]";
 				throw new InvalidOperationException(string.Format(messageFormat, Type));
 			}
-			return instantiated;
+			return status == ServiceStatus.Ok;
 		}
 
 		public void WaitForResolveOrDie()
 		{
 			if (!WaitForResolve())
-				exception.Throw();
+				CheckOk();
 		}
 
 		public bool AcquireInstantiateLock()
@@ -222,12 +253,6 @@ namespace SimpleContainer.Implementation
 		{
 			TopSortIndex = topSortIndex;
 			instantiated = true;
-			exception = null;
-		}
-
-		public void InstantiatedUnsuccessfully(Exception e)
-		{
-			exception = ExceptionDispatchInfo.Capture(e);
 		}
 
 		public void ReleaseInstantiateLock()
@@ -236,60 +261,47 @@ namespace SimpleContainer.Implementation
 			Monitor.Exit(lockObject);
 		}
 
-		public void Throw(string format, params object[] args)
-		{
-			Context.Comment("<---------------");
-			Context.Throw(format, args);
-		}
-
 		public string Format()
 		{
 			var writer = new SimpleTextLogWriter();
-			Format(null, writer);
+			Format(writer);
 			return writer.GetText();
 		}
 
 		public void Format(ISimpleLogWriter writer)
 		{
-			var startDepth = 0;
-			var targetTypeFound = false;
-			foreach (var state in log)
+			var seen = new HashSet<CacheKey>();
+			Format(writer, 0, 0, seen, null);
+		}
+
+		public void Format(ISimpleLogWriter writer, int indent, int declaredContractsCount, ISet<CacheKey> seen, ServiceDependency dependency)
+		{
+			var formattedName = Type.FormatName();
+			writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
+			var usedContracts = GetUsedContractNames();
+			if (usedContracts != null && usedContracts.Count > 0)
+				writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
+			if (declaredContracts.Count > declaredContractsCount)
 			{
-				if (containerService != null && state.service != containerService && !targetTypeFound)
-					continue;
-				if (targetTypeFound && state.depth <= startDepth)
-					break;
-				if (!targetTypeFound)
-				{
-					targetTypeFound = true;
-					startDepth = state.depth;
-				}
-				writer.WriteIndent(state.depth - startDepth);
-				var isSimpleType = state.service.Type.IsSimpleType();
-				var name = state.name != null && isSimpleType ? state.name : state.service.Type.FormatName();
-				writer.WriteName(state.isStatic ? "(s)" + name : name);
-				var usedContracts = state.service.GetUsedContractNames();
-				if (usedContracts != null && usedContracts.Count > 0)
-					writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-				if (state.declaredContacts != null && state.contractDeclared)
-				{
-					writer.WriteMeta("->[");
-					writer.WriteMeta(state.declaredContacts);
-					writer.WriteMeta("]");
-				}
-				if (state.service.Instances.Count == 0)
-					writer.WriteMeta("!");
-				else if (state.service.Instances.Count > 1)
-					writer.WriteMeta("++");
-				else if (isSimpleType)
-					writer.WriteMeta(" -> " + (state.service.Instances[0] ?? "<null>"));
-				if (state.message != null)
-				{
-					writer.WriteMeta(" - ");
-					writer.WriteMeta(state.message);
-				}
-				writer.WriteNewLine();
+				writer.WriteMeta("->[");
+				writer.WriteMeta(InternalHelpers.FormatContractsKey(declaredContracts));
+				writer.WriteMeta("]");
 			}
+			if (Instances.Count == 0)
+				writer.WriteMeta("!");
+			else if (Instances.Count > 1)
+				writer.WriteMeta("++");
+			if (dependency != null && dependency.defaultValueUsed)
+				writer.WriteMeta(" -> <null>");
+			if (message != null)
+			{
+				writer.WriteMeta(" - ");
+				writer.WriteMeta(message);
+			}
+			writer.WriteNewLine();
+			if (seen.Add(new CacheKey(Type, usedContracts)) && dependencies != null)
+				foreach (var d in dependencies)
+					d.Format(writer, indent + 1, declaredContracts.Count, seen);
 		}
 	}
 }

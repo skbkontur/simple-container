@@ -33,9 +33,9 @@ namespace SimpleContainer.Interface
 			return resolvedService.All().Cast<T>();
 		}
 
-		public string GetConstructionLog(bool entireResolutionContext = false)
+		public string GetConstructionLog()
 		{
-			return resolvedService.GetConstructionLog(entireResolutionContext);
+			return resolvedService.GetConstructionLog();
 		}
 	}
 
@@ -83,10 +83,10 @@ namespace SimpleContainer.Interface
 			containerService.Format(writer);
 		}
 
-		public string GetConstructionLog(bool entireResolutionContext = false)
+		public string GetConstructionLog()
 		{
 			var logWriter = new SimpleTextLogWriter();
-			DumpConstructionLog(logWriter, entireResolutionContext);
+			DumpConstructionLog(logWriter);
 			return logWriter.GetText();
 		}
 	}

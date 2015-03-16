@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
@@ -22,7 +20,10 @@ namespace SimpleContainer.Implementation
 				return;
 			var contractsArray = contracts.ToArray();
 			if (contractsArray.Length > 0)
-				PushContractDeclarations(contractsArray);
+			{
+				string _;
+				PushContractDeclarations(contractsArray, out _);
+			}
 		}
 
 		public List<string> DeclaredContractNames()
@@ -73,30 +74,25 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
-		public void Instantiate(ContainerService containerService, SimpleContainer container)
+		public void Instantiate(ContainerService containerService, string name,  SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
 			var declaredContacts = DeclaredContractNames();
 			containerService.declaredContracts = declaredContacts;
 			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
+			containerService.name = name;
 			current.Add(containerService);
 			if (!currentTypes.Add(containerService.Type))
-				throw new SimpleContainerException(string.Format("cyclic dependency {0} ...-> {1} -> {0}\r\n{2}",
-					containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName(), Format()));
+			{
+				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
+					containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
+				containerService.EndResolveDependenciesWithFailure(message);
+				return;
+			}
 			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
 			current.RemoveAt(current.Count - 1);
 			currentTypes.Remove(containerService.Type);
-		}
-
-		public void LogSimpleType(ParameterInfo formalParameter, object value, SimpleContainer container)
-		{
-			var containerService = new ContainerService(formalParameter.ParameterType);
-			containerService.AddInstance(value);
-			containerService.declaredContracts = DeclaredContractNames();
-			containerService.name = formalParameter.Name;
-			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
-			log.Add(item);
 		}
 
 		public ContainerService GetTopService()
@@ -132,7 +128,9 @@ namespace SimpleContainer.Implementation
 			foreach (var contracts in source.CartesianProduct())
 			{
 				var item = ResolveUsingContracts(type, name, container, contracts);
-				result.UnionFrom(item);
+				result.UnionFrom(item, true);
+				if (result.status == ServiceStatus.Failed)
+					return result;
 			}
 			result.EndResolveDependencies();
 			return result;
@@ -141,21 +139,29 @@ namespace SimpleContainer.Implementation
 		public ContainerService ResolveUsingContracts(Type type, string name, SimpleContainer container,
 			List<string> contractNames)
 		{
-			PushContractDeclarations(contractNames);
+			string message;
+			if (!PushContractDeclarations(contractNames, out message))
+				return new ContainerService(type)
+				{
+					status = ServiceStatus.Failed,
+					message = message
+				};
 			var result = container.ResolveSingleton(type, name, this);
 			declaredContracts.RemoveRange(declaredContracts.Count - contractNames.Count, contractNames.Count);
 			return result;
 		}
 
-		private void PushContractDeclarations(IEnumerable<string> contractNames)
+		private bool PushContractDeclarations(IEnumerable<string> contractNames, out string message)
 		{
+			message = null;
 			foreach (var c in contractNames)
 			{
 				var duplicate = declaredContracts.FirstOrDefault(x => x.name.EqualsIgnoringCase(c));
 				if (duplicate != null)
 				{
-					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]\r\n{2}";
-					throw new SimpleContainerException(string.Format(messageFormat, c, DeclaredContractsKey(), Format()));
+					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
+					message = string.Format(messageFormat, c, DeclaredContractsKey());
+					return false;
 				}
 				var contractDeclaration = new ContractDeclaration
 				{
@@ -167,6 +173,7 @@ namespace SimpleContainer.Implementation
 				};
 				declaredContracts.Add(contractDeclaration);
 			}
+			return true;
 		}
 
 		private bool MatchWithDeclaredContracts(List<string> required)
@@ -179,11 +186,6 @@ namespace SimpleContainer.Implementation
 					r++;
 			}
 			return true;
-		}
-
-		public void Throw(string format, params object[] args)
-		{
-			throw new SimpleContainerException(string.Format(format, args) + "\r\n" + Format());
 		}
 
 		public void Comment(string message, params object[] args)

@@ -13,14 +13,13 @@ namespace SimpleContainer.Factories
 			containerService.UseAllDeclaredContracts();
 			return delegate(object arguments)
 			{
-				ContainerService result;
 				if (hostService != containerService.Context.GetTopService())
 				{
-					result = container.Create(type, declaredContractNames, arguments, null);
-					container.Run(result, null);
-					return result.SingleInstance(false);
+					var resolvedService = container.Create(type, declaredContractNames, arguments);
+					resolvedService.Run();
+					return resolvedService.Single();
 				}
-				result = container.Create(type, declaredContractNames, arguments, containerService.Context);
+				var result = container.Create(type, declaredContractNames, arguments, containerService.Context);
 				containerService.AddDependency(result);
 				return result.SingleInstance(true);
 			};

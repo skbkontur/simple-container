@@ -589,16 +589,16 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class ClassB
+			public class Intermediate
 			{
-				public ClassB(ClassA classA)
+				public Intermediate(ClassB classB)
 				{
 				}
 			}
 
-			public class Intermediate
+			public class ClassB
 			{
-				public Intermediate(ClassB classB)
+				public ClassB(ClassA classA)
 				{
 				}
 			}
@@ -1720,7 +1720,7 @@ namespace SimpleContainer.Tests
 			{
 				public B1()
 				{
-					throw new Interface.ServiceCouldNotBeCreatedException();
+					throw new Interface.ServiceCouldNotBeCreatedException("invalid test condition");
 				}
 			}
 
@@ -1733,6 +1733,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\tIInterface\r\n\t\tB1! - invalid test condition\r\n\t\tB2"));
 			}
 		}
 

@@ -44,6 +44,7 @@
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\StringHelpers.cs" />
+    <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
