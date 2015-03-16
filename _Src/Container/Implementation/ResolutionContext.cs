@@ -74,13 +74,12 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
-		public void Instantiate(ContainerService containerService, string name,  SimpleContainer container)
+		public void Instantiate(ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
 			var declaredContacts = DeclaredContractNames();
 			containerService.declaredContracts = declaredContacts;
 			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
-			containerService.name = name;
 			current.Add(containerService);
 			if (!currentTypes.Add(containerService.Type))
 			{
@@ -129,7 +128,7 @@ namespace SimpleContainer.Implementation
 			{
 				var item = ResolveUsingContracts(type, name, container, contracts);
 				result.UnionFrom(item, true);
-				if (result.status == ServiceStatus.Failed)
+				if (result.status != ServiceStatus.Ok)
 					return result;
 			}
 			result.EndResolveDependencies();
@@ -143,7 +142,7 @@ namespace SimpleContainer.Implementation
 			if (!PushContractDeclarations(contractNames, out message))
 				return new ContainerService(type)
 				{
-					status = ServiceStatus.Failed,
+					status = ServiceStatus.Error,
 					message = message
 				};
 			var result = container.ResolveSingleton(type, name, this);

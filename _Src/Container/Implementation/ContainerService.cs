@@ -26,7 +26,6 @@ namespace SimpleContainer.Implementation
 		private List<ServiceDependency> dependencies;
 
 		//trash
-		public string name;
 		public List<string> declaredContracts;
 		public bool isStatic;
 		public string message;
@@ -58,11 +57,16 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
 		}
 
+		public ServiceDependency GetDependency(ContainerService containerService)
+		{
+			return dependencies.Single(x => x.ContainerService == containerService);
+		}
+
 		public void CheckOk()
 		{
 			if (status == ServiceStatus.Ok)
 				return;
-			var constructionLog = Format();
+			var constructionLog = GetConstructionLog();
 			throw new SimpleContainerException(errorMessage + "\r\n" + constructionLog);
 		}
 
@@ -74,7 +78,8 @@ namespace SimpleContainer.Implementation
 					{
 						if (dependencies != null)
 							foreach (var dependency in dependencies)
-								dependency.service.EnsureRunCalled(runner, true);
+								if (dependency.ContainerService != null)
+									dependency.ContainerService.EnsureRunCalled(runner, true);
 						runner.EnsureRunCalled(this, useCache);
 						runCalled = true;
 					}
@@ -94,24 +99,19 @@ namespace SimpleContainer.Implementation
 		{
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
-			if (dependencies.All(x => x.service != dependency))
+			if (dependencies.All(x => x.ContainerService != dependency))
 			{
 				status = dependency.status;
 				errorMessage = dependency.errorMessage;
 				dependencies.Add(new ServiceDependency {service = dependency});
 			}
 		}
-		
+
 		public void AddDependency(ServiceDependency dependency)
 		{
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
-			if (dependencies.All(x => x.service != dependency))
-			{
-				status = dependency.Status;
-				errorMessage = dependency.errorMessage;
-				dependencies.Add(new ServiceDependency {service = dependency});
-			}
+			dependencies.Add(dependency);
 		}
 
 		public IReadOnlyList<object> Instances
@@ -174,18 +174,19 @@ namespace SimpleContainer.Implementation
 		public void EndResolveDependencies()
 		{
 			FinalUsedContracts = GetUsedContractNamesFromContext();
-			status = ServiceStatus.Ok;
 		}
 
-		public void EndResolveDependenciesWithFailure(string failureMessage)
+		public void EndResolveDependenciesWithFailure(string newErrorMessage)
 		{
-			FinalUsedContracts = GetUsedContractNamesFromContext();
-			if (failureMessage != null)
-			{
-				errorMessage = failureMessage;
-				message = "<---------------";
-			}
-			status = ServiceStatus.Failed;
+			EndResolveDependencies();
+			errorMessage = newErrorMessage;
+			status = ServiceStatus.Error;
+		}
+
+		public void EndResolveDependenciesWithDependencyError()
+		{
+			EndResolveDependencies();
+			status = ServiceStatus.DependencyError;
 		}
 
 		public List<string> GetUsedContractNames()
@@ -204,18 +205,16 @@ namespace SimpleContainer.Implementation
 		{
 			if (instances.Count == 1)
 				return instances[0];
-			var m = SingleInstanceViolationMessage();
+			var m = instances.Count == 0 ? "no implementations for " + Type.FormatName() : FormatManyImplementationsMessage();
 			if (instances.Count == 0 && inConstructor)
 				throw new ServiceCouldNotBeCreatedException(m);
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, Format()));
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, GetConstructionLog()));
 		}
 
-		public string SingleInstanceViolationMessage()
+		public string FormatManyImplementationsMessage()
 		{
-			return instances.Count == 0
-				? "no implementations for " + Type.FormatName()
-				: string.Format("many implementations for {0}\r\n{1}", Type.FormatName(),
-					instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
+			return string.Format("many implementations for [{0}]\r\n{1}", Type.FormatName(),
+				instances.Select(x => "\t" + x.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
 		public bool WaitForResolve()
@@ -261,47 +260,49 @@ namespace SimpleContainer.Implementation
 			Monitor.Exit(lockObject);
 		}
 
-		public string Format()
+		public string GetConstructionLog()
 		{
 			var writer = new SimpleTextLogWriter();
-			Format(writer);
+			WriteConstructionLog(writer);
 			return writer.GetText();
 		}
 
-		public void Format(ISimpleLogWriter writer)
+		public void WriteConstructionLog(ISimpleLogWriter writer)
 		{
-			var seen = new HashSet<CacheKey>();
-			Format(writer, 0, 0, seen, null);
+			WriteConstructionLog(new ConstructionLogContext(writer));
 		}
 
-		public void Format(ISimpleLogWriter writer, int indent, int declaredContractsCount, ISet<CacheKey> seen, ServiceDependency dependency)
+		public void WriteConstructionLog(ConstructionLogContext context)
 		{
 			var formattedName = Type.FormatName();
-			writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
+			context.Writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
 			var usedContracts = GetUsedContractNames();
 			if (usedContracts != null && usedContracts.Count > 0)
-				writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-			if (declaredContracts.Count > declaredContractsCount)
+				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
+			if (context.UsedFromService == null || declaredContracts.Count > context.UsedFromService.declaredContracts.Count)
 			{
-				writer.WriteMeta("->[");
-				writer.WriteMeta(InternalHelpers.FormatContractsKey(declaredContracts));
-				writer.WriteMeta("]");
+				context.Writer.WriteMeta("->[");
+				context.Writer.WriteMeta(InternalHelpers.FormatContractsKey(declaredContracts));
+				context.Writer.WriteMeta("]");
 			}
 			if (Instances.Count == 0)
-				writer.WriteMeta("!");
+				context.Writer.WriteMeta("!");
 			else if (Instances.Count > 1)
-				writer.WriteMeta("++");
-			if (dependency != null && dependency.defaultValueUsed)
-				writer.WriteMeta(" -> <null>");
+				context.Writer.WriteMeta("++");
+			if (context.UsedFromDependency != null && context.UsedFromDependency.Value == null)
+				context.Writer.WriteMeta(" -> <null>");
 			if (message != null)
 			{
-				writer.WriteMeta(" - ");
-				writer.WriteMeta(message);
+				context.Writer.WriteMeta(" - ");
+				context.Writer.WriteMeta(message);
 			}
-			writer.WriteNewLine();
-			if (seen.Add(new CacheKey(Type, usedContracts)) && dependencies != null)
+			context.Writer.WriteNewLine();
+			if (context.Seen.Add(new CacheKey(Type, usedContracts)) && dependencies != null)
 				foreach (var d in dependencies)
-					d.Format(writer, indent + 1, declaredContracts.Count, seen);
+				{
+					context.UsedFromService = this;
+					d.WriteConstructionLog(context);
+				}
 		}
 	}
 }

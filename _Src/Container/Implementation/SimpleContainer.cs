@@ -299,7 +299,7 @@ namespace SimpleContainer.Implementation
 				else
 					childService = service.Context.Resolve(implementationType, null, null, this);
 				service.UnionFrom(childService, false);
-				if (service.status == ServiceStatus.Failed)
+				if (service.status == ServiceStatus.Error)
 				{
 					service.EndResolveDependenciesWithFailure(null);
 					return;
@@ -430,37 +430,19 @@ namespace SimpleContainer.Implementation
 				var formalParameter = formalParameters[i];
 				var dependency = InstantiateDependency(formalParameter, implementation, service.Context);
 				service.AddDependency(dependency);
-				object dependencyValue;
-				if (dependency.service == null)
+				if (dependency.Status == ServiceDependencyStatus.Failed)
 				{
-					dependencyValue = dependency.Value;
+					service.EndResolveDependenciesWithDependencyError();
+					return;
 				}
-				else
+				if (dependency.Status == ServiceDependencyStatus.ServiceNotResolved)
 				{
-					
-					if (dependency.service.status == ServiceStatus.Failed)
-					{
-						service.EndResolveDependenciesWithFailure(null);
-						return;
-					}
-					service.UnionUsedContracts(dependency.service);
-					if (dependency.IsEnumerable)
-						dependencyValue = dependency.service.AsEnumerable();
-					else if (dependency.service.Instances.Count == 0)
-					{
-						service.EndResolveDependencies();
-						return;
-					}
-					else
-					{
-						if (dependency.service.Instances.Count != 1)
-						{
-							service.EndResolveDependenciesWithFailure(dependency.service.SingleInstanceViolationMessage());
-							return;
-						}
-						dependencyValue = dependency.service.Instances[0];
-					}
+					service.EndResolveDependencies();
+					return;
 				}
+				if (dependency.ContainerService != null)
+					service.UnionUsedContracts(dependency.ContainerService);
+				var dependencyValue = dependency.Value;
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
 				{
@@ -504,18 +486,6 @@ namespace SimpleContainer.Implementation
 				}
 			foreach (var instance in serviceForUsedContracts.Instances)
 				service.AddInstance(instance);
-		}
-
-		private ServiceDependency CloneWithDefaultValue(ParameterInfo formalParameter, ContainerService containerService, object defaultValue,
-			ResolutionContext context)
-		{
-			var result = new ContainerService(formalParameter.ParameterType);
-			result.UnionFrom(containerService, false);
-			containerService.AddInstance(defaultValue);
-			containerService.name = formalParameter.Name;
-			containerService.declaredContracts = context.DeclaredContractNames();
-			containerService.isStatic = cacheLevel == CacheLevel.Static;
-			return new ServiceDependency {service = containerService};
 		}
 
 		private ServiceDependency InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
@@ -579,16 +549,21 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
 			var result = context.Resolve(dependencyType, contracts, formalParameter.Name, this);
+			if (result.status == ServiceStatus.Error)
+				return ServiceDependency.FailedService(result);
 			if (isEnumerable)
-				return ServiceDependency.Enumerable(result);
-			if (result.status == ServiceStatus.Ok && result.Instances.Count == 0)
+				return ServiceDependency.Service(result, result.AsEnumerable());
+			if (result.Instances.Count == 0)
 			{
 				if (formalParameter.HasDefaultValue)
-					return ServiceDependency.ServiceWithDefaultValue(result, formalParameter.DefaultValue);
+					return ServiceDependency.Service(result, formalParameter.DefaultValue);
 				if (IsOptional(formalParameter))
-					return ServiceDependency.ServiceWithDefaultValue(result, null);
+					return ServiceDependency.Service(result, null);
+				return ServiceDependency.NotResolved(result);
 			}
-			return ServiceDependency.Service(result);
+			if (result.Instances.Count > 1)
+				return ServiceDependency.Failed(formalParameter, result.FormatManyImplementationsMessage());
+			return ServiceDependency.Service(result, result.Instances[0]);
 		}
 
 		private static bool IsOptional(ICustomAttributeProvider attributes)
@@ -637,7 +612,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				containerService.status = ServiceStatus.Failed;
+				containerService.status = ServiceStatus.Error;
 				containerService.constructionException = e;
 			}
 		}

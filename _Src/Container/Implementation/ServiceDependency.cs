@@ -1,74 +1,73 @@
-using System.Collections.Generic;
 using System.Reflection;
 using SimpleContainer.Helpers;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
 	internal class ServiceDependency
 	{
-		public ContainerService service;
+		public ContainerService ContainerService { get; private set; }
 		public object Value { get; private set; }
-		public bool IsEnumerable { get; private set; }
 		public string Name { get; private set; }
 		public string Message { get; private set; }
-		public ServiceStatus Status { get; private set; }
-		public bool ValueAssigned { get; private set; }
+		public ServiceDependencyStatus Status { get; private set; }
+
+		private ServiceDependency()
+		{
+		}
 
 		public static ServiceDependency Constant(ParameterInfo formalParameter, object instance)
 		{
 			return new ServiceDependency
 			{
 				Name = formalParameter.Name,
-				Value = instance,
-				ValueAssigned = true
+				Value = instance
 			};
 		}
 
-		public static ServiceDependency Failed(ParameterInfo formalParameter, string message, params object[] args)
+		public static ServiceDependency Failed(string name, string message, params object[] args)
 		{
 			return new ServiceDependency
 			{
-				Name = formalParameter.Name,
+				Name = name,
 				Message = string.Format(message, args),
-				Status = ServiceStatus.Failed
+				Status = ServiceDependencyStatus.Failed
 			};
 		}
 
-		public static ServiceDependency Service(ContainerService service)
+		public static ServiceDependency NotResolved(ContainerService containerService)
 		{
-			return new ServiceDependency {service = service};
+			return new ServiceDependency {ContainerService = containerService, Status = ServiceDependencyStatus.ServiceNotResolved};
 		}
 
-		public static ServiceDependency Enumerable(ContainerService service)
+		public static ServiceDependency Service(ContainerService service, object value)
 		{
-			return new ServiceDependency {service = service, IsEnumerable = true};
+			return new ServiceDependency {ContainerService = service, Value = value};
 		}
 
-		public static ServiceDependency ServiceWithDefaultValue(ContainerService service, object defaultValue)
+		public static ServiceDependency FailedService(ContainerService service)
 		{
-			return new ServiceDependency {service = service, Value = defaultValue, ValueAssigned = true};
+			return new ServiceDependency {ContainerService = service, Status = ServiceDependencyStatus.ServiceFailed};
 		}
 
-		public void Format(ISimpleLogWriter writer, int indent, int declaredContractsCount, ISet<CacheKey> seen)
+		public void WriteConstructionLog(ConstructionLogContext context)
 		{
-			writer.WriteIndent(indent);
-			if (service != null)
-				service.Format(writer, indent, declaredContractsCount, seen, this);
-			else
-				FormatConstant(writer);
-		}
-
-		private void FormatConstant(ISimpleLogWriter writer)
-		{
+			context.WriteIndent();
+			if (ContainerService != null)
+			{
+				context.Indent++;
+				context.UsedFromDependency = this;
+				ContainerService.WriteConstructionLog(context);
+				context.Indent--;
+				return;
+			}
 			if (Value == null || Value.GetType().IsSimpleType())
 			{
-				writer.WriteName(Name);
-				writer.WriteMeta(" -> " + (Value ?? "<null>"));
+				context.Writer.WriteName(Name);
+				context.Writer.WriteMeta(" -> " + (Value ?? "<null>"));
 			}
 			else
-				writer.WriteName(Value.GetType().FormatName());
-			writer.WriteNewLine();
+				context.Writer.WriteName(Name ?? Value.GetType().FormatName());
+			context.Writer.WriteNewLine();
 		}
 	}
 }
