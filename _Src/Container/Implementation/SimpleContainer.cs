@@ -16,8 +16,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class SimpleContainer : IContainer
 	{
-		private static readonly Func<CacheKey, ContainerService> createContainerServiceDelegate =
-			k => new ContainerService(k.type);
+		private readonly Func<CacheKey, ContainerService> createContainerServiceDelegate;
 
 		private static readonly IFactoryPlugin[] factoryPlugins =
 		{
@@ -29,7 +28,7 @@ namespace SimpleContainer.Implementation
 		protected readonly IContainerConfiguration configuration;
 		protected readonly IInheritanceHierarchy inheritors;
 		private readonly StaticContainer staticContainer;
-		internal readonly CacheLevel cacheLevel;
+		protected readonly CacheLevel cacheLevel;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
 		protected readonly ISet<Type> staticServices;
@@ -52,6 +51,7 @@ namespace SimpleContainer.Implementation
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
+			createContainerServiceDelegate = k => NewService(k.type);
 			createInstanceDelegate = delegate(CacheKey key)
 			{
 				var context = new ResolutionContext(configuration, key.contracts);
@@ -79,10 +79,15 @@ namespace SimpleContainer.Implementation
 			return new ResolvedService(result, this, isEnumerable);
 		}
 
+		internal ContainerService NewService(Type type)
+		{
+			return new ContainerService(type, cacheLevel == CacheLevel.Static);
+		}
+
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
-			var result = ContainerService.ForFactory(type, arguments);
+			var result = NewService(type).ForFactory(ObjectAccessor.Get(arguments), true);
 			context.Instantiate(result, this);
 			if (result.Arguments != null)
 			{
@@ -284,7 +289,7 @@ namespace SimpleContainer.Implementation
 			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
 			if (localTypesArray.Length == 0)
 			{
-				service.Context.Comment("has no implementations");
+				service.SetMessage("has no implementations");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -293,17 +298,17 @@ namespace SimpleContainer.Implementation
 				ContainerService childService;
 				if (service.CreateNew)
 				{
-					childService = new ContainerService(implementationType).WithArguments(service.Arguments);
+					childService = NewService(implementationType).ForFactory(service.Arguments, false);
 					service.Context.Instantiate(childService, this);
 				}
 				else
 					childService = service.Context.Resolve(implementationType, null, this);
-				var dependency = service.status == ServiceStatus.Ok
-					? ServiceDependency.Service(service, service.AsEnumerable())
-					: ServiceDependency.ServiceError(service);
+				var dependency = service.status.IsGood()
+					? ServiceDependency.Service(childService, childService.AsEnumerable())
+					: ServiceDependency.ServiceError(childService);
 				service.AddDependency(dependency);
 				service.UnionUsedContracts(childService);
-				if (service.status != ServiceStatus.Ok)
+				if (service.status.IsBad())
 					break;
 				service.UnionInstances(childService);
 			}
@@ -314,14 +319,14 @@ namespace SimpleContainer.Implementation
 		{
 			if (service.Type.IsDefined("IgnoredImplementationAttribute"))
 			{
-				service.Context.Comment("IgnoredImplementation");
+				service.SetMessage("IgnoredImplementation");
 				service.EndResolveDependencies();
 				return;
 			}
 			var implementationConfiguration = service.Context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 			{
-				service.message = "DontUse";
+				service.SetMessage("DontUse");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -338,7 +343,7 @@ namespace SimpleContainer.Implementation
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
 				service.FilterInstances(implementationConfiguration.InstanceFilter);
-				service.Context.Comment("instance filter");
+				service.SetMessage("instance filter");
 			}
 		}
 
@@ -443,11 +448,12 @@ namespace SimpleContainer.Implementation
 				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
 				if (dependencyValue != null && castedValue == null)
 				{
-					service.EndResolveDependenciesWithError(string.Format("can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
-						dependencyValue,
-						dependencyValue.GetType().FormatName(),
-						formalParameter.ParameterType.FormatName(),
-						formalParameter.Name));
+					service.EndResolveDependenciesWithError(
+						string.Format("can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
+							dependencyValue,
+							dependencyValue.GetType().FormatName(),
+							formalParameter.ParameterType.FormatName(),
+							formalParameter.Name));
 					return;
 				}
 				actualArguments[i] = castedValue;
@@ -546,7 +552,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
 			var result = context.Resolve(dependencyType, contracts, this);
-			if (result.status != ServiceStatus.Error)
+			if (result.status.IsBad())
 				return ServiceDependency.ServiceError(result);
 			if (isEnumerable)
 				return ServiceDependency.Service(result, result.AsEnumerable());
@@ -605,12 +611,11 @@ namespace SimpleContainer.Implementation
 			}
 			catch (ServiceCouldNotBeCreatedException e)
 			{
-				containerService.message = e.Message;
+				containerService.SetMessage(e.Message);
 			}
 			catch (Exception e)
 			{
-				containerService.status = ServiceStatus.Error;
-				containerService.constructionException = e;
+				containerService.EndResolveDependenciesWithError(e);
 			}
 		}
 

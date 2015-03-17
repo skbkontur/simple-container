@@ -8,8 +8,8 @@ namespace SimpleContainer.Implementation
 		public ContainerService ContainerService { get; private set; }
 		public object Value { get; private set; }
 		public string Name { get; private set; }
-		public string Message { get; private set; }
-		public ServiceDependencyStatus Status { get; private set; }
+		public string ErrorMessage { get; private set; }
+		public ServiceStatus Status { get; private set; }
 
 		private ServiceDependency()
 		{
@@ -17,26 +17,26 @@ namespace SimpleContainer.Implementation
 
 		public static ServiceDependency Constant(ParameterInfo formalParameter, object value)
 		{
-			return new ServiceDependency {Status = ServiceDependencyStatus.Ok, Value = value, Name = formalParameter.Name};
+			return new ServiceDependency { Status = ServiceStatus.Ok, Value = value, Name = formalParameter.Name };
 		}
 
 		public static ServiceDependency Service(ContainerService service, object value)
 		{
-			return new ServiceDependency {Status = ServiceDependencyStatus.Ok, Value = value, ContainerService = service};
+			return new ServiceDependency { Status = ServiceStatus.Ok, Value = value, ContainerService = service };
 		}
 
 		public static ServiceDependency NotResolved(ContainerService service)
 		{
-			return new ServiceDependency {Status = ServiceDependencyStatus.NotResolved, ContainerService = service};
+			return new ServiceDependency { Status = ServiceStatus.NotResolved, ContainerService = service };
 		}
 
 		public static ServiceDependency Error(string name, string message, params object[] args)
 		{
 			return new ServiceDependency
 			{
-				Status = ServiceDependencyStatus.Error,
+				Status = ServiceStatus.Error,
 				Name = name,
-				Message = string.Format(message, args)
+				ErrorMessage = string.Format(message, args)
 			};
 		}
 
@@ -47,7 +47,7 @@ namespace SimpleContainer.Implementation
 
 		public static ServiceDependency ServiceError(ContainerService service)
 		{
-			return new ServiceDependency {Status = ServiceDependencyStatus.ServiceError, ContainerService = service};
+			return new ServiceDependency { Status = ServiceStatus.DependencyError, ContainerService = service };
 		}
 
 		public void WriteConstructionLog(ConstructionLogContext context)

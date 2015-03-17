@@ -2,12 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Configuration;
+using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Helpers
 {
 	internal static class InternalHelpers
 	{
+		public static bool IsGood(this ServiceStatus status)
+		{
+			return status == ServiceStatus.Ok || status == ServiceStatus.NotResolved;
+		}
+
+		public static bool IsBad(this ServiceStatus status)
+		{
+			return status == ServiceStatus.Error || status == ServiceStatus.DependencyError;
+		}
+
 		public static string FormatContractsKey(List<string> contracts)
 		{
 			return contracts == null ? null : string.Join("->", contracts);

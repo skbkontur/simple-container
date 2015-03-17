@@ -77,9 +77,6 @@ namespace SimpleContainer.Implementation
 		public void Instantiate(ContainerService containerService, SimpleContainer container)
 		{
 			var previous = current.Count == 0 ? null : current[current.Count - 1];
-			var declaredContacts = DeclaredContractNames();
-			containerService.declaredContracts = declaredContacts;
-			containerService.isStatic = container.cacheLevel == CacheLevel.Static;
 			current.Add(containerService);
 			if (!currentTypes.Add(containerService.Type))
 			{
@@ -122,14 +119,14 @@ namespace SimpleContainer.Implementation
 			var source = new List<List<string>>();
 			for (var i = 0; i < internalContracts.Count; i++)
 				source.Add(unioned[i] ?? new List<string>(1) {internalContracts[i]});
-			var result = new ContainerService(type);
+			var result = container.NewService(type);
 			result.AttachToContext(this);
 			foreach (var contracts in source.CartesianProduct())
 			{
 				var item = ResolveUsingContracts(type, container, contracts);
 				result.UnionDependencies(item);
 				result.UnionUsedContracts(item);
-				if (result.status != ServiceStatus.Ok)
+				if (result.status.IsBad())
 					return result;
 				result.UnionInstances(item);
 			}
@@ -140,13 +137,14 @@ namespace SimpleContainer.Implementation
 		public ContainerService ResolveUsingContracts(Type type, SimpleContainer container, List<string> contractNames)
 		{
 			string message;
+			ContainerService result;
 			if (!PushContractDeclarations(contractNames, out message))
-				return new ContainerService(type)
-				{
-					status = ServiceStatus.Error,
-					message = message
-				};
-			var result = container.ResolveSingleton(type, this);
+			{
+				result = container.NewService(type);
+				result.EndResolveDependenciesWithError(message);
+				return result;
+			}
+			result = container.ResolveSingleton(type, this);
 			declaredContracts.RemoveRange(declaredContracts.Count - contractNames.Count, contractNames.Count);
 			return result;
 		}
@@ -186,11 +184,6 @@ namespace SimpleContainer.Implementation
 					r++;
 			}
 			return true;
-		}
-
-		public void Comment(string message, params object[] args)
-		{
-			current[current.Count - 1].message = string.Format(message, args);
 		}
 
 		private class ContractDeclaration

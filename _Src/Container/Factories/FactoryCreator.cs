@@ -33,7 +33,7 @@ namespace SimpleContainer.Factories
 		private static ServiceDependency AsDependency(ContainerService service,
 			ContainerService factoryService, ContainerService hostService)
 		{
-			if (service.status != ServiceStatus.Ok)
+			if (service.status.IsBad())
 				return ServiceDependency.ServiceError(service);
 			if (service.Instances.Count == 0)
 				return ServiceDependency.NotResolved(service);

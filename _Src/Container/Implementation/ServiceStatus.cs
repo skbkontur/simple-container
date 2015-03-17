@@ -4,6 +4,7 @@ namespace SimpleContainer.Implementation
 	{
 		Ok,
 		DependencyError,
+		NotResolved,
 		Error
 	}
 }

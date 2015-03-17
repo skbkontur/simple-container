@@ -10,7 +10,6 @@ namespace SimpleContainer.Implementation
 	internal class ContainerService
 	{
 		public ServiceStatus status;
-		public string errorMessage;
 		private List<string> usedContractNames;
 		private readonly List<object> instances = new List<object>();
 		private IEnumerable<object> typedArray;
@@ -25,31 +24,35 @@ namespace SimpleContainer.Implementation
 		public ResolutionContext Context { get; private set; }
 		private List<ServiceDependency> dependencies;
 
-		//trash
-		public List<string> declaredContracts;
-		public bool isStatic;
-		public string message;
-		public Exception constructionException;
+		//for construction log only
+		private List<string> declaredContracts;
+		private readonly bool isStatic;
+		private string message;
+		private string errorMessage;
+		private Exception constructionException;
 
-		public ContainerService(Type type)
+		public ContainerService(Type type, bool isStatic)
 		{
 			Type = type;
+			this.isStatic = isStatic;
 		}
 
-		public static ContainerService ForFactory(Type type, object arguments)
+		public void SetMessage(string newMessage)
 		{
-			return new ContainerService(type) {CreateNew = true}.WithArguments(ObjectAccessor.Get(arguments));
+			message = newMessage;
 		}
 
-		public ContainerService WithArguments(IObjectAccessor arguments)
+		public ContainerService ForFactory(IObjectAccessor arguments, bool createNew)
 		{
 			Arguments = arguments;
+			CreateNew = createNew;
 			return this;
 		}
 
 		public void AttachToContext(ResolutionContext context)
 		{
 			Context = context;
+			declaredContracts = Context.DeclaredContractNames();
 		}
 
 		public IEnumerable<object> AsEnumerable()
@@ -64,10 +67,32 @@ namespace SimpleContainer.Implementation
 
 		public void CheckOk()
 		{
-			if (status == ServiceStatus.Ok)
+			if (status.IsGood())
 				return;
+			var targetErrorMessage = SearchForError();
+			if (targetErrorMessage == null)
+				throw new InvalidOperationException("assertion failure");
 			var constructionLog = GetConstructionLog();
-			throw new SimpleContainerException(errorMessage + "\r\n" + constructionLog);
+			throw new SimpleContainerException(targetErrorMessage + "\r\n" + constructionLog);
+		}
+
+		private string SearchForError()
+		{
+			if (status == ServiceStatus.Error)
+				return errorMessage;
+			if (dependencies != null)
+				foreach (var dependency in dependencies)
+				{
+					if (dependency.Status == ServiceStatus.Error)
+						return dependency.ErrorMessage;
+					if (dependency.ContainerService != null)
+					{
+						var result = dependency.ContainerService.SearchForError();
+						if (result != null)
+							return result;
+					}
+				}
+			return null;
 		}
 
 		public void EnsureRunCalled(ComponentsRunner runner, bool useCache)
@@ -100,7 +125,7 @@ namespace SimpleContainer.Implementation
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
 			dependencies.Add(dependency);
-			status = dependency.Status == ServiceDependencyStatus.Ok ? ServiceStatus.Ok : ServiceStatus.DependencyError;
+			status = dependency.Status;
 		}
 
 		public IReadOnlyList<object> Instances
@@ -170,6 +195,13 @@ namespace SimpleContainer.Implementation
 			status = ServiceStatus.Error;
 		}
 
+		public void EndResolveDependenciesWithError(Exception error)
+		{
+			EndResolveDependencies();
+			constructionException = error;
+			status = ServiceStatus.Error;
+		}
+
 		public List<string> GetUsedContractNames()
 		{
 			return FinalUsedContracts ?? GetUsedContractNamesFromContext();
@@ -180,16 +212,6 @@ namespace SimpleContainer.Implementation
 			return usedContractNames == null
 				? new List<string>(0)
 				: Context.GetDeclaredContractsByNames(usedContractNames);
-		}
-
-		public object SingleInstance(bool inConstructor)
-		{
-			if (instances.Count == 1)
-				return instances[0];
-			var m = instances.Count == 0 ? "no implementations for " + Type.FormatName() : FormatManyImplementationsMessage();
-			if (instances.Count == 0 && inConstructor)
-				throw new ServiceCouldNotBeCreatedException(m);
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, GetConstructionLog()));
 		}
 
 		public string FormatManyImplementationsMessage()
@@ -209,7 +231,7 @@ namespace SimpleContainer.Implementation
 				const string messageFormat = "assertion failure: FinalUsedContracts == null, type [{0}]";
 				throw new InvalidOperationException(string.Format(messageFormat, Type));
 			}
-			return status == ServiceStatus.Ok;
+			return status.IsGood();
 		}
 
 		public void WaitForResolveOrDie()

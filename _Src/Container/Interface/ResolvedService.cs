@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Interface
@@ -65,7 +66,14 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			return isEnumerable ? All() : containerService.SingleInstance(false);
+			if (isEnumerable)
+				return All();
+			if (containerService.Instances.Count == 1)
+				return containerService.Instances[0];
+			var m = containerService.Instances.Count == 0
+				? "no implementations for " + containerService.Type.FormatName()
+				: containerService.FormatManyImplementationsMessage();
+			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, GetConstructionLog()));
 		}
 
 		public bool HasInstances()
