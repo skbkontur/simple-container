@@ -80,7 +80,7 @@ namespace SimpleContainer.Interface
 
 		public void DumpConstructionLog(ISimpleLogWriter writer)
 		{
-			containerService.Format(writer);
+			containerService.WriteConstructionLog(writer);
 		}
 
 		public string GetConstructionLog()

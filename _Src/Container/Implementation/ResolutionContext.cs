@@ -85,7 +85,7 @@ namespace SimpleContainer.Implementation
 			{
 				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
 					containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-				containerService.EndResolveDependenciesWithFailure(message);
+				containerService.EndResolveDependenciesWithError(message);
 				return;
 			}
 			containerService.AttachToContext(this);
@@ -104,11 +104,11 @@ namespace SimpleContainer.Implementation
 			return current.Count <= 1 ? null : current[current.Count - 2];
 		}
 
-		public ContainerService Resolve(Type type, List<string> contractNames, string name, SimpleContainer container)
+		public ContainerService Resolve(Type type, List<string> contractNames, SimpleContainer container)
 		{
 			var internalContracts = InternalHelpers.ToInternalContracts(contractNames, type);
 			if (internalContracts == null)
-				return container.ResolveSingleton(type, name, this);
+				return container.ResolveSingleton(type, this);
 
 			var unioned = internalContracts
 				.Select(delegate(string s)
@@ -118,7 +118,7 @@ namespace SimpleContainer.Implementation
 				})
 				.ToArray();
 			if (unioned.All(x => x == null))
-				return ResolveUsingContracts(type, name, container, internalContracts);
+				return ResolveUsingContracts(type, container, internalContracts);
 			var source = new List<List<string>>();
 			for (var i = 0; i < internalContracts.Count; i++)
 				source.Add(unioned[i] ?? new List<string>(1) {internalContracts[i]});
@@ -126,17 +126,18 @@ namespace SimpleContainer.Implementation
 			result.AttachToContext(this);
 			foreach (var contracts in source.CartesianProduct())
 			{
-				var item = ResolveUsingContracts(type, name, container, contracts);
-				result.UnionFrom(item, true);
+				var item = ResolveUsingContracts(type, container, contracts);
+				result.UnionDependencies(item);
+				result.UnionUsedContracts(item);
 				if (result.status != ServiceStatus.Ok)
 					return result;
+				result.UnionInstances(item);
 			}
 			result.EndResolveDependencies();
 			return result;
 		}
 
-		public ContainerService ResolveUsingContracts(Type type, string name, SimpleContainer container,
-			List<string> contractNames)
+		public ContainerService ResolveUsingContracts(Type type, SimpleContainer container, List<string> contractNames)
 		{
 			string message;
 			if (!PushContractDeclarations(contractNames, out message))
@@ -145,7 +146,7 @@ namespace SimpleContainer.Implementation
 					status = ServiceStatus.Error,
 					message = message
 				};
-			var result = container.ResolveSingleton(type, name, this);
+			var result = container.ResolveSingleton(type, this);
 			declaredContracts.RemoveRange(declaredContracts.Count - contractNames.Count, contractNames.Count);
 			return result;
 		}

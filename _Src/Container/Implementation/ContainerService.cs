@@ -95,23 +95,12 @@ namespace SimpleContainer.Implementation
 			instances.Add(instance);
 		}
 
-		public void AddDependency(ContainerService dependency)
-		{
-			if (dependencies == null)
-				dependencies = new List<ServiceDependency>();
-			if (dependencies.All(x => x.ContainerService != dependency))
-			{
-				status = dependency.status;
-				errorMessage = dependency.errorMessage;
-				dependencies.Add(new ServiceDependency {service = dependency});
-			}
-		}
-
 		public void AddDependency(ServiceDependency dependency)
 		{
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
 			dependencies.Add(dependency);
+			status = dependency.Status == ServiceDependencyStatus.Ok ? ServiceStatus.Ok : ServiceStatus.DependencyError;
 		}
 
 		public IReadOnlyList<object> Instances
@@ -143,24 +132,22 @@ namespace SimpleContainer.Implementation
 				usedContractNames.Add(n);
 		}
 
-		public void UnionFrom(ContainerService other, bool inlineDependencies)
+		public void UnionInstances(ContainerService other)
 		{
 			foreach (var instance in other.instances)
 				if (!instances.Contains(instance))
 					instances.Add(instance);
-			if (inlineDependencies)
-				UnionDependencies(other);
-			else
-				AddDependency(other);
-			UnionUsedContracts(other);
 		}
 
 		public void UnionDependencies(ContainerService other)
 		{
-			if (other.dependencies != null)
-				foreach (var dependency in other.dependencies)
-					if (dependency.service != null)
-						AddDependency(dependency.service);
+			if (other.dependencies == null)
+				return;
+			if (dependencies == null)
+				dependencies = new List<ServiceDependency>();
+			foreach (var dependency in other.dependencies)
+				if (dependency.ContainerService == null || dependencies.All(x => x.ContainerService != dependency.ContainerService))
+					AddDependency(dependency);
 		}
 
 		public void UseContractWithName(string n)
@@ -176,17 +163,11 @@ namespace SimpleContainer.Implementation
 			FinalUsedContracts = GetUsedContractNamesFromContext();
 		}
 
-		public void EndResolveDependenciesWithFailure(string newErrorMessage)
+		public void EndResolveDependenciesWithError(string newErrorMessage)
 		{
 			EndResolveDependencies();
 			errorMessage = newErrorMessage;
 			status = ServiceStatus.Error;
-		}
-
-		public void EndResolveDependenciesWithDependencyError()
-		{
-			EndResolveDependencies();
-			status = ServiceStatus.DependencyError;
 		}
 
 		public List<string> GetUsedContractNames()

@@ -24,7 +24,7 @@ namespace SimpleContainer.Factories
 				var result = container.Create(type, declaredContractNames, arguments, factoryService.Context);
 				var resultDependency = AsDependency(result, factoryService, hostService);
 				factoryService.AddDependency(resultDependency);
-				if (resultDependency.Status != ServiceDependencyStatus.Ok)
+				if (factoryService.status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;
 			};
@@ -34,13 +34,13 @@ namespace SimpleContainer.Factories
 			ContainerService factoryService, ContainerService hostService)
 		{
 			if (service.status != ServiceStatus.Ok)
-				return ServiceDependency.FailedService(service);
+				return ServiceDependency.ServiceError(service);
 			if (service.Instances.Count == 0)
 				return ServiceDependency.NotResolved(service);
 			if (service.Instances.Count > 1)
 			{
 				var factoryName = hostService.GetDependency(factoryService).Name;
-				return ServiceDependency.Failed(service.Type.FormatName() + "(" + factoryName + ")",
+				return ServiceDependency.Error(factoryName + ":" + service.Type.FormatName(),
 					service.FormatManyImplementationsMessage());
 			}
 			return ServiceDependency.Service(service, service.Instances[0]);
