@@ -1,10 +1,12 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
+using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -700,9 +702,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				const string expectedMessage =
-					"can't cast value [invalidValue] from [String] to [IEnumerable<String>] for dependency [dependency]" +
-					"\r\nA! - <---------------";
+				const string expectedMessage ="can't cast value [invalidValue] from [String] to [IEnumerable<String>] for dependency [dependency]\r\n\r\nA!\r\n\tdependency! <---------------";
 				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 			}
 		}

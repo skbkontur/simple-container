@@ -10,7 +10,6 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly IContainerConfiguration configuration;
 		private readonly List<ContainerService> current = new List<ContainerService>();
-		private readonly ISet<Type> currentTypes = new HashSet<Type>();
 		private readonly List<ContractDeclaration> declaredContracts = new List<ContractDeclaration>();
 
 		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
@@ -20,10 +19,7 @@ namespace SimpleContainer.Implementation
 				return;
 			var contractsArray = contracts.ToArray();
 			if (contractsArray.Length > 0)
-			{
-				string _;
-				PushContractDeclarations(contractsArray, out _);
-			}
+				PushContracts(contractsArray);
 		}
 
 		public List<string> DeclaredContractNames()
@@ -74,21 +70,27 @@ namespace SimpleContainer.Implementation
 			return configuration.GetOrNull<T>(type);
 		}
 
+		public bool DetectCycle(ContainerService containerService, SimpleContainer container, out ContainerService cycle)
+		{
+			if (!current.Contains(containerService))
+			{
+				cycle = null;
+				return false;
+			}
+			var previous = current.Count == 0 ? null : current[current.Count - 1];
+			var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
+				containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
+			cycle = container.NewService(containerService.Type);
+			cycle.EndResolveDependenciesWithError(message);
+			return true;
+		}
+
 		public void Instantiate(ContainerService containerService, SimpleContainer container)
 		{
-			var previous = current.Count == 0 ? null : current[current.Count - 1];
 			current.Add(containerService);
-			if (!currentTypes.Add(containerService.Type))
-			{
-				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
-					containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-				containerService.EndResolveDependenciesWithError(message);
-				return;
-			}
 			containerService.AttachToContext(this);
 			container.Instantiate(containerService);
 			current.RemoveAt(current.Count - 1);
-			currentTypes.Remove(containerService.Type);
 		}
 
 		public ContainerService GetTopService()
@@ -136,31 +138,35 @@ namespace SimpleContainer.Implementation
 
 		public ContainerService ResolveUsingContracts(Type type, SimpleContainer container, List<string> contractNames)
 		{
-			string message;
 			ContainerService result;
-			if (!PushContractDeclarations(contractNames, out message))
+			var pushContractsResult = PushContracts(contractNames);
+			if (pushContractsResult.duplicationsFound)
 			{
+				const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
+				var message = string.Format(messageFormat, pushContractsResult.duplicatedContractName, DeclaredContractsKey());
 				result = container.NewService(type);
+				result.AttachToContext(this);
 				result.EndResolveDependenciesWithError(message);
-				return result;
 			}
-			result = container.ResolveSingleton(type, this);
-			declaredContracts.RemoveRange(declaredContracts.Count - contractNames.Count, contractNames.Count);
+			else
+				result = container.ResolveSingleton(type, this);
+			declaredContracts.Pop(pushContractsResult.pushedContractsCount);
 			return result;
 		}
 
-		private bool PushContractDeclarations(IEnumerable<string> contractNames, out string message)
+		private PushContractsResult PushContracts(IEnumerable<string> contractNames)
 		{
-			message = null;
+			var pushedContractsCount = 0;
 			foreach (var c in contractNames)
 			{
 				var duplicate = declaredContracts.FirstOrDefault(x => x.name.EqualsIgnoringCase(c));
 				if (duplicate != null)
-				{
-					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-					message = string.Format(messageFormat, c, DeclaredContractsKey());
-					return false;
-				}
+					return new PushContractsResult
+					{
+						duplicationsFound = true,
+						duplicatedContractName = c,
+						pushedContractsCount = pushedContractsCount
+					};
 				var contractDeclaration = new ContractDeclaration
 				{
 					name = c,
@@ -170,8 +176,16 @@ namespace SimpleContainer.Implementation
 						.ToList()
 				};
 				declaredContracts.Add(contractDeclaration);
+				pushedContractsCount++;
 			}
-			return true;
+			return new PushContractsResult {duplicationsFound = false, pushedContractsCount = pushedContractsCount};
+		}
+
+		private struct PushContractsResult
+		{
+			public bool duplicationsFound;
+			public string duplicatedContractName;
+			public int pushedContractsCount;
 		}
 
 		private bool MatchWithDeclaredContracts(List<string> required)

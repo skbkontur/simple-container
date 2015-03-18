@@ -89,7 +89,7 @@ namespace SimpleContainer.Implementation
 			context = context ?? new ResolutionContext(configuration, InternalHelpers.ToInternalContracts(contracts, type));
 			var result = NewService(type).ForFactory(ObjectAccessor.Get(arguments), true);
 			context.Instantiate(result, this);
-			if (result.Arguments != null)
+			if (result.status.IsGood() && result.Arguments != null)
 			{
 				var unused = result.Arguments.GetUnused().ToArray();
 				if (unused.Any())
@@ -209,6 +209,9 @@ namespace SimpleContainer.Implementation
 				return staticContainer.ResolveSingleton(type, context);
 			var cacheKey = new CacheKey(type, context.DeclaredContractNames());
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
+			ContainerService cycle;
+			if (context.DetectCycle(result, this, out cycle))
+				return cycle;
 			if (result.AcquireInstantiateLock())
 				try
 				{
@@ -289,7 +292,7 @@ namespace SimpleContainer.Implementation
 			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
 			if (localTypesArray.Length == 0)
 			{
-				service.SetMessage("has no implementations");
+				service.SetComment("has no implementations");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -303,7 +306,7 @@ namespace SimpleContainer.Implementation
 				}
 				else
 					childService = service.Context.Resolve(implementationType, null, this);
-				var dependency = service.status.IsGood()
+				var dependency = childService.status.IsGood()
 					? ServiceDependency.Service(childService, childService.AsEnumerable())
 					: ServiceDependency.ServiceError(childService);
 				service.AddDependency(dependency);
@@ -319,14 +322,14 @@ namespace SimpleContainer.Implementation
 		{
 			if (service.Type.IsDefined("IgnoredImplementationAttribute"))
 			{
-				service.SetMessage("IgnoredImplementation");
+				service.SetComment("IgnoredImplementation");
 				service.EndResolveDependencies();
 				return;
 			}
 			var implementationConfiguration = service.Context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 			{
-				service.SetMessage("DontUse");
+				service.SetComment("DontUse");
 				service.EndResolveDependencies();
 				return;
 			}
@@ -345,7 +348,7 @@ namespace SimpleContainer.Implementation
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
 				service.FilterInstances(implementationConfiguration.InstanceFilter);
-				service.SetMessage("instance filter");
+				service.SetComment("instance filter");
 			}
 		}
 
@@ -427,8 +430,8 @@ namespace SimpleContainer.Implementation
 			if (!implementation.TryGetConstructor(out constructor))
 			{
 				service.EndResolveDependenciesWithError(implementation.publicConstructors.Length == 0
-					? "no public ctors, maybe ctor is private?"
-					: "many public ctors, maybe some of them should be made private?");
+					? "no public ctors"
+					: "many public ctors");
 				return;
 			}
 			implementation.SetService(service);
@@ -437,28 +440,17 @@ namespace SimpleContainer.Implementation
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
-				var dependency = InstantiateDependency(formalParameter, implementation, service.Context);
+				var dependency = InstantiateDependency(formalParameter, implementation, service.Context)
+					.CastTo(formalParameter.ParameterType);
 				service.AddDependency(dependency);
+				if (dependency.ContainerService != null)
+					service.UnionUsedContracts(dependency.ContainerService);
 				if (service.status != ServiceStatus.Ok)
 				{
 					service.EndResolveDependencies();
 					return;
 				}
-				if (dependency.ContainerService != null)
-					service.UnionUsedContracts(dependency.ContainerService);
-				var dependencyValue = dependency.Value;
-				var castedValue = ImplicitTypeCaster.TryCast(dependencyValue, formalParameter.ParameterType);
-				if (dependencyValue != null && castedValue == null)
-				{
-					service.EndResolveDependenciesWithError(
-						string.Format("can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
-							dependencyValue,
-							dependencyValue.GetType().FormatName(),
-							formalParameter.ParameterType.FormatName(),
-							formalParameter.Name));
-					return;
-				}
-				actualArguments[i] = castedValue;
+				actualArguments[i] = dependency.Value;
 			}
 			service.EndResolveDependencies();
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
@@ -489,6 +481,7 @@ namespace SimpleContainer.Implementation
 				{
 					serviceForUsedContracts.ReleaseInstantiateLock();
 				}
+			service.UnionStatusFrom(serviceForUsedContracts);
 			foreach (var instance in serviceForUsedContracts.Instances)
 				service.AddInstance(instance);
 		}
@@ -519,7 +512,7 @@ namespace SimpleContainer.Implementation
 				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type,
 					resourceAttribute.Name);
 				if (resourceStream == null)
-					return ServiceDependency.Error(formalParameter,
+					return ServiceDependency.Error(null, formalParameter,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
 						resourceAttribute.Name, implementation.type, implementation.type.Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
@@ -548,7 +541,7 @@ namespace SimpleContainer.Implementation
 			if (implementationType.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)
-					return ServiceDependency.Error(formalParameter,
+					return ServiceDependency.Error(null, formalParameter,
 						"parameter [{0}] of service [{1}] is not configured",
 						formalParameter.Name, implementation.type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
@@ -567,7 +560,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.NotResolved(result);
 			}
 			if (result.Instances.Count > 1)
-				return ServiceDependency.Error(formalParameter, result.FormatManyImplementationsMessage());
+				return ServiceDependency.Error(result, formalParameter, result.FormatManyImplementationsMessage());
 			return ServiceDependency.Service(result, result.Instances[0]);
 		}
 
@@ -613,7 +606,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (ServiceCouldNotBeCreatedException e)
 			{
-				service.SetMessage(e.Message);
+				service.SetComment(e.Message);
 			}
 			catch (Exception e)
 			{

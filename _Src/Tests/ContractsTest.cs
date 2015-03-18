@@ -347,7 +347,7 @@ namespace SimpleContainer.Tests
 					builder.Contract("a2");
 				});
 				container.Get<Wrap>();
-				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A->[a2] - reused"));
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A->[a2]"));
 			}
 		}
 
@@ -1408,7 +1408,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.StringContaining("A[a]->[a]!\r\n\tparameter -> 78\r\n\tB!\r\n\t\tparameter! - <---------------"));
+					Is.StringContaining("A[a]->[a]!\r\n\tparameter -> 78\r\n\tB!\r\n\t\tparameter! <---------------"));
 			}
 		}
 
@@ -1443,7 +1443,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
-				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A->[x]\r\n\tB[x]! - DontUse"));
+				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A[x]->[x]\r\n\tB[x] = <null> - DontUse"));
 			}
 		}
 
@@ -1475,7 +1475,7 @@ namespace SimpleContainer.Tests
 				});
 				var a = container.Get<A>();
 				Assert.That(a.b1, Is.SameAs(a.b2));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y] - reused"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y]"));
 			}
 		}
 
@@ -1878,7 +1878,7 @@ namespace SimpleContainer.Tests
 				var container = Container(builder => builder.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\nA->[c1]!"));
+					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\nA->[c1]!\r\n\tB->[c1->c2]! <---------------"));
 			}
 		}
 
@@ -1904,7 +1904,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\nA!"));
+				Assert.That(error.Message,
+					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\nA!\r\n\tB->[x]! <---------------"));
 			}
 		}
 

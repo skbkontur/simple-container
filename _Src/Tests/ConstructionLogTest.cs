@@ -142,7 +142,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<B>());
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB! - DontUse"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB = <null> - DontUse"));
 			}
 		}
 
@@ -169,7 +169,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB! - IgnoredImplementation"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB = <null> - IgnoredImplementation"));
 			}
 		}
 
@@ -235,7 +235,7 @@ namespace SimpleContainer.Tests
 				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
 				const string expectedMessage =
-					"many implementations for IB\r\n\tB1\r\n\tB2\r\nC!\r\n\tA\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
+					"many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\nC!\r\n\tA!\r\n\t\tIB!++\r\n\t\t\tB1\r\n\t\t\tB2";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}

@@ -35,8 +35,8 @@ namespace SimpleContainer.Configuration
 			if (!implementation.TryGetConstructor(out constructor))
 			{
 				var messageFormat = implementation.publicConstructors.Length == 0
-					? "type [{0}] has no public ctors, maybe ctor is private?"
-					: "type [{0}] has many public ctors, maybe some of them should be made private?";
+					? "type [{0}] has no public ctors"
+					: "type [{0}] has many public ctors";
 				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
 			}
 			var formalParameter = constructor.GetParameters().SingleOrDefault(x => x.Name == dependencyName);

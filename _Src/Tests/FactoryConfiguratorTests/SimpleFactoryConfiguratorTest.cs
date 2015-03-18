@@ -140,6 +140,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var a = container.Resolve<A>();
 				var constructionLog = a.GetConstructionLog();
+				Console.Out.WriteLine(constructionLog);
 				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\tB\r\n\t\tC\r\n\tB"));
 				Assert.That(container.Get<B>(), Is.Not.SameAs(a.Single().b1));
 				Assert.That(a.Single().b1, Is.Not.SameAs(a.Single().b2));
@@ -213,7 +214,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var a = container.Get<A>();
 				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
-				Assert.That(error.Message, Is.EqualTo("many implementations for IB\r\n\tB1\r\n\tB2\r\nIB++\r\n\tB1\r\n\tB2"));
+				Assert.That(error.Message, Is.EqualTo("many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\nIB++\r\n\tB1\r\n\tB2"));
 			}
 		}
 
@@ -253,10 +254,10 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			public void Test()
 			{
 				var container = Container();
-				var wrap = container.Get<Wrap>();
+				var wrap = container.Get<Wrap>();;
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
 				Assert.That(error.Message,
-					Is.EqualTo("can't create simple type\r\nService!\r\n\tDependency!\r\n\t\targument! - <---------------"));
+					Is.EqualTo("parameter [argument] of service [Dependency] is not configured\r\n\r\nService!\r\n\tDependency!\r\n\t\targument! <---------------"));
 			}
 		}
 	}

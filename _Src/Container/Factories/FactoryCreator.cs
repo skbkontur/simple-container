@@ -15,7 +15,7 @@ namespace SimpleContainer.Factories
 			factoryService.UseAllDeclaredContracts();
 			return delegate(object arguments)
 			{
-				if (hostService != factoryService.Context.GetTopService())
+				if (hostService == null || hostService != factoryService.Context.GetTopService())
 				{
 					var resolvedService = container.Create(type, declaredContractNames, arguments);
 					resolvedService.Run();
@@ -24,7 +24,7 @@ namespace SimpleContainer.Factories
 				var result = container.Create(type, declaredContractNames, arguments, factoryService.Context);
 				var factoryName = hostService.GetDependency(factoryService).Name;
 				var resultDependency = result.AsSingleInstanceDependency(factoryName + ":" + result.Type.FormatName());
-				factoryService.AddDependency(resultDependency);
+				hostService.AddDependency(resultDependency);
 				if (factoryService.status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;

@@ -73,7 +73,7 @@ namespace SimpleContainer.Interface
 			var m = containerService.Instances.Count == 0
 				? "no implementations for " + containerService.Type.FormatName()
 				: containerService.FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n{1}", m, GetConstructionLog()));
+			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
 		}
 
 		public bool HasInstances()

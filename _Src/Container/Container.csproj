@@ -43,7 +43,7 @@
     <Compile Include="Factories\LazyFactoryPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
-    <Compile Include="Helpers\StringHelpers.cs" />
+    <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />
@@ -63,7 +63,6 @@
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Factories\FactoryCreator.cs" />
-    <Compile Include="Helpers\ImplicitTypeCaster.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
     <Compile Include="Implementation\CacheKey.cs" />
@@ -85,7 +84,6 @@
     <Compile Include="Generics\GenericOverrideInfo.cs" />
     <Compile Include="Generics\GenericsConfigurationProcessor.cs" />
     <Compile Include="Generics\TypeHelpers.cs" />
-    <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Configuration\FileBasedConfigurator.cs" />

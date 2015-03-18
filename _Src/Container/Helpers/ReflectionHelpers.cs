@@ -170,6 +170,8 @@ namespace SimpleContainer.Helpers
 		public static string FormatName(this Type type)
 		{
 			var result = type.Name;
+			if (type.IsArray)
+				return type.GetElementType().FormatName() + "[]";
 			if (type.IsGenericType)
 			{
 				result = result.Substring(0, result.IndexOf("`", StringComparison.InvariantCulture));

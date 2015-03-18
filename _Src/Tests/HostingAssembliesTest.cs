@@ -214,7 +214,7 @@ namespace SimpleContainer.Tests
 				using (var localContainer = staticContainer.CreateLocalContainer(null, entryAssembly, null, null))
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => localContainer.Get<IComponent>());
-					Assert.That(error.Message, Is.StringContaining("many implementations for IServiceProvider\r\n\tImpl1\r\n\tImpl2"));
+					Assert.That(error.Message, Is.StringContaining("many implementations for [IServiceProvider]\r\n\tImpl1\r\n\tImpl2"));
 				}
 			}
 		}
