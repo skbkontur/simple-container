@@ -18,6 +18,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
+				
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
@@ -448,7 +449,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
-				Assert.That(error.Message, Is.StringContaining("can't create open generic\r\nGenericClass<T>! - <---------------"));
+				Assert.That(error.Message, Is.StringContaining("can't create open generic\r\nGenericClass<T>! <---------------"));
 			}
 
 			public class GenericClass<T>
@@ -463,7 +464,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.StringContaining("Factory"));
+				Assert.That(error.Message, Is.EqualTo("parameter [unresolved] of service [Factory] is not configured\r\nA!\r\n\tFactory!\r\n\t\tunresolved <---------------"));
 			}
 
 			private class A

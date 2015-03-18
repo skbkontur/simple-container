@@ -22,28 +22,13 @@ namespace SimpleContainer.Factories
 					return resolvedService.Single();
 				}
 				var result = container.Create(type, declaredContractNames, arguments, factoryService.Context);
-				var resultDependency = AsDependency(result, factoryService, hostService);
+				var factoryName = hostService.GetDependency(factoryService).Name;
+				var resultDependency = result.AsSingleInstanceDependency(factoryName + ":" + result.Type.FormatName());
 				factoryService.AddDependency(resultDependency);
 				if (factoryService.status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;
 			};
-		}
-
-		private static ServiceDependency AsDependency(ContainerService service,
-			ContainerService factoryService, ContainerService hostService)
-		{
-			if (service.status.IsBad())
-				return ServiceDependency.ServiceError(service);
-			if (service.Instances.Count == 0)
-				return ServiceDependency.NotResolved(service);
-			if (service.Instances.Count > 1)
-			{
-				var factoryName = hostService.GetDependency(factoryService).Name;
-				return ServiceDependency.Error(factoryName + ":" + service.Type.FormatName(),
-					service.FormatManyImplementationsMessage());
-			}
-			return ServiceDependency.Service(service, service.Instances[0]);
 		}
 	}
 }

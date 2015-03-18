@@ -125,7 +125,7 @@ namespace SimpleContainer.Implementation
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
 			dependencies.Add(dependency);
-			status = dependency.Status;
+			status = dependency.Status == ServiceStatus.Error ? ServiceStatus.DependencyError : dependency.Status;
 		}
 
 		public IReadOnlyList<object> Instances
@@ -185,7 +185,8 @@ namespace SimpleContainer.Implementation
 
 		public void EndResolveDependencies()
 		{
-			FinalUsedContracts = GetUsedContractNamesFromContext();
+			if (FinalUsedContracts == null)
+				FinalUsedContracts = GetUsedContractNamesFromContext();
 		}
 
 		public void EndResolveDependenciesWithError(string newErrorMessage)
@@ -200,6 +201,17 @@ namespace SimpleContainer.Implementation
 			EndResolveDependencies();
 			constructionException = error;
 			status = ServiceStatus.Error;
+		}
+
+		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
+		{
+			if (status.IsBad())
+				return ServiceDependency.ServiceError(this);
+			if (Instances.Count == 0)
+				return ServiceDependency.NotResolved(this);
+			if (Instances.Count > 1)
+				return ServiceDependency.Error(dependencyName, FormatManyImplementationsMessage());
+			return ServiceDependency.Service(this, Instances[0]);
 		}
 
 		public List<string> GetUsedContractNames()
@@ -277,12 +289,15 @@ namespace SimpleContainer.Implementation
 
 		public void WriteConstructionLog(ConstructionLogContext context)
 		{
+			var usedContracts = GetUsedContractNames();
+			if (!context.Seen.Add(new CacheKey(Type, usedContracts)))
+				return;
 			var formattedName = Type.FormatName();
 			context.Writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
-			var usedContracts = GetUsedContractNames();
 			if (usedContracts != null && usedContracts.Count > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-			if (context.UsedFromService == null || declaredContracts.Count > context.UsedFromService.declaredContracts.Count)
+			var previousContractsCount = context.UsedFromService == null ? 0 : context.UsedFromService.declaredContracts.Count;
+			if (declaredContracts.Count > previousContractsCount)
 			{
 				context.Writer.WriteMeta("->[");
 				context.Writer.WriteMeta(InternalHelpers.FormatContractsKey(declaredContracts));
@@ -292,19 +307,24 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta("!");
 			else if (Instances.Count > 1)
 				context.Writer.WriteMeta("++");
-			if (context.UsedFromDependency != null && context.UsedFromDependency.Value == null)
+			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
+			    context.UsedFromDependency.Value == null)
 				context.Writer.WriteMeta(" -> <null>");
-			if (message != null)
+			if (status == ServiceStatus.Error)
+				context.Writer.WriteMeta(" <---------------");
+			else if (message != null)
 			{
 				context.Writer.WriteMeta(" - ");
 				context.Writer.WriteMeta(message);
 			}
 			context.Writer.WriteNewLine();
-			if (context.Seen.Add(new CacheKey(Type, usedContracts)) && dependencies != null)
+			if (dependencies != null)
 				foreach (var d in dependencies)
 				{
 					context.UsedFromService = this;
+					context.Indent++;
 					d.WriteConstructionLog(context);
+					context.Indent--;
 				}
 		}
 	}

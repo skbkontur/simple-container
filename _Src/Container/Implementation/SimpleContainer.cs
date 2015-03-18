@@ -336,7 +336,9 @@ namespace SimpleContainer.Implementation
 			else
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, service.Context);
-				if (factory.Instances.Count == 1)
+				var dependency = factory.AsSingleInstanceDependency(null);
+				service.AddDependency(dependency);
+				if (dependency.Status == ServiceStatus.Ok)
 					InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service);
 				service.EndResolveDependencies();
 			}
@@ -602,20 +604,20 @@ namespace SimpleContainer.Implementation
 		}
 
 		private static void InvokeConstructor(MethodBase method, object self, object[] actualArguments,
-			ContainerService containerService)
+			ContainerService service)
 		{
 			try
 			{
 				var instance = MethodInvoker.Invoke(method, self, actualArguments);
-				containerService.AddInstance(instance);
+				service.AddInstance(instance);
 			}
 			catch (ServiceCouldNotBeCreatedException e)
 			{
-				containerService.SetMessage(e.Message);
+				service.SetMessage(e.Message);
 			}
 			catch (Exception e)
 			{
-				containerService.EndResolveDependenciesWithError(e);
+				service.EndResolveDependenciesWithError(e);
 			}
 		}
 
