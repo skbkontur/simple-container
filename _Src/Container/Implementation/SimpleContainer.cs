@@ -539,7 +539,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.NotResolved(result);
 			}
 			if (result.Instances.Count > 1)
-				return ServiceDependency.Error(result, formalParameter, result.FormatManyImplementationsMessage());
+				return ServiceDependency.Error(result, (string) null, result.FormatManyImplementationsMessage());
 			return ServiceDependency.Service(result, result.Instances[0]);
 		}
 

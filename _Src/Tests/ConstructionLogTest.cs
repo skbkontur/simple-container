@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using NUnit.Framework;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
@@ -66,9 +67,84 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var ts = TimeSpan.FromSeconds(54).Add(TimeSpan.FromMilliseconds(17));
-				var container = Container(b => b.BindDependency<A>("parameter", ts));;
+				var container = Container(b => b.BindDependency<A>("parameter", ts));
 				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+		
+		public class DumpValuesOnlyForSimpleTypes : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly CancellationToken token;
+
+				public A(CancellationToken token)
+				{
+					this.token = token;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
+				const string expectedConstructionLog = "A\r\n\ttoken";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+		
+		public class DumpBooleansInLowercase : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly bool someBool;
+
+				public A(bool someBool)
+				{
+					this.someBool = someBool;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("someBool", true));
+				const string expectedConstructionLog = "A\r\n\tsomeBool -> true";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+			}
+		}
+
+		public class PrintFuncArgumentNameWhenInvokedFromCtor : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly int v;
+				public readonly B b;
+
+				public A(int v, Func<B> myFactory)
+				{
+					this.v = v;
+					b = myFactory();
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(c => c.BindDependency<A>("v", 76).BindDependency<B>("parameter", 67));
+				var resolved = container.Resolve<A>();
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("A\r\n\tv -> 76\r\n\tFunc<B>\r\n\t() => B\r\n\t\tparameter -> 67"));
 			}
 		}
 

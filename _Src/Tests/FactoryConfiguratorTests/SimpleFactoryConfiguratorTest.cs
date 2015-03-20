@@ -140,8 +140,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var a = container.Resolve<A>();
 				var constructionLog = a.GetConstructionLog();
-				Console.Out.WriteLine(constructionLog);
-				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\tB\r\n\t\tC\r\n\tB"));
+				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\t() => B\r\n\t\tC\r\n\t() => B"));
 				Assert.That(container.Get<B>(), Is.Not.SameAs(a.Single().b1));
 				Assert.That(a.Single().b1, Is.Not.SameAs(a.Single().b2));
 			}

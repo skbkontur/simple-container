@@ -60,11 +60,6 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.CastToObjectArrayOf(Type));
 		}
 
-		public ServiceDependency GetDependency(ContainerService containerService)
-		{
-			return dependencies.Single(x => x.ContainerService == containerService);
-		}
-
 		public void CheckOk()
 		{
 			if (status.IsGood())
@@ -244,12 +239,12 @@ namespace SimpleContainer.Implementation
 		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
 		{
 			if (status.IsBad())
-				return ServiceDependency.ServiceError(this);
+				return ServiceDependency.ServiceError(this, dependencyName);
 			if (status == ServiceStatus.NotResolved)
-				return ServiceDependency.NotResolved(this);
+				return ServiceDependency.NotResolved(this, dependencyName);
 			if (Instances.Count > 1)
 				return ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage());
-			return ServiceDependency.Service(this, Instances[0]);
+			return ServiceDependency.Service(this, Instances[0], dependencyName);
 		}
 
 		public string[] GetUsedContractNames()
@@ -331,7 +326,7 @@ namespace SimpleContainer.Implementation
 		public void WriteConstructionLog(ConstructionLogContext context)
 		{
 			var usedContracts = GetUsedContractNames();
-			var formattedName = Type.FormatName();
+			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
 			context.Writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));

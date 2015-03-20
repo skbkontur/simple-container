@@ -8,10 +8,14 @@ namespace SimpleContainer.Implementation
 	{
 		public ContainerService ContainerService { get; private set; }
 		public object Value { get; private set; }
-		public string Name { get; private set; }
+
+		public string Name
+		{
+			get { return name ?? ContainerService.Type.FormatName(); }
+		}
+
 		public string ErrorMessage { get; private set; }
 		public ServiceStatus Status { get; private set; }
-		private bool isConstant;
 
 		private ServiceDependency()
 		{
@@ -36,7 +40,7 @@ namespace SimpleContainer.Implementation
 			{
 				ContainerService = ContainerService,
 				ErrorMessage = ErrorMessage,
-				Name = Name,
+				name = Name,
 				Status = Status,
 				isConstant = isConstant,
 				Value = value
@@ -49,55 +53,57 @@ namespace SimpleContainer.Implementation
 			{
 				Status = ServiceStatus.Ok,
 				Value = value,
-				Name = formalParameter.Name,
+				name = formalParameter.Name,
 				isConstant = true
 			};
 		}
 
-		public static ServiceDependency Service(ContainerService service, object value)
+		public static ServiceDependency Service(ContainerService service, object value, string name = null)
 		{
 			return new ServiceDependency
 			{
 				Status = ServiceStatus.Ok,
 				Value = value,
 				ContainerService = service,
-				Name = service.Type.FormatName()
+				name = name
 			};
 		}
 
-		public static ServiceDependency NotResolved(ContainerService service)
+		public static ServiceDependency NotResolved(ContainerService service, string name = null)
 		{
 			return new ServiceDependency
 			{
 				Status = ServiceStatus.NotResolved,
 				ContainerService = service,
-				Name = service.Type.FormatName()
+				name = name
 			};
 		}
 
-		public static ServiceDependency Error(ContainerService containerService, string name, string message, params object[] args)
+		public static ServiceDependency Error(ContainerService containerService, string name, string message,
+			params object[] args)
 		{
 			return new ServiceDependency
 			{
 				ContainerService = containerService,
 				Status = ServiceStatus.Error,
-				Name = name,
+				name = name,
 				ErrorMessage = string.Format(message, args)
 			};
 		}
 
-		public static ServiceDependency Error(ContainerService containerService, ParameterInfo parameterInfo, string message, params object[] args)
+		public static ServiceDependency Error(ContainerService containerService, ParameterInfo parameterInfo, string message,
+			params object[] args)
 		{
 			return Error(containerService, parameterInfo.Name, message, args);
 		}
 
-		public static ServiceDependency ServiceError(ContainerService service)
+		public static ServiceDependency ServiceError(ContainerService service, string name = null)
 		{
 			return new ServiceDependency
 			{
 				Status = ServiceStatus.DependencyError,
 				ContainerService = service,
-				Name = service.Type.Name
+				name = name
 			};
 		}
 
@@ -111,13 +117,24 @@ namespace SimpleContainer.Implementation
 				return;
 			}
 			context.Writer.WriteName(Name);
-			if (Status == ServiceStatus.Ok && isConstant)
-				context.Writer.WriteMeta(" -> " + (Value ?? "<null>"));
+			if (Status == ServiceStatus.Ok && isConstant && (Value == null || Value.GetType().IsSimpleType()))
+				context.Writer.WriteMeta(" -> " + DumpValue(Value));
 			if (Status != ServiceStatus.Ok)
 				context.Writer.WriteMeta("!");
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();
 		}
+
+		private static string DumpValue(object value)
+		{
+			if (value == null)
+				return "<null>";
+			var result = value.ToString();
+			return value is bool ? result.ToLower() : result;
+		}
+
+		private bool isConstant;
+		private string name;
 	}
 }
