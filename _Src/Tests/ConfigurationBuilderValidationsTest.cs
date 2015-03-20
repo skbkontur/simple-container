@@ -71,7 +71,7 @@ namespace SimpleContainer.Tests
 			{
 				var error = Assert.Throws<SimpleContainerException>(() => Container(x => x.BindDependency<Wrap, A>(42)));
 				Assert.That(error.Message,
-					Is.StringContaining("dependency [42] of type [Int32] for service [Wrap] can't be casted to required type [A]"));
+					Is.StringContaining("dependency [42] of type [int] for service [Wrap] can't be casted to required type [A]"));
 			}
 
 			public class A

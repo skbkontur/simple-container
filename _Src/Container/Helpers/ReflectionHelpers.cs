@@ -169,7 +169,10 @@ namespace SimpleContainer.Helpers
 
 		public static string FormatName(this Type type)
 		{
-			var result = type.Name;
+			string result;
+			if (typeNames.TryGetValue(type, out result))
+				return result;
+			result = type.Name;
 			if (type.IsArray)
 				return type.GetElementType().FormatName() + "[]";
 			if (type.IsGenericType)
@@ -209,6 +212,21 @@ namespace SimpleContainer.Helpers
 			typeof (bool),
 			typeof (DateTime),
 			typeof (TimeSpan)
+		};
+
+		private static readonly IDictionary<Type, string> typeNames = new Dictionary<Type, string>
+		{
+			{typeof (byte), "byte"},
+			{typeof (short), "short"},
+			{typeof (ushort), "ushort"},
+			{typeof (int), "int"},
+			{typeof (uint), "uint"},
+			{typeof (long), "long"},
+			{typeof (ulong), "ulong"},
+			{typeof (double), "double"},
+			{typeof (float), "float"},
+			{typeof (string), "string"},
+			{typeof (bool), "bool"}
 		};
 	}
 }

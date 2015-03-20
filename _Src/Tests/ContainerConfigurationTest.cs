@@ -702,7 +702,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				const string expectedMessage ="can't cast value [invalidValue] from [String] to [IEnumerable<String>] for dependency [dependency]\r\n\r\nA!\r\n\tdependency! <---------------";
+				const string expectedMessage ="can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]\r\n\r\nA!\r\n\tdependency! <---------------";
 				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 			}
 		}

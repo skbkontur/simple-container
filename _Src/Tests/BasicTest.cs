@@ -22,7 +22,7 @@ namespace SimpleContainer.Tests
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
-					Is.StringContaining("can't cast value [42] from [Int32] to [String] for dependency [x]\r\n\r\nWrap!\r\n\tA!"));
+					Is.StringContaining("can't cast value [42] from [int] to [string] for dependency [x]\r\n\r\nWrap!\r\n\tA!"));
 			}
 
 			public class A
@@ -741,7 +741,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"many implementations for [IInterface]\r\n\tSomeImpl<Int32>\r\n\tSomeImpl<String>\r\n\r\nIInterface++\r\n\tSomeImpl<Int32>\r\n\tSomeImpl<String>"));
+						"many implementations for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>"));
 			}
 
 			public interface IInterface

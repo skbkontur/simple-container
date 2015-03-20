@@ -182,7 +182,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
-				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [Int32]"));
+				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [int]"));
 			}
 		}
 
