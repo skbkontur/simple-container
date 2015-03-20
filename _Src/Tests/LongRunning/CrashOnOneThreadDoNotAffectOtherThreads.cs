@@ -46,7 +46,7 @@ namespace SimpleContainer.Tests.LongRunning
 				Thread.Sleep(20);
 				container.Get<A>();
 			});
-			var isValidException = Is.EqualTo("parameter [parameter] of service [A] is not configured\r\n\r\nA!\r\n\tServiceWithDelay\r\n\tparameter! <---------------");
+			var isValidException = Is.EqualTo("parameter [parameter] of service [A] is not configured\r\n\r\n!A\r\n\tServiceWithDelay\r\n\t!parameter <---------------");
 			Assert.That(error.Message, isValidException);
 			var otherTaskException = Assert.Throws<AggregateException>(otherThreadTask.Wait);
 			Assert.That(otherTaskException.InnerExceptions.Single().Message, isValidException);

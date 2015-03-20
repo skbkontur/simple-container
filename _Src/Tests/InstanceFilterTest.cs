@@ -64,7 +64,7 @@ namespace SimpleContainer.Tests
 			Assert.That(container.Resolve<Wrap>().GetConstructionLog(), Is.EqualTo(
 				"Wrap\r\n" +
 				"\tFileAccessorWrap->[all]++\r\n" +
-				"\t\tFileAccessorWrap[c1]->[c1]! - instance filter\r\n" +
+				"\t\t!FileAccessorWrap[c1]->[c1] - instance filter\r\n" +
 				"\t\t\tFileAccessor[c1]\r\n" +
 				"\t\t\t\tfileName -> qq\r\n" +
 				"\t\tFileAccessorWrap[c2]->[c2]\r\n" +
@@ -74,7 +74,7 @@ namespace SimpleContainer.Tests
 				"\t\t\tFileAccessor[c3]\r\n" +
 				"\t\t\t\tfileName -> ww2"));
 			Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(),
-				Is.EqualTo("FileAccessorWrap[c1]->[c1]! - instance filter\r\n\tFileAccessor[c1]\r\n\t\tfileName -> qq"));
+				Is.EqualTo("!FileAccessorWrap[c1]->[c1] - instance filter\r\n\tFileAccessor[c1]\r\n\t\tfileName -> qq"));
 			Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(),
 				Is.EqualTo("FileAccessorWrap[c2]->[c2]\r\n\tFileAccessor[c2]\r\n\t\tfileName -> ww1"));
 		}

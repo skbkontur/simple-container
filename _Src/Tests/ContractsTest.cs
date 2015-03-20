@@ -315,7 +315,7 @@ namespace SimpleContainer.Tests
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"no implementations for [Wrap]\r\n\r\nWrap!\r\n\tService[c1]->[c1]!\r\n\t\tSingletonService\r\n\t\tIInterface[c1]!\r\n\t\t\tImpl1!\r\n\t\t\t\tIUnimplemented! - has no implementations";
+					"no implementations for [Wrap]\r\n\r\n!Wrap\r\n\t!Service[c1]->[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -1408,7 +1408,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.StringContaining("A[a]->[a]!\r\n\tparameter -> 78\r\n\tB!\r\n\t\tparameter! <---------------"));
+					Is.StringContaining("!A[a]->[a]\r\n\tparameter -> 78\r\n\t!B\r\n\t\t!parameter <---------------"));
 			}
 		}
 
@@ -1878,7 +1878,7 @@ namespace SimpleContainer.Tests
 				var container = Container(builder => builder.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\nA->[c1]!\r\n\tB->[c1->c2]! <---------------"));
+					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\n!A->[c1]\r\n\t!B->[c1->c2] <---------------"));
 			}
 		}
 
@@ -1905,7 +1905,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\nA!\r\n\tB->[x]! <---------------"));
+					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\n!A\r\n\t!B->[x] <---------------"));
 			}
 		}
 

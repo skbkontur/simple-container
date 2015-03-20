@@ -102,7 +102,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
-				Assert.That(error.Message, Is.EqualTo("arguments [argument] are not used\r\n\r\nService! <---------------"));
+				Assert.That(error.Message, Is.EqualTo("arguments [argument] are not used\r\n\r\n!Service <---------------"));
 			}
 		}
 
@@ -256,7 +256,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
 				Assert.That(error.Message,
-					Is.EqualTo("parameter [argument] of service [Dependency] is not configured\r\n\r\nService!\r\n\tDependency!\r\n\t\targument! <---------------"));
+					Is.EqualTo("parameter [argument] of service [Dependency] is not configured\r\n\r\n!Service\r\n\t!Dependency\r\n\t\t!argument <---------------"));
 			}
 		}
 	}

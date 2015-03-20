@@ -106,6 +106,8 @@ namespace SimpleContainer.Implementation
 				ContainerService.WriteConstructionLog(context);
 				return;
 			}
+			if (Status != ServiceStatus.Ok)
+				context.Writer.WriteMeta("!");
 			context.Writer.WriteName(Name);
 			if (Status == ServiceStatus.Ok && isConstant)
 			{
@@ -114,8 +116,6 @@ namespace SimpleContainer.Implementation
 				else
 					context.Writer.WriteMeta(" const");
 			}
-			if (Status != ServiceStatus.Ok)
-				context.Writer.WriteMeta("!");
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();

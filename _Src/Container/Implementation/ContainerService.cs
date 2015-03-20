@@ -326,6 +326,12 @@ namespace SimpleContainer.Implementation
 		public void WriteConstructionLog(ConstructionLogContext context)
 		{
 			var usedContracts = GetUsedContractNames();
+			var attentionRequired = status.IsBad() ||
+			                        status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
+			                                                                context.UsedFromDependency.Status ==
+			                                                                ServiceStatus.NotResolved);
+			if (attentionRequired)
+				context.Writer.WriteMeta("!");
 			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
 			context.Writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
@@ -341,12 +347,6 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta(currentContractsKey);
 				context.Writer.WriteMeta("]");
 			}
-			var attentionRequired = status.IsBad() ||
-			                        status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
-			                                                                context.UsedFromDependency.Status ==
-			                                                                ServiceStatus.NotResolved);
-			if (attentionRequired)
-				context.Writer.WriteMeta("!");
 			if (Instances.Count > 1)
 				context.Writer.WriteMeta("++");
 			if (status == ServiceStatus.Error)
