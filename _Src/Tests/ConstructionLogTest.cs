@@ -89,7 +89,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
-				const string expectedConstructionLog = "A\r\n\ttoken";
+				const string expectedConstructionLog = "A\r\n\tCancellationToken const";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}

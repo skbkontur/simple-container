@@ -253,7 +253,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			public void Test()
 			{
 				var container = Container();
-				var wrap = container.Get<Wrap>();;
+				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
 				Assert.That(error.Message,
 					Is.EqualTo("parameter [argument] of service [Dependency] is not configured\r\n\r\nService!\r\n\tDependency!\r\n\t\targument! <---------------"));
