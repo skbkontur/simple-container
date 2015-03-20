@@ -5,34 +5,30 @@ namespace SimpleContainer.Helpers
 {
 	internal static class Utils
 	{
-		public static List<List<T>> CartesianProduct<T>(this List<List<T>> source)
+		public static T[][] CartesianProduct<T>(this T[][] source)
 		{
-			if (source.Count == 0)
+			if (source.Length == 0)
 				return source;
-			var result = new List<List<T>>();
-			if (source.Count == 1)
-			{
-				var item = source[0];
-				foreach (var t in item)
-					result.Add(new List<T>(1) {t});
-				return result;
-			}
-			var currentResult = new T[source.Count];
-			CartesianIteration(0, source, currentResult, result);
+			var resultLength = 1;
+			foreach (var item in source)
+				resultLength *= item.Length;
+			var result = new T[resultLength][];
+			for (var i = 0; i < resultLength; i++)
+				result[i] = new T[source.Length];
+			var resultIndex = 0;
+			CartesianIteration(source, result, 0, ref resultIndex);
 			return result;
 		}
 
-		private static void CartesianIteration<T>(int index, List<List<T>> source,
-			T[] currentResult, List<List<T>> result)
+		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
 		{
-			var mySource = source[index];
-			foreach (var t in mySource)
+			foreach (var t in source[index])
 			{
-				currentResult[index] = t;
-				if (index < currentResult.Length - 1)
-					CartesianIteration(index + 1, source, currentResult, result);
+				result[resultIndex][index] = t;
+				if (index < source.Length - 1)
+					CartesianIteration(source, result, index + 1, ref resultIndex);
 				else
-					result.Add(new List<T>(currentResult));
+					resultIndex++;
 			}
 		}
 

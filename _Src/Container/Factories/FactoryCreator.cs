@@ -25,7 +25,7 @@ namespace SimpleContainer.Factories
 				var factoryName = hostService.GetDependency(factoryService).Name;
 				var resultDependency = result.AsSingleInstanceDependency(factoryName + ":" + result.Type.FormatName());
 				hostService.AddDependency(resultDependency);
-				if (factoryService.status != ServiceStatus.Ok)
+				if (hostService.status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;
 			};

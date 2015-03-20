@@ -58,7 +58,7 @@ namespace SimpleContainer.Implementation
 				var member = memberSetters[i].member;
 				RequireContractAttribute requireContractAttribute;
 				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
-					? new List<string>(cacheKey.contracts) {requireContractAttribute.ContractName}
+					? (IEnumerable<string>) new List<string>(cacheKey.contracts) {requireContractAttribute.ContractName}
 					: cacheKey.contracts;
 				try
 				{

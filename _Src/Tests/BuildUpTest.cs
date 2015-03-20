@@ -115,7 +115,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new String[0]));
 				Assert.That(a, Is.Null);
 				Assert.That(error.Message, Is.EqualTo("can't resolve member [GracefulBuildUpExceptions.a]"));
-				Assert.That(error.InnerException.Message, Is.EqualTo("no implementations for A\r\n\r\nA - DontUse"));
+				Assert.That(error.InnerException.Message, Is.EqualTo("no implementations for [A]\r\n\r\nA! - DontUse"));
 			}
 		}
 

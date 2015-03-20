@@ -315,7 +315,7 @@ namespace SimpleContainer.Tests
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"no implementations for Wrap\r\nWrap!\r\n\tService[c1]->[c1]!\r\n\t\tSingletonService\r\n\t\tIInterface[c1]!\r\n\t\t\tImpl1!\r\n\t\t\t\tIUnimplemented! - has no implementations";
+					"no implementations for [Wrap]\r\n\r\nWrap!\r\n\tService[c1]->[c1]!\r\n\t\tSingletonService\r\n\t\tIInterface[c1]!\r\n\t\t\tImpl1!\r\n\t\t\t\tIUnimplemented! - has no implementations";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -1443,7 +1443,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
-				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A[x]->[x]\r\n\tB[x] = <null> - DontUse"));
+				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A[x]->[x]\r\n\tB[x] - DontUse = <null>"));
 			}
 		}
 

@@ -19,7 +19,7 @@ namespace SimpleContainer.Helpers
 			return status == ServiceStatus.Error || status == ServiceStatus.DependencyError;
 		}
 
-		public static string FormatContractsKey(List<string> contracts)
+		public static string FormatContractsKey(IEnumerable<string> contracts)
 		{
 			return contracts == null ? null : string.Join("->", contracts);
 		}
@@ -29,16 +29,18 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
-		public static List<string> ToInternalContracts(IEnumerable<string> contracts, Type type)
+		public static readonly string[] emptyStrings = new string[0];
+
+		public static string[] ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
 			var attribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
 			if (attribute == null)
-				return contracts == null ? null : ((contracts as List<string>) ?? contracts.ToList());
+				return contracts == null ? emptyStrings : contracts.ToArray();
 			if (contracts == null)
-				return new List<string>(1) {attribute.ContractName};
+				return new[] {attribute.ContractName};
 			var result = contracts.ToList();
 			result.Add(attribute.ContractName);
-			return result;
+			return result.ToArray();
 		}
 
 		public static T GetConfiguration<T>(this IContainerConfigurationRegistry registry, Type type) where T : class

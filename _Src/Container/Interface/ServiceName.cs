@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Interface
@@ -7,9 +6,9 @@ namespace SimpleContainer.Interface
 	public class ServiceName
 	{
 		public Type Type { get; private set; }
-		public List<string> Contracts { get; private set; }
+		public string[] Contracts { get; private set; }
 
-		internal ServiceName(Type type, List<string> contracts)
+		internal ServiceName(Type type, string[] contracts)
 		{
 			Type = type;
 			Contracts = contracts;

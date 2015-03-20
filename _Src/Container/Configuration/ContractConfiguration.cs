@@ -14,9 +14,9 @@ namespace SimpleContainer.Configuration
 		{
 			Name = name;
 			RequiredContracts = requiredContracts;
-			UnionContractNames = unionContractNames;
+			UnionContractNames = unionContractNames == null ? null : unionContractNames.ToArray();
 		}
 
-		public List<string> UnionContractNames { get; private set; }
+		public string[] UnionContractNames { get; private set; }
 	}
 }

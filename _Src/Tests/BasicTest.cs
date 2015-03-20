@@ -837,7 +837,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				const string message =
-					"no implementations for OuterOuterService\r\nOuterOuterService!\r\n\tOuterService!\r\n\t\tIInterface! - has no implementations";
+					"no implementations for [OuterOuterService]\r\n\r\nOuterOuterService!\r\n\tOuterService!\r\n\t\tIInterface! - has no implementations";
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
@@ -1052,7 +1052,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string message =
-					"many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nWrap!\r\n\tIInterface!++\r\n\t\tImpl1\r\n\t\tImpl2";
+					"many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nWrap!\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
 
@@ -1402,10 +1402,10 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<StructConsumer>());
 				Assert.That(error.Message,
 					Is.StringContaining(string.Format(
-						"can't create value type\r\nStructConsumer!\r\n\tSomeStruct! - <---------------")));
+						"can't create value type\r\n\r\nStructConsumer!\r\n\tSomeStruct! <---------------")));
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<ITestInterface>());
 				Assert.That(error.Message,
-					Is.StringContaining(string.Format("ITestInterface!\r\n\tSomeStruct! - <---------------")));
+					Is.StringContaining(string.Format("ITestInterface!\r\n\tSomeStruct! <---------------")));
 			}
 
 			public interface ITestInterface
@@ -1470,11 +1470,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				const string message =
-					"can't create simple type\r\nOuterService!\r\n\tIInterface!\r\n\t\tChild1!\r\n\t\t\targument! - <---------------";
+					"parameter [argument] of service [Child1] is not configured\r\n\r\nOuterService!\r\n\tIInterface!\r\n\t\tChild1!\r\n\t\t\targument! <---------------";
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				const string message2 = "no implementations for Child2\r\nChild2!\r\n\tIOtherService! - has no implementations";
+				const string message2 = "no implementations for [Child2]\r\n\r\nChild2!\r\n\tIOtherService! - has no implementations";
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<Child2>());
 				Assert.That(error.Message, Is.EqualTo(message2));
 			}
@@ -1572,7 +1572,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class NoImplementations_Crash : BasicTest
+		public class NoImplementations_CorrentMessage : BasicTest
 		{
 			public interface IInterface
 			{
@@ -1655,7 +1655,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
 				Assert.That(container.Resolve<WrapWithOptionalDependency>().GetConstructionLog(),
-					Is.EqualTo("WrapWithOptionalDependency\r\n\tA = <null> - DontUse"));
+					Is.EqualTo("WrapWithOptionalDependency\r\n\tA - DontUse = <null>"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}
 		}

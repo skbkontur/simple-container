@@ -113,8 +113,10 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteName(Name);
 			if (Status == ServiceStatus.Ok && isConstant)
 				context.Writer.WriteMeta(" -> " + (Value ?? "<null>"));
+			if (Status != ServiceStatus.Ok)
+				context.Writer.WriteMeta("!");
 			if (Status == ServiceStatus.Error)
-				context.Writer.WriteMeta("! <---------------");
+				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();
 		}
 	}

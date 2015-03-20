@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
@@ -7,13 +6,13 @@ namespace SimpleContainer.Implementation
 	internal struct CacheKey : IEquatable<CacheKey>
 	{
 		public readonly Type type;
-		public readonly List<string> contracts;
+		public readonly string[] contracts;
 		public readonly string contractsKey;
 
-		public CacheKey(Type type, List<string> contracts)
+		public CacheKey(Type type, string[] contracts)
 		{
 			this.type = type;
-			this.contracts = contracts ?? new List<string>(0);
+			this.contracts = contracts ?? InternalHelpers.emptyStrings;
 			contractsKey = InternalHelpers.FormatContractsKey(this.contracts);
 		}
 

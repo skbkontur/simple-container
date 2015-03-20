@@ -12,27 +12,24 @@ namespace SimpleContainer.Implementation
 		private readonly List<ContainerService> current = new List<ContainerService>();
 		private readonly List<ContractDeclaration> declaredContracts = new List<ContractDeclaration>();
 
-		public ResolutionContext(IContainerConfiguration configuration, IEnumerable<string> contracts)
+		public ResolutionContext(IContainerConfiguration configuration, string[] contracts)
 		{
 			this.configuration = configuration;
-			if (contracts == null)
-				return;
-			var contractsArray = contracts.ToArray();
-			if (contractsArray.Length > 0)
-				PushContracts(contractsArray);
+			if (contracts.Length > 0)
+				PushContracts(contracts);
 		}
 
-		public List<string> DeclaredContractNames()
+		public string[] DeclaredContractNames()
 		{
-			return declaredContracts.Select(x => x.name).ToList();
+			return declaredContracts.Select(x => x.name).ToArray();
 		}
 
-		public List<string> GetDeclaredContractsByNames(List<string> names)
+		public string[] GetDeclaredContractsByNames(List<string> names)
 		{
 			return declaredContracts
 				.Where(x => names.Contains(x.name, StringComparer.OrdinalIgnoreCase))
 				.Select(x => x.name)
-				.ToList();
+				.ToArray();
 		}
 
 		public int DeclaredContractsCount()
@@ -81,7 +78,7 @@ namespace SimpleContainer.Implementation
 			var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
 				containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
 			cycle = container.NewService(containerService.Type);
-			cycle.EndResolveDependenciesWithError(message);
+			cycle.SetError(message);
 			return true;
 		}
 
@@ -89,8 +86,60 @@ namespace SimpleContainer.Implementation
 		{
 			current.Add(containerService);
 			containerService.AttachToContext(this);
-			container.Instantiate(containerService);
+			var expandResult = TryExpandUnions();
+			if (!expandResult.isOk)
+				containerService.SetError(expandResult.errorMessage);
+			else if (expandResult.value != null)
+			{
+				var poppedContracts = declaredContracts.PopMany(expandResult.value.Length);
+				foreach (var contracts in expandResult.value.CartesianProduct())
+				{
+					var childService = ResolveInternal(containerService.Type, contracts, container);
+					if (!containerService.LinkTo(childService))
+						break;
+				}
+				declaredContracts.AddRange(poppedContracts);
+			}
+			else
+				container.Instantiate(containerService);
+			containerService.EndInstantiate();
 			current.RemoveAt(current.Count - 1);
+		}
+
+		private FuncResult<string[][]> TryExpandUnions()
+		{
+			string[][] result = null;
+			var startIndex = 0;
+			for (var i = 0; i < declaredContracts.Count; i++)
+			{
+				var declaredContract = declaredContracts[i];
+				ContractConfiguration union = null;
+				foreach (var definition in declaredContract.definitions)
+				{
+					if (definition.UnionContractNames == null)
+						continue;
+					if (union != null)
+						return FuncResult.Fail<string[][]>(string.Format("contract [{0}] has conflicting unions [{1}] and [{2}]",
+							declaredContract.name, InternalHelpers.FormatContractsKey(union.UnionContractNames),
+							InternalHelpers.FormatContractsKey(definition.UnionContractNames)));
+					union = definition;
+				}
+				if (union == null)
+				{
+					if (result != null)
+						result[i - startIndex] = new[] {declaredContract.name};
+				}
+				else
+				{
+					if (result == null)
+					{
+						startIndex = i;
+						result = new string[declaredContracts.Count - startIndex][];
+					}
+					result[i - startIndex] = union.UnionContractNames;
+				}
+			}
+			return FuncResult.Ok(result);
 		}
 
 		public ContainerService GetTopService()
@@ -103,70 +152,41 @@ namespace SimpleContainer.Implementation
 			return current.Count <= 1 ? null : current[current.Count - 2];
 		}
 
-		public ContainerService Resolve(Type type, List<string> contractNames, SimpleContainer container)
+		public ContainerService Resolve(Type type, IEnumerable<string> contractNames, SimpleContainer container)
 		{
 			var internalContracts = InternalHelpers.ToInternalContracts(contractNames, type);
-			if (internalContracts == null)
-				return container.ResolveSingleton(type, this);
-
-			var unioned = internalContracts
-				.Select(delegate(string s)
-				{
-					var configurations = configuration.GetContractConfigurations(s).EmptyIfNull().ToArray();
-					return configurations.Length == 1 ? configurations[0].UnionContractNames : null;
-				})
-				.ToArray();
-			if (unioned.All(x => x == null))
-				return ResolveUsingContracts(type, container, internalContracts);
-			var source = new List<List<string>>();
-			for (var i = 0; i < internalContracts.Count; i++)
-				source.Add(unioned[i] ?? new List<string>(1) {internalContracts[i]});
-			var result = container.NewService(type);
-			result.AttachToContext(this);
-			foreach (var contracts in source.CartesianProduct())
-			{
-				var item = ResolveUsingContracts(type, container, contracts);
-				result.UnionDependencies(item);
-				result.UnionUsedContracts(item);
-				if (result.status.IsBad())
-					return result;
-				result.UnionInstances(item);
-			}
-			result.EndResolveDependencies();
-			return result;
+			return internalContracts.Length == 0
+				? container.ResolveSingleton(type, this)
+				: ResolveInternal(type, internalContracts, container);
 		}
 
-		public ContainerService ResolveUsingContracts(Type type, SimpleContainer container, List<string> contractNames)
+		private ContainerService ResolveInternal(Type type, string[] contractNames, SimpleContainer container)
 		{
 			ContainerService result;
 			var pushContractsResult = PushContracts(contractNames);
-			if (pushContractsResult.duplicationsFound)
+			if (!pushContractsResult.isOk)
 			{
-				const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-				var message = string.Format(messageFormat, pushContractsResult.duplicatedContractName, DeclaredContractsKey());
 				result = container.NewService(type);
 				result.AttachToContext(this);
-				result.EndResolveDependenciesWithError(message);
+				result.SetError(pushContractsResult.errorMessage);
 			}
 			else
 				result = container.ResolveSingleton(type, this);
-			declaredContracts.Pop(pushContractsResult.pushedContractsCount);
+			declaredContracts.RemoveLast(pushContractsResult.value);
 			return result;
 		}
 
-		private PushContractsResult PushContracts(IEnumerable<string> contractNames)
+		private FuncResult<int> PushContracts(string[] contractNames)
 		{
 			var pushedContractsCount = 0;
 			foreach (var c in contractNames)
 			{
 				var duplicate = declaredContracts.FirstOrDefault(x => x.name.EqualsIgnoringCase(c));
 				if (duplicate != null)
-					return new PushContractsResult
-					{
-						duplicationsFound = true,
-						duplicatedContractName = c,
-						pushedContractsCount = pushedContractsCount
-					};
+				{
+					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
+					return FuncResult.Fail<int>(messageFormat, c, DeclaredContractsKey());
+				}
 				var contractDeclaration = new ContractDeclaration
 				{
 					name = c,
@@ -178,14 +198,7 @@ namespace SimpleContainer.Implementation
 				declaredContracts.Add(contractDeclaration);
 				pushedContractsCount++;
 			}
-			return new PushContractsResult {duplicationsFound = false, pushedContractsCount = pushedContractsCount};
-		}
-
-		private struct PushContractsResult
-		{
-			public bool duplicationsFound;
-			public string duplicatedContractName;
-			public int pushedContractsCount;
+			return FuncResult.Ok(pushedContractsCount);
 		}
 
 		private bool MatchWithDeclaredContracts(List<string> required)

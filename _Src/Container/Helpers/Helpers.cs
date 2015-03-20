@@ -17,9 +17,17 @@ namespace SimpleContainer.Helpers
 			return source.TryGetValue(key, out result) ? result : defaultValue;
 		}
 
-		public static void Pop<T>(this List<T> list, int count = 1)
+		public static void RemoveLast<T>(this List<T> list, int count = 1)
 		{
 			list.RemoveRange(list.Count - count, count);
+		}
+
+		public static T[] PopMany<T>(this List<T> list, int count = 1)
+		{
+			var result = new T[count];
+			list.CopyTo(list.Count - count, result, 0, count);
+			list.RemoveLast(count);
+			return result;
 		}
 	}
 }

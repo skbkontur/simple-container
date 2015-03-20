@@ -93,7 +93,7 @@ namespace SimpleContainer.Implementation
 			{
 				var unused = result.Arguments.GetUnused().ToArray();
 				if (unused.Any())
-					result.EndResolveDependenciesWithError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
+					result.SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
 			}
 			return result;
 		}
@@ -216,11 +216,10 @@ namespace SimpleContainer.Implementation
 				try
 				{
 					context.Instantiate(result, this);
-					result.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
 				}
 				finally
 				{
-					result.ReleaseInstantiateLock();
+					result.ReleaseInstantiateLock(Interlocked.Increment(ref topSortIndex));
 				}
 			return result;
 		}
@@ -229,13 +228,12 @@ namespace SimpleContainer.Implementation
 		{
 			if (service.Type.IsSimpleType())
 			{
-				service.EndResolveDependenciesWithError("can't create simple type");
+				service.SetError("can't create simple type");
 				return;
 			}
 			if (service.Type == typeof (IContainer))
 			{
 				service.AddInstance(this);
-				service.EndResolveDependencies();
 				return;
 			}
 			var interfaceConfiguration = service.Context.GetConfiguration<InterfaceConfiguration>(service.Type);
@@ -246,7 +244,6 @@ namespace SimpleContainer.Implementation
 				if (interfaceConfiguration.ImplementationAssigned)
 				{
 					service.AddInstance(interfaceConfiguration.Implementation);
-					service.EndResolveDependencies();
 					return;
 				}
 				if (interfaceConfiguration.Factory != null)
@@ -256,7 +253,6 @@ namespace SimpleContainer.Implementation
 						container = this,
 						contracts = service.Context.DeclaredContractNames()
 					}));
-					service.EndResolveDependencies();
 					return;
 				}
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
@@ -264,17 +260,14 @@ namespace SimpleContainer.Implementation
 			}
 			if (service.Type.IsValueType)
 			{
-				service.EndResolveDependenciesWithError("can't create value type");
+				service.SetError("can't create value type");
 				return;
 			}
 			if (factoryPlugins.Any(p => p.TryInstantiate(this, service)))
-			{
-				service.EndResolveDependencies();
 				return;
-			}
 			if (service.Type.IsGenericType && service.Type.ContainsGenericParameters)
 			{
-				service.EndResolveDependenciesWithError("can't create open generic");
+				service.SetError("can't create open generic");
 				return;
 			}
 			if (service.Type.IsAbstract)
@@ -293,7 +286,6 @@ namespace SimpleContainer.Implementation
 			if (localTypesArray.Length == 0)
 			{
 				service.SetComment("has no implementations");
-				service.EndResolveDependencies();
 				return;
 			}
 			foreach (var implementationType in localTypesArray)
@@ -306,16 +298,9 @@ namespace SimpleContainer.Implementation
 				}
 				else
 					childService = service.Context.Resolve(implementationType, null, this);
-				var dependency = childService.status.IsGood()
-					? ServiceDependency.Service(childService, childService.AsEnumerable())
-					: ServiceDependency.ServiceError(childService);
-				service.AddDependency(dependency);
-				service.UnionUsedContracts(childService);
-				if (service.status.IsBad())
-					break;
-				service.UnionInstances(childService);
+				if (!service.LinkTo(childService))
+					return;
 			}
-			service.EndResolveDependencies();
 		}
 
 		private void InstantiateImplementation(ContainerService service)
@@ -323,14 +308,12 @@ namespace SimpleContainer.Implementation
 			if (service.Type.IsDefined("IgnoredImplementationAttribute"))
 			{
 				service.SetComment("IgnoredImplementation");
-				service.EndResolveDependencies();
 				return;
 			}
 			var implementationConfiguration = service.Context.GetConfiguration<ImplementationConfiguration>(service.Type);
 			if (implementationConfiguration != null && implementationConfiguration.DontUseIt)
 			{
 				service.SetComment("DontUse");
-				service.EndResolveDependencies();
 				return;
 			}
 			var factoryMethod = GetFactoryOrNull(service.Type);
@@ -343,12 +326,12 @@ namespace SimpleContainer.Implementation
 				service.AddDependency(dependency);
 				if (dependency.Status == ServiceStatus.Ok)
 					InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service);
-				service.EndResolveDependencies();
 			}
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
-				service.FilterInstances(implementationConfiguration.InstanceFilter);
-				service.SetComment("instance filter");
+				var filteredOutCount = service.FilterInstances(implementationConfiguration.InstanceFilter);
+				if (filteredOutCount > 0)
+					service.SetComment("instance filter");
 			}
 		}
 
@@ -429,7 +412,7 @@ namespace SimpleContainer.Implementation
 			ConstructorInfo constructor;
 			if (!implementation.TryGetConstructor(out constructor))
 			{
-				service.EndResolveDependenciesWithError(implementation.publicConstructors.Length == 0
+				service.SetError(implementation.publicConstructors.Length == 0
 					? "no public ctors"
 					: "many public ctors");
 				return;
@@ -446,21 +429,18 @@ namespace SimpleContainer.Implementation
 				if (dependency.ContainerService != null)
 					service.UnionUsedContracts(dependency.ContainerService);
 				if (service.status != ServiceStatus.Ok)
-				{
-					service.EndResolveDependencies();
 					return;
-				}
 				actualArguments[i] = dependency.Value;
 			}
 			service.EndResolveDependencies();
 			var unusedDependencyConfigurations = implementation.GetUnusedDependencyConfigurationNames().ToArray();
 			if (unusedDependencyConfigurations.Length > 0)
 			{
-				service.EndResolveDependenciesWithError(string.Format("unused dependency configurations [{0}]",
+				service.SetError(string.Format("unused dependency configurations [{0}]",
 					unusedDependencyConfigurations.JoinStrings(",")));
 				return;
 			}
-			if (service.Context.DeclaredContractsCount() == service.FinalUsedContracts.Count)
+			if (service.Context.DeclaredContractsCount() == service.FinalUsedContracts.Length)
 			{
 				InvokeConstructor(constructor, null, actualArguments, service);
 				return;
@@ -473,13 +453,12 @@ namespace SimpleContainer.Implementation
 					serviceForUsedContracts.AttachToContext(service.Context);
 					serviceForUsedContracts.UnionUsedContracts(service);
 					serviceForUsedContracts.UnionDependencies(service);
-					serviceForUsedContracts.EndResolveDependencies();
 					InvokeConstructor(constructor, null, actualArguments, serviceForUsedContracts);
-					serviceForUsedContracts.InstantiatedSuccessfully(Interlocked.Increment(ref topSortIndex));
+					serviceForUsedContracts.EndInstantiate();
 				}
 				finally
 				{
-					serviceForUsedContracts.ReleaseInstantiateLock();
+					serviceForUsedContracts.ReleaseInstantiateLock(Interlocked.Increment(ref topSortIndex));
 				}
 			service.UnionStatusFrom(serviceForUsedContracts);
 			foreach (var instance in serviceForUsedContracts.Instances)
@@ -551,7 +530,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.ServiceError(result);
 			if (isEnumerable)
 				return ServiceDependency.Service(result, result.AsEnumerable());
-			if (result.Instances.Count == 0)
+			if (result.status == ServiceStatus.NotResolved)
 			{
 				if (formalParameter.HasDefaultValue)
 					return ServiceDependency.Service(result, formalParameter.DefaultValue);
@@ -610,7 +589,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				service.EndResolveDependenciesWithError(e);
+				service.SetError(e);
 			}
 		}
 
