@@ -595,7 +595,7 @@ namespace SimpleContainer.Tests
 				Action<ContainerFactory> configureFactory = f => f
 					.WithInfoLogger(delegate(ServiceName name, string message)
 					{
-						log.Append(name.FormatName());
+						log.Append(name.Format());
 						log.Append(" - ");
 						log.Append(message);
 					});

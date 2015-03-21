@@ -50,14 +50,14 @@ namespace SimpleContainer
 			return container.GetImplementationsOf(typeof (T));
 		}
 
-		public static IEnumerable<object> GetAll(this IContainer container, Type type)
+		public static IEnumerable<object> GetAll(this IContainer container, Type type, params string[] contracts)
 		{
-			return container.Resolve(type, new string[0]).All();
+			return container.Resolve(type, contracts).All();
 		}
 
-		public static T[] GetAll<T>(this IContainer container)
+		public static IEnumerable<T> GetAll<T>(this IContainer container, params string[] contracts)
 		{
-			return container.GetAll(typeof (T)).Cast<T>().ToArray();
+			return container.Resolve<T>(contracts).All();
 		}
 
 		public static bool TryGet<T>(this IContainer container, out T result)
@@ -67,20 +67,19 @@ namespace SimpleContainer
 
 		public static IEnumerable<object> GetDependencyValues(this IContainer container, Type type)
 		{
-			return container.GetDependencies(type).SelectMany(container.GetAll);
+			return container.GetDependencies(type).SelectMany(t => container.GetAll(t));
 		}
 
 		public static IEnumerable<TDependency> GetDependencyValuesOfType<TDependency>(this IContainer container, Type type)
 		{
 			return container.GetDependencies(type)
 				.Where(x => typeof (TDependency).IsAssignableFrom(x))
-				.SelectMany(container.GetAll)
-				.Cast<TDependency>();
+				.SelectMany(t => container.GetAll<TDependency>());
 		}
 
 		public static IEnumerable<object> GetDependencyValuesRecursive(this IContainer container, Type type)
 		{
-			return container.GetDependenciesRecursive(type).SelectMany(container.GetAll);
+			return container.GetDependenciesRecursive(type).SelectMany(t => container.GetAll(t));
 		}
 
 		public static IEnumerable<Type> GetDependenciesRecursive(this IContainer container, Type type)

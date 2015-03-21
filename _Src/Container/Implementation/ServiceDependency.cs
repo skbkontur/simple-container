@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
@@ -119,6 +121,14 @@ namespace SimpleContainer.Implementation
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();
+		}
+
+		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
+		{
+			if (ContainerService != null)
+				ContainerService.CollectInstances(interfaceType, seen, target);
+			if (Value != null && interfaceType.IsInstanceOfType(Value) && seen.Add(Value))
+				target.Add(new NamedInstance(Value, new ServiceName(Value.GetType(), InternalHelpers.emptyStrings)));
 		}
 
 		private static string DumpValue(object value)

@@ -14,7 +14,7 @@ namespace SimpleContainer.Interface
 			Contracts = contracts;
 		}
 
-		public string FormatName()
+		public string Format()
 		{
 			return FormatTypeName() + FormatContracts();
 		}

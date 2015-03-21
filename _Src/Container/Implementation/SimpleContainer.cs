@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
 using SimpleContainer.Generics;
@@ -38,7 +37,6 @@ namespace SimpleContainer.Implementation
 
 		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
-		private int topSortIndex;
 		private bool disposed;
 		private readonly ComponentsRunner componentsRunner;
 
@@ -160,26 +158,14 @@ namespace SimpleContainer.Implementation
 			return dependenciesInjector.BuildUp(target, contractsArray);
 		}
 
-		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
+		private IEnumerable<NamedInstance> GetInstanceCache(Type interfaceType)
 		{
-			var result = instanceCache.Values
-				.Where(x => x.WaitForResolve() && !x.Type.IsAbstract && interfaceType.IsAssignableFrom(x.Type))
-				.ToList();
-			result.Sort((a, b) => a.TopSortIndex.CompareTo(b.TopSortIndex));
-			return result.SelectMany(x => x.GetInstances()).Distinct(new ServiceInstanceEqualityComparer()).ToArray();
-		}
-
-		private class ServiceInstanceEqualityComparer : IEqualityComparer<ServiceInstance>
-		{
-			public bool Equals(ServiceInstance x, ServiceInstance y)
-			{
-				return ReferenceEquals(x.Instance, y.Instance);
-			}
-
-			public int GetHashCode(ServiceInstance obj)
-			{
-				return obj.Instance.GetHashCode();
-			}
+			var seen = new HashSet<object>();
+			var target = new List<NamedInstance>();
+			foreach (var service in instanceCache.Values)
+				if (service.WaitForResolve())
+					service.CollectInstances(interfaceType, seen, target);
+			return target;
 		}
 
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
@@ -219,7 +205,7 @@ namespace SimpleContainer.Implementation
 				}
 				finally
 				{
-					result.ReleaseInstantiateLock(Interlocked.Increment(ref topSortIndex));
+					result.ReleaseInstantiateLock();
 				}
 			return result;
 		}
@@ -458,7 +444,7 @@ namespace SimpleContainer.Implementation
 				}
 				finally
 				{
-					serviceForUsedContracts.ReleaseInstantiateLock(Interlocked.Increment(ref topSortIndex));
+					serviceForUsedContracts.ReleaseInstantiateLock();
 				}
 			service.UnionStatusFrom(serviceForUsedContracts);
 			foreach (var instance in serviceForUsedContracts.Instances)
@@ -623,7 +609,7 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private static void DisposeService(ServiceInstance disposable)
+		private static void DisposeService(NamedInstance disposable)
 		{
 			try
 			{
@@ -637,7 +623,7 @@ namespace SimpleContainer.Implementation
 				if (aggregateException != null)
 					if (aggregateException.Flatten().InnerExceptions.All(x => x is OperationCanceledException))
 						return;
-				var message = string.Format("error disposing [{0}]", disposable.FormatName());
+				var message = string.Format("error disposing [{0}]", disposable.Name.Format());
 				throw new SimpleContainerException(message, e);
 			}
 		}

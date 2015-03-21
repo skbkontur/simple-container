@@ -17,7 +17,6 @@ namespace SimpleContainer.Implementation
 		private bool instantiated;
 		private volatile bool runCalled;
 		public Type Type { get; private set; }
-		public int TopSortIndex { get; private set; }
 		public string[] FinalUsedContracts { get; private set; }
 		public IObjectAccessor Arguments { get; private set; }
 		public bool CreateNew { get; private set; }
@@ -118,9 +117,14 @@ namespace SimpleContainer.Implementation
 					}
 		}
 
-		public IEnumerable<ServiceInstance> GetInstances()
+		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
 		{
-			return Instances.Select(y => new ServiceInstance(y, this));
+			if (dependencies != null)
+				foreach (var dependency in dependencies)
+					dependency.CollectInstances(interfaceType, seen, target);
+			foreach (var instance in instances)
+				if (interfaceType.IsInstanceOfType(instance) && seen.Add(instance))
+					target.Add(new NamedInstance(instance, new ServiceName(instance.GetType(), FinalUsedContracts)));
 		}
 
 		public void AddInstance(object instance)
@@ -296,9 +300,8 @@ namespace SimpleContainer.Implementation
 			return false;
 		}
 
-		public void ReleaseInstantiateLock(int topSortIndex)
+		public void ReleaseInstantiateLock()
 		{
-			TopSortIndex = topSortIndex;
 			instantiated = true;
 			Monitor.PulseAll(lockObject);
 			Monitor.Exit(lockObject);

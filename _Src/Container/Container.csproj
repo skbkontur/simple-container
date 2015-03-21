@@ -47,7 +47,7 @@
     <Compile Include="Implementation\ConstructionLogContext.cs" />
     <Compile Include="Implementation\FuncResult.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
-    <Compile Include="Implementation\ServiceInstance.cs" />
+    <Compile Include="Implementation\NamedInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />

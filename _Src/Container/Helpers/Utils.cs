@@ -28,7 +28,11 @@ namespace SimpleContainer.Helpers
 				if (index < source.Length - 1)
 					CartesianIteration(source, result, index + 1, ref resultIndex);
 				else
+				{
 					resultIndex++;
+					if (resultIndex < result.Length)
+						Array.Copy(result[resultIndex - 1], result[resultIndex], result[resultIndex].Length);
+				}
 			}
 		}
 

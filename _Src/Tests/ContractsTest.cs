@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -461,6 +462,204 @@ namespace SimpleContainer.Tests
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.first.intf, Is.InstanceOf<Y>());
 				Assert.That(wrap.second.intf, Is.InstanceOf<Z>());
+			}
+		}
+
+		public class MultipleUnionOfDefinitionsOfSingleDeclarationIsProhibited : ContractsTest
+		{
+			[TestContract("c1")]
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("c2")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("c1").Contract("c2").UnionOf("x1", "x2");
+					b.Contract("c2").UnionOf("x3", "x4");
+				});
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message,
+					Is.EqualTo(
+						"contract [c2] has conflicting unions [x1,x2] and [x3,x4]\r\n\r\n!A->[c1]\r\n\t!B->[c1->c2] <---------------"));
+			}
+		}
+
+		public class NestedUnions : ContractsTest
+		{
+			public class A
+			{
+				public readonly BWrap[] bWraps;
+
+				public A([TestContract("u1")] BWrap[] bWraps)
+				{
+					this.bWraps = bWraps;
+				}
+			}
+
+			public class BWrap
+			{
+				public readonly IB b;
+
+				public BWrap(IB b)
+				{
+					this.b = b;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			public class B1 : IB
+			{
+			}
+
+			public class B2 : IB
+			{
+			}
+
+			public class B3 : IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("u1").UnionOf("c1", "c2");
+					b.Contract("c1").UnionOf("c3", "c4");
+					b.Contract("c2").UnionOf("c4", "c5");
+
+					b.Contract("c3").Bind<IB, B1>();
+					b.Contract("c4").Bind<IB, B2>();
+					b.Contract("c5").Bind<IB, B3>();
+				});
+
+				var instance = container.Resolve<A>();
+				Console.Out.WriteLine(instance.GetConstructionLog());
+				Assert.That(instance.Single().bWraps.Length, Is.EqualTo(3));
+			}
+		}
+
+		public class CartesianProductAdjacentUnionedContracts : ContractsTest
+		{
+			public class Host
+			{
+				public readonly A[] instances;
+
+				public Host([TestContract("union1")] A[] instances)
+				{
+					this.instances = instances;
+				}
+			}
+
+			[TestContract("union2")]
+			public class A
+			{
+				public readonly int parameter;
+				public readonly B b;
+
+				public A(int parameter, B b)
+				{
+					this.parameter = parameter;
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("union1").UnionOf("c1", "c2");
+					b.Contract("union2").UnionOf("c3", "c4");
+
+					b.Contract("c1").BindDependency<A>("parameter", 1);
+					b.Contract("c2").BindDependency<A>("parameter", 2);
+					b.Contract("c3").BindDependency<B>("parameter", 3);
+					b.Contract("c4").BindDependency<B>("parameter", 4);
+				});
+
+				var host = container.Get<Host>();
+				Assert.That(host.instances.Length, Is.EqualTo(4));
+
+				Assert.That(host.instances[0].parameter, Is.EqualTo(1));
+				Assert.That(host.instances[0].b.parameter, Is.EqualTo(3));
+
+				Assert.That(host.instances[1].parameter, Is.EqualTo(1));
+				Assert.That(host.instances[1].b.parameter, Is.EqualTo(4));
+
+				Assert.That(host.instances[2].parameter, Is.EqualTo(2));
+				Assert.That(host.instances[2].b.parameter, Is.EqualTo(3));
+
+				Assert.That(host.instances[3].parameter, Is.EqualTo(2));
+				Assert.That(host.instances[3].b.parameter, Is.EqualTo(4));
+			}
+		}
+
+		public class CanExplicitlyQueryForUnionedContract : ContractsTest
+		{
+			public class Host
+			{
+				public readonly IA a;
+
+				public Host(IA a)
+				{
+					this.a = a;
+				}
+			}
+
+			public interface IA
+			{
+			}
+
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract("unioned").UnionOf("c1", "c2");
+					builder.Contract("c1").Bind<IA, A1>();
+					builder.Contract("c2").Bind<IA, A2>();
+				});
+				var hosts = container.GetAll<Host>("unioned").ToArray();
+				Assert.That(hosts.Length, Is.EqualTo(2));
+				Assert.That(hosts[0].a, Is.InstanceOf<A1>());
+				Assert.That(hosts[1].a, Is.InstanceOf<A2>());
+				Assert.That(hosts[0].a, Is.SameAs(container.Get<IA>("c1")));
+				Assert.That(hosts[1].a, Is.SameAs(container.Get<IA>("c2")));
 			}
 		}
 
@@ -1428,7 +1627,7 @@ namespace SimpleContainer.Tests
 			{
 				public readonly B b;
 
-				public A([Optional] B b)
+				public A([Infection.Optional] B b)
 				{
 					this.b = b;
 				}

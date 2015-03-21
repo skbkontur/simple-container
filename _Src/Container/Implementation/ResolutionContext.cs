@@ -120,8 +120,9 @@ namespace SimpleContainer.Implementation
 						continue;
 					if (union != null)
 						return FuncResult.Fail<string[][]>(string.Format("contract [{0}] has conflicting unions [{1}] and [{2}]",
-							declaredContract.name, InternalHelpers.FormatContractsKey(union.UnionContractNames),
-							InternalHelpers.FormatContractsKey(definition.UnionContractNames)));
+							declaredContract.name,
+							union.UnionContractNames.JoinStrings(","),
+							definition.UnionContractNames.JoinStrings(",")));
 					union = definition;
 				}
 				if (union == null)
