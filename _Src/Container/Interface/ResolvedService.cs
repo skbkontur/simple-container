@@ -66,24 +66,17 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			if (isEnumerable)
-				return All();
-			if (containerService.Instances.Count == 1)
-				return containerService.Instances[0];
-			var m = containerService.Instances.Count == 0
-				? string.Format("no implementations for [{0}]", containerService.Type.FormatName())
-				: containerService.FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
+			return isEnumerable ? All() : containerService.GetSingleValue();
 		}
 
 		public bool HasInstances()
 		{
-			return containerService.Instances.Count > 0;
+			return containerService.status == ServiceStatus.Ok;
 		}
 
 		public IEnumerable<object> All()
 		{
-			return containerService.AsEnumerable();
+			return containerService.GetAllValues();
 		}
 
 		public void DumpConstructionLog(ISimpleLogWriter writer)

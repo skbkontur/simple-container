@@ -38,7 +38,6 @@ namespace SimpleContainer.Implementation
 		private readonly Func<ServiceName, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
-		private readonly ComponentsRunner componentsRunner;
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
@@ -58,7 +57,6 @@ namespace SimpleContainer.Implementation
 			this.staticServices = staticServices;
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
-			componentsRunner = new ComponentsRunner(infoLogger);
 		}
 
 		public ResolvedService Resolve(Type type, IEnumerable<string> contracts)
@@ -126,7 +124,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (constructionLog != null && infoLogger != null)
 				infoLogger(new ServiceName(containerService.Type, containerService.FinalUsedContracts), "\r\n" + constructionLog);
-			containerService.EnsureRunCalled(componentsRunner, true);
+			containerService.EnsureRunCalled(infoLogger);
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
@@ -311,7 +309,7 @@ namespace SimpleContainer.Implementation
 				var dependency = factory.AsSingleInstanceDependency(null);
 				service.AddDependency(dependency, false);
 				if (dependency.Status == ServiceStatus.Ok)
-					InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service);
+					InvokeConstructor(factoryMethod, dependency.Value, new object[0], service);
 			}
 			if (implementationConfiguration != null && implementationConfiguration.InstanceFilter != null)
 			{
@@ -447,8 +445,7 @@ namespace SimpleContainer.Implementation
 					serviceForUsedContracts.ReleaseInstantiateLock();
 				}
 			service.UnionStatusFrom(serviceForUsedContracts);
-			foreach (var instance in serviceForUsedContracts.Instances)
-				service.AddInstance(instance);
+			service.UnionInstances(serviceForUsedContracts);
 		}
 
 		private ServiceDependency InstantiateDependency(ParameterInfo formalParameter, Implementation implementation,
@@ -511,22 +508,20 @@ namespace SimpleContainer.Implementation
 						formalParameter.Name, implementation.type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
-			var result = context.Resolve(dependencyType, contracts, this);
-			if (result.status.IsBad())
-				return ServiceDependency.ServiceError(result);
+			var resultService = context.Resolve(dependencyType, contracts, this);
+			if (resultService.status.IsBad())
+				return ServiceDependency.ServiceError(resultService);
 			if (isEnumerable)
-				return ServiceDependency.Service(result, result.AsEnumerable());
-			if (result.status == ServiceStatus.NotResolved)
+				return ServiceDependency.Service(resultService, resultService.GetAllValues());
+			if (resultService.status == ServiceStatus.NotResolved)
 			{
 				if (formalParameter.HasDefaultValue)
-					return ServiceDependency.Service(result, formalParameter.DefaultValue);
+					return ServiceDependency.Service(resultService, formalParameter.DefaultValue);
 				if (IsOptional(formalParameter))
-					return ServiceDependency.Service(result, null);
-				return ServiceDependency.NotResolved(result);
+					return ServiceDependency.Service(resultService, null);
+				return ServiceDependency.NotResolved(resultService);
 			}
-			if (result.Instances.Count > 1)
-				return ServiceDependency.Error(result, (string) null, result.FormatManyImplementationsMessage());
-			return ServiceDependency.Service(result, result.Instances[0]);
+			return resultService.AsSingleInstanceDependency(null);
 		}
 
 		private static bool IsOptional(ICustomAttributeProvider attributes)

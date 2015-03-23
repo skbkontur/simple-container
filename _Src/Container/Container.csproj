@@ -68,7 +68,6 @@
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
-    <Compile Include="Implementation\ComponentsRunner.cs" />
     <Compile Include="Implementation\ConfiguratorRunner.cs" />
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
