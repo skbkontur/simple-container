@@ -323,7 +323,7 @@ namespace SimpleContainer.Implementation
 			{
 				var factory = ResolveSingleton(factoryMethod.DeclaringType, service.Context);
 				var dependency = factory.AsSingleInstanceDependency(null);
-				service.AddDependency(dependency);
+				service.AddDependency(dependency, false);
 				if (dependency.Status == ServiceStatus.Ok)
 					InvokeConstructor(factoryMethod, factory.Instances[0], new object[0], service);
 			}
@@ -425,7 +425,7 @@ namespace SimpleContainer.Implementation
 				var formalParameter = formalParameters[i];
 				var dependency = InstantiateDependency(formalParameter, implementation, service.Context)
 					.CastTo(formalParameter.ParameterType);
-				service.AddDependency(dependency);
+				service.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
 					service.UnionUsedContracts(dependency.ContainerService);
 				if (service.status != ServiceStatus.Ok)

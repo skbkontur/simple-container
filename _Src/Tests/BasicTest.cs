@@ -1767,6 +1767,39 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DependencyOnIgnoredAndNotIgnoredImplementations : BasicTest
+		{
+			public interface IA
+			{
+			}
+
+			[IgnoredImplementation]
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			public class B
+			{
+				public readonly IA a;
+
+				public B(IA a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<B>().a, Is.InstanceOf<A2>());
+			}
+		}
+
 		public class OptionalFunc : BasicTest
 		{
 			public class Wrap
