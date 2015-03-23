@@ -134,17 +134,26 @@ namespace SimpleContainer.Implementation
 			instances.Add(instance);
 		}
 
-		public void AddDependency(ServiceDependency dependency)
+		public void AddDependency(ServiceDependency dependency, bool isUnion)
 		{
 			if (dependencies == null)
 				dependencies = new List<ServiceDependency>();
 			dependencies.Add(dependency);
-			status = dependency.Status == ServiceStatus.Error ? ServiceStatus.DependencyError : dependency.Status;
+			status = DependencyStatusToServiceStatus(dependency.Status, isUnion);
+		}
+
+		private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)
+		{
+			if (dependencyStatus == ServiceStatus.Error)
+				return ServiceStatus.DependencyError;
+			if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
+				return ServiceStatus.Ok;
+			return dependencyStatus;
 		}
 
 		public bool LinkTo(ContainerService childService)
 		{
-			AddDependency(childService.GetLinkedDependency());
+			AddDependency(childService.GetLinkedDependency(), true);
 			UnionUsedContracts(childService);
 			if (status.IsBad())
 				return false;
@@ -213,7 +222,7 @@ namespace SimpleContainer.Implementation
 				dependencies = new List<ServiceDependency>();
 			foreach (var dependency in other.dependencies)
 				if (dependency.ContainerService == null || dependencies.All(x => x.ContainerService != dependency.ContainerService))
-					AddDependency(dependency);
+					AddDependency(dependency, false);
 		}
 
 		public void UseContractWithName(string n)
