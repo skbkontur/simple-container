@@ -6,7 +6,7 @@ using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
-	public class InstanceFilterTest : ContractsTest
+	public class InstanceFilterTest : SimpleContainerTestBase
 	{
 		public class FileAccessor
 		{

@@ -25,15 +25,15 @@ namespace SimpleContainer.Implementation
 
 		//for construction log only
 		private string[] declaredContracts;
-		private readonly bool isStatic;
+		private readonly CacheLevel cacheLevel;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
 
-		public ContainerService(Type type, bool isStatic)
+		public ContainerService(Type type, CacheLevel cacheLevel)
 		{
 			Type = type;
-			this.isStatic = isStatic;
+			this.cacheLevel = cacheLevel;
 		}
 
 		public void SetComment(string value)
@@ -117,11 +117,13 @@ namespace SimpleContainer.Implementation
 					}
 		}
 
-		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
+		public void CollectInstances(Type interfaceType, CacheLevel targetCacheLevel, ISet<object> seen, List<NamedInstance> target)
 		{
+			if (cacheLevel != targetCacheLevel)
+				return;
 			if (dependencies != null)
 				foreach (var dependency in dependencies)
-					dependency.CollectInstances(interfaceType, seen, target);
+					dependency.CollectInstances(interfaceType, targetCacheLevel, seen, target);
 			foreach (var instance in instances)
 				if (interfaceType.IsInstanceOfType(instance) && seen.Add(instance))
 					target.Add(new NamedInstance(instance, new ServiceName(instance.GetType(), FinalUsedContracts)));
@@ -336,7 +338,7 @@ namespace SimpleContainer.Implementation
 			if (attentionRequired)
 				context.Writer.WriteMeta("!");
 			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
-			context.Writer.WriteName(isStatic ? "(s)" + formattedName : formattedName);
+			context.Writer.WriteName(cacheLevel == CacheLevel.Static ? "(s)" + formattedName : formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 			var previousContractsKey =
@@ -363,7 +365,7 @@ namespace SimpleContainer.Implementation
 			    context.UsedFromDependency.Value == null)
 				context.Writer.WriteMeta(" = <null>");
 			context.Writer.WriteNewLine();
-			if (context.Seen.Add(new CacheKey(Type, usedContracts)) && dependencies != null)
+			if (context.Seen.Add(new ServiceName(Type, usedContracts)) && dependencies != null)
 				foreach (var d in dependencies)
 				{
 					context.UsedFromService = this;

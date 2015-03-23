@@ -12,8 +12,8 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly IContainer container;
 
-		private readonly ConcurrentDictionary<CacheKey, Injection[]> injections =
-			new ConcurrentDictionary<CacheKey, Injection[]>();
+		private readonly ConcurrentDictionary<ServiceName, Injection[]> injections =
+			new ConcurrentDictionary<ServiceName, Injection[]>();
 
 		private static readonly MemberInjectionsProvider provider = new MemberInjectionsProvider();
 
@@ -25,17 +25,17 @@ namespace SimpleContainer.Implementation
 		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
 		{
 			var type = target.GetType();
-			var cacheKey = new CacheKey(type, InternalHelpers.ToInternalContracts(contracts, type));
-			var dependencies = GetInjections(cacheKey);
+			var name = new ServiceName(type, InternalHelpers.ToInternalContracts(contracts, type));
+			var dependencies = GetInjections(name);
 			foreach (var dependency in dependencies)
 				dependency.setter(target, dependency.value.Single());
 			return new BuiltUpService(dependencies);
 		}
 
-		public IEnumerable<Type> GetResolvedDependencies(CacheKey cacheKey)
+		public IEnumerable<Type> GetResolvedDependencies(ServiceName cacheKey)
 		{
 			return injections.ContainsKey(cacheKey)
-				? provider.GetMembers(cacheKey.type).Select(x => x.member.MemberType())
+				? provider.GetMembers(cacheKey.Type).Select(x => x.member.MemberType())
 				: Enumerable.Empty<Type>();
 		}
 
@@ -44,22 +44,22 @@ namespace SimpleContainer.Implementation
 			return provider.GetMembers(type).Select(x => x.member.MemberType());
 		}
 
-		private Injection[] GetInjections(CacheKey cacheKey)
+		private Injection[] GetInjections(ServiceName name)
 		{
-			return injections.GetOrAdd(cacheKey, DetectInjections);
+			return injections.GetOrAdd(name, DetectInjections);
 		}
 
-		private Injection[] DetectInjections(CacheKey cacheKey)
+		private Injection[] DetectInjections(ServiceName cacheKey)
 		{
-			var memberSetters = provider.GetMembers(cacheKey.type);
+			var memberSetters = provider.GetMembers(cacheKey.Type);
 			var result = new Injection[memberSetters.Length];
 			for (var i = 0; i < result.Length; i++)
 			{
 				var member = memberSetters[i].member;
 				RequireContractAttribute requireContractAttribute;
 				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
-					? (IEnumerable<string>) new List<string>(cacheKey.contracts) {requireContractAttribute.ContractName}
-					: cacheKey.contracts;
+					? (IEnumerable<string>) new List<string>(cacheKey.Contracts) {requireContractAttribute.ContractName}
+					: cacheKey.Contracts;
 				try
 				{
 					result[i].value = container.Resolve(member.MemberType(), contracts);

@@ -15,7 +15,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class SimpleContainer : IContainer
 	{
-		private readonly Func<CacheKey, ContainerService> createContainerServiceDelegate;
+		private readonly Func<ServiceName, ContainerService> createContainerServiceDelegate;
 
 		private static readonly IFactoryPlugin[] factoryPlugins =
 		{
@@ -32,10 +32,10 @@ namespace SimpleContainer.Implementation
 		protected readonly LogInfo infoLogger;
 		protected readonly ISet<Type> staticServices;
 
-		private readonly ConcurrentDictionary<CacheKey, ContainerService> instanceCache =
-			new ConcurrentDictionary<CacheKey, ContainerService>();
+		private readonly ConcurrentDictionary<ServiceName, ContainerService> instanceCache =
+			new ConcurrentDictionary<ServiceName, ContainerService>();
 
-		private readonly Func<CacheKey, ContainerService> createInstanceDelegate;
+		private readonly Func<ServiceName, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 		private readonly ComponentsRunner componentsRunner;
@@ -49,11 +49,11 @@ namespace SimpleContainer.Implementation
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
-			createContainerServiceDelegate = k => NewService(k.type);
-			createInstanceDelegate = delegate(CacheKey key)
+			createContainerServiceDelegate = k => NewService(k.Type);
+			createInstanceDelegate = delegate(ServiceName key)
 			{
-				var context = new ResolutionContext(configuration, key.contracts);
-				return ResolveSingleton(key.type, context);
+				var context = new ResolutionContext(configuration, key.Contracts);
+				return ResolveSingleton(key.Type, context);
 			};
 			this.staticServices = staticServices;
 			this.errorLogger = errorLogger;
@@ -71,7 +71,7 @@ namespace SimpleContainer.Implementation
 			Type enumerableItem;
 			var isEnumerable = TryUnwrapEnumerable(type, out enumerableItem);
 			var typeToResolve = isEnumerable ? enumerableItem : type;
-			var cacheKey = new CacheKey(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
+			var cacheKey = new ServiceName(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
 			result.WaitForResolveOrDie();
 			return new ResolvedService(result, this, isEnumerable);
@@ -79,7 +79,7 @@ namespace SimpleContainer.Implementation
 
 		internal ContainerService NewService(Type type)
 		{
-			return new ContainerService(type, cacheLevel == CacheLevel.Static);
+			return new ContainerService(type, cacheLevel);
 		}
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
@@ -164,7 +164,7 @@ namespace SimpleContainer.Implementation
 			var target = new List<NamedInstance>();
 			foreach (var service in instanceCache.Values)
 				if (service.WaitForResolve())
-					service.CollectInstances(interfaceType, seen, target);
+					service.CollectInstances(interfaceType, cacheLevel, seen, target);
 			return target;
 		}
 
@@ -193,7 +193,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (cacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
 				return staticContainer.ResolveSingleton(type, context);
-			var cacheKey = new CacheKey(type, context.DeclaredContractNames());
+			var cacheKey = new ServiceName(type, context.DeclaredContractNames());
 			var result = instanceCache.GetOrAdd(cacheKey, createContainerServiceDelegate);
 			ContainerService cycle;
 			if (context.DetectCycle(result, this, out cycle))
@@ -431,7 +431,7 @@ namespace SimpleContainer.Implementation
 				InvokeConstructor(constructor, null, actualArguments, service);
 				return;
 			}
-			var usedContactsCacheKey = new CacheKey(service.Type, service.FinalUsedContracts);
+			var usedContactsCacheKey = new ServiceName(service.Type, service.FinalUsedContracts);
 			var serviceForUsedContracts = instanceCache.GetOrAdd(usedContactsCacheKey, createContainerServiceDelegate);
 			if (serviceForUsedContracts.AcquireInstantiateLock())
 				try
@@ -623,7 +623,7 @@ namespace SimpleContainer.Implementation
 				if (aggregateException != null)
 					if (aggregateException.Flatten().InnerExceptions.All(x => x is OperationCanceledException))
 						return;
-				var message = string.Format("error disposing [{0}]", disposable.Name.Format());
+				var message = string.Format("error disposing [{0}]", disposable.Name);
 				throw new SimpleContainerException(message, e);
 			}
 		}

@@ -36,7 +36,7 @@ namespace SimpleContainer.Implementation
 							}
 							catch (Exception e)
 							{
-								throw new SimpleContainerException(string.Format("exception running {0}", name.Format()), e);
+								throw new SimpleContainerException(string.Format("exception running {0}", name), e);
 							}
 							if (infoLogger != null)
 								infoLogger(name, "run finished");

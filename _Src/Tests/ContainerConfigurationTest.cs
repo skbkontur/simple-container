@@ -8,6 +8,7 @@ using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
+using SimpleContainer.Tests.Contracts;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -307,7 +308,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanAppendContracts : ContractsTest
+		public class CanAppendContracts : ContainerConfigurationTest
 		{
 			public class A
 			{

@@ -9,12 +9,12 @@ namespace SimpleContainer.Implementation
 		public ContainerService UsedFromService { get; set; }
 		public ServiceDependency UsedFromDependency { get; set; }
 		public int Indent { get; set; }
-		public ISet<CacheKey> Seen { get; private set; }
+		public ISet<ServiceName> Seen { get; private set; }
 
 		public ConstructionLogContext(ISimpleLogWriter writer)
 		{
 			Writer = writer;
-			Seen = new HashSet<CacheKey>();
+			Seen = new HashSet<ServiceName>();
 		}
 
 		public void WriteIndent()

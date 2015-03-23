@@ -123,10 +123,10 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteNewLine();
 		}
 
-		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
+		public void CollectInstances(Type interfaceType, CacheLevel targetCacheLevel, ISet<object> seen, List<NamedInstance> target)
 		{
 			if (ContainerService != null)
-				ContainerService.CollectInstances(interfaceType, seen, target);
+				ContainerService.CollectInstances(interfaceType, targetCacheLevel, seen, target);
 			if (Value != null && interfaceType.IsInstanceOfType(Value) && seen.Add(Value))
 				target.Add(new NamedInstance(Value, new ServiceName(Value.GetType(), InternalHelpers.emptyStrings)));
 		}
