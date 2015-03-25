@@ -12,6 +12,7 @@ namespace SimpleContainer.Configuration
 		public bool ImplementationAssigned { get; private set; }
 		public Func<FactoryContext, object> Factory { get; set; }
 		public bool UseAutosearch { get; set; }
+		public bool ContainerOwnsInstance { get; set; }
 
 		public void AddImplementation(Type type, bool clearOld)
 		{
@@ -23,11 +24,12 @@ namespace SimpleContainer.Configuration
 				ImplementationTypes.Add(type);
 		}
 
-		public void UseInstance(object instance)
+		public void UseInstance(object instance, bool containerOwnsInstance)
 		{
 			Factory = null;
 			Implementation = instance;
 			ImplementationAssigned = true;
+			ContainerOwnsInstance = containerOwnsInstance;
 		}
 
 		public InterfaceConfiguration CloneWithFilter(Func<Type, bool> filter)

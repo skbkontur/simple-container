@@ -217,7 +217,7 @@ namespace SimpleContainer.Implementation
 			}
 			if (service.Type == typeof (IContainer))
 			{
-				service.AddInstance(this);
+				service.AddInstance(this, false);
 				return;
 			}
 			var interfaceConfiguration = service.Context.GetConfiguration<InterfaceConfiguration>(service.Type);
@@ -227,7 +227,7 @@ namespace SimpleContainer.Implementation
 			{
 				if (interfaceConfiguration.ImplementationAssigned)
 				{
-					service.AddInstance(interfaceConfiguration.Implementation);
+					service.AddInstance(interfaceConfiguration.Implementation, interfaceConfiguration.ContainerOwnsInstance);
 					return;
 				}
 				if (interfaceConfiguration.Factory != null)
@@ -236,7 +236,7 @@ namespace SimpleContainer.Implementation
 					{
 						container = this,
 						contracts = service.Context.DeclaredContractNames()
-					}));
+					}), interfaceConfiguration.ContainerOwnsInstance);
 					return;
 				}
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
@@ -562,7 +562,7 @@ namespace SimpleContainer.Implementation
 			try
 			{
 				var instance = MethodInvoker.Invoke(method, self, actualArguments);
-				service.AddInstance(instance);
+				service.AddInstance(instance, true);
 			}
 			catch (ServiceCouldNotBeCreatedException e)
 			{
@@ -578,13 +578,9 @@ namespace SimpleContainer.Implementation
 		{
 			if (disposed)
 				return;
-			var servicesToDispose = GetInstanceCache(typeof (IDisposable))
-				.Where(x => !ReferenceEquals(x.Instance, this))
-				.Reverse()
-				.ToArray();
 			disposed = true;
 			var exceptions = new List<SimpleContainerException>();
-			foreach (var disposable in servicesToDispose)
+			foreach (var disposable in GetInstanceCache(typeof (IDisposable)).Reverse())
 			{
 				try
 				{

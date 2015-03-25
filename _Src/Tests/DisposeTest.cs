@@ -310,6 +310,63 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DoNotCallDisposeOnNotOwnedInstances : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				public static int disposeCallCount;
+
+				public void Dispose()
+				{
+					disposeCallCount++;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var instance = new A();
+				var container = Container(b => b.Bind<A>(instance, false));
+				container.Get<A>();
+				container.Dispose();
+				Assert.That(A.disposeCallCount, Is.EqualTo(0));
+			}
+		}
+		
+		public class DoNotCallDisposeOnNotOwnedInstancesTransitively : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				public static int disposeCallCount;
+
+				public void Dispose()
+				{
+					disposeCallCount++;
+				}
+			}
+
+			public class B
+			{
+				public readonly A a;
+
+				public B(A a)
+				{
+					this.a = a;
+				}
+			}
+
+
+			[Test]
+			public void Test()
+			{
+				var instance = new A();
+				var container = Container(b => b.Bind<A>(instance, false));
+				container.Get<B>();
+				container.Dispose();
+				Assert.That(A.disposeCallCount, Is.EqualTo(0));
+			}
+		}
+
 		public class CanUseLogErrorDelegate : DisposeTest
 		{
 			public class A : IDisposable

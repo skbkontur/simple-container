@@ -46,12 +46,12 @@ namespace SimpleContainer.Configuration
 			return Bind(interfaceType, implementationType, false);
 		}
 
-		public TSelf Bind<T>(object value)
+		public TSelf Bind<T>(object value, bool containerOwnsInstance = true)
 		{
-			return Bind(typeof (T), value);
+			return Bind(typeof (T), value, containerOwnsInstance);
 		}
 
-		public TSelf Bind(Type interfaceType, object value)
+		public TSelf Bind(Type interfaceType, object value, bool containerOwnsInstance = true)
 		{
 			if (interfaceType.ContainsGenericParameters)
 				throw new SimpleContainerException(string.Format("can't bind value for generic definition [{0}]",
@@ -60,7 +60,7 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format("value {0} can't be casted to required type [{1}]",
 					DumpValue(value),
 					interfaceType.FormatName()));
-			GetOrCreate<InterfaceConfiguration>(interfaceType).UseInstance(value);
+			GetOrCreate<InterfaceConfiguration>(interfaceType).UseInstance(value, containerOwnsInstance);
 			return Self;
 		}
 
@@ -70,14 +70,16 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
-		public TSelf Bind<T>(Func<FactoryContext, T> creator)
+		public TSelf Bind<T>(Func<FactoryContext, T> creator, bool containerOwnsInstance = true)
 		{
-			return Bind(typeof (T), c => creator(c));
+			return Bind(typeof (T), c => creator(c), containerOwnsInstance);
 		}
-		
-		public TSelf Bind(Type type, Func<FactoryContext, object> creator)
+
+		public TSelf Bind(Type type, Func<FactoryContext, object> creator, bool containerOwnsInstance = true)
 		{
-			GetOrCreate<InterfaceConfiguration>(type).Factory = creator;
+			var interfaceConfiguration = GetOrCreate<InterfaceConfiguration>(type);
+			interfaceConfiguration.Factory = creator;
+			interfaceConfiguration.ContainerOwnsInstance = containerOwnsInstance;
 			return Self;
 		}
 

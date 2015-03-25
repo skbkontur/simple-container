@@ -17,7 +17,7 @@ namespace SimpleContainer.Factories
 				return false;
 			var type = typeArguments[1];
 			var factory = FactoryCreator.CreateFactory(typeArguments[1], container, containerService);
-			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory));
+			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory), true);
 			return true;
 		}
 	}

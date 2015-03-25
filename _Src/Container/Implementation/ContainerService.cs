@@ -125,14 +125,18 @@ namespace SimpleContainer.Implementation
 			foreach (var instance in instances)
 			{
 				var obj = instance.Instance;
-				if (instance.CacheLevel == targetCacheLevel && interfaceType.IsInstanceOfType(obj) && seen.Add(obj))
+				var acceptInstance = instance.Owned &&
+				                     instance.CacheLevel == targetCacheLevel &&
+				                     interfaceType.IsInstanceOfType(obj) &&
+				                     seen.Add(obj);
+				if (acceptInstance)
 					target.Add(new NamedInstance(obj, new ServiceName(obj.GetType(), FinalUsedContracts)));
 			}
 		}
 
-		public void AddInstance(object instance)
+		public void AddInstance(object instance, bool owned)
 		{
-			instances.Add(new InstanceWrap(instance, cacheLevel));
+			instances.Add(new InstanceWrap(instance, cacheLevel, owned));
 		}
 
 		public void AddDependency(ServiceDependency dependency, bool isUnion)
@@ -400,11 +404,13 @@ namespace SimpleContainer.Implementation
 			private bool runCalled;
 			public object Instance { get; private set; }
 			public CacheLevel CacheLevel { get; private set; }
+			public bool Owned { get; set; }
 
-			public InstanceWrap(object instance, CacheLevel cacheLevel)
+			public InstanceWrap(object instance, CacheLevel cacheLevel, bool owned)
 			{
 				Instance = instance;
 				CacheLevel = cacheLevel;
+				Owned = owned;
 			}
 
 			public override bool Equals(object obj)

@@ -16,7 +16,7 @@ namespace SimpleContainer.Factories
 			var type = containerService.Type.GetGenericArguments()[0];
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(type).GetConstructors().Single();
 			var lazyFactory = (ILazyFactory) MethodInvoker.Invoke(lazyFactoryCtor, null, new object[] {container});
-			containerService.AddInstance(lazyFactory.CreateLazy());
+			containerService.AddInstance(lazyFactory.CreateLazy(), true);
 			return true;
 		}
 
