@@ -330,31 +330,5 @@ namespace SimpleContainer.Tests
 				}
 			}
 		}
-
-		public class CannotConfigureStaticServiceUsingNonStaticConfigurator : StaticContainerTest
-		{
-			[Static]
-			public class B
-			{
-			}
-
-			public class Configurator : IServiceConfigurator<B>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
-				{
-					builder.DontUse();
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("can't configure static service [B] using non static configurator"));
-				}
-			}
-		}
 	}
 }

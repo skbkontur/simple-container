@@ -213,12 +213,6 @@ namespace SimpleContainer.Configuration
 
 		protected T GetOrCreate<T>(Type type) where T : class, new()
 		{
-			var isStatic = staticServices.Contains(type) || type.IsDefined<StaticAttribute>();
-			if (isStatic && !isStaticConfiguration)
-			{
-				const string messageFormat = "can't configure static service [{0}] using non static configurator";
-				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
-			}
 			object result;
 			if (!configurations.TryGetValue(type, out result))
 				configurations.Add(type, result = new T());

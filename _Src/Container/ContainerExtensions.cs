@@ -12,7 +12,6 @@ namespace SimpleContainer
 		{
 			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
 		}
-
 		public static ResolvedService<T> Resolve<T>(this IContainer container, params string[] contracts)
 		{
 			return new ResolvedService<T>(container.Resolve(typeof (T), contracts));
