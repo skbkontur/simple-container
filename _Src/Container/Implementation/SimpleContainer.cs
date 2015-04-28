@@ -500,7 +500,7 @@ namespace SimpleContainer.Implementation
 					? ServiceDependency.Constant(formalParameter, new[] {instance}.CastToArrayOf(dependencyType))
 					: ServiceDependency.Constant(formalParameter, instance);
 			}
-			if (implementationType.IsSimpleType())
+			if (dependencyType.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)
 					return ServiceDependency.Error(null, formalParameter,

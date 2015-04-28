@@ -1800,6 +1800,27 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class FailedDependencyOfSimpleTypeEnumerable : BasicTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<int> parameters;
+
+				public A(IEnumerable<int> parameters)
+				{
+					this.parameters = parameters;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("parameter [parameters] of service [A] is not configured\r\n\r\n!A\r\n\t!parameters <---------------"));
+			}
+		}
+
 		public class OptionalFunc : BasicTest
 		{
 			public class Wrap
