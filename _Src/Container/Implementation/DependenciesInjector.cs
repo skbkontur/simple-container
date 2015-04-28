@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
@@ -12,8 +12,8 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly IContainer container;
 
-		private readonly ConcurrentDictionary<ServiceName, Injection[]> injections =
-			new ConcurrentDictionary<ServiceName, Injection[]>();
+		private readonly NonConcurrentDictionary<ServiceName, Injection[]> injections =
+			new NonConcurrentDictionary<ServiceName, Injection[]>();
 
 		private static readonly MemberInjectionsProvider provider = new MemberInjectionsProvider();
 

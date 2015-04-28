@@ -1,23 +1,23 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Factories
 {
 	internal class FactoryConfigurationProcessor
 	{
-		private readonly ConcurrentDictionary<Type, Func<object, object>> genericFactories =
-			new ConcurrentDictionary<Type, Func<object, object>>();
+		private readonly NonConcurrentDictionary<Type, Func<object, object>> genericFactories =
+			new NonConcurrentDictionary<Type, Func<object, object>>();
 
 		public void FirstRun(ContainerConfigurationBuilder builder, Type type)
 		{
 			var targetTypes = type.GetConstructors().SelectMany(x => x.GetParameters())
 				.Select(x => x.ParameterType)
-				.Where(targetType => targetType.IsGenericType);
+				.Where(targetType => targetType.GetTypeInfo().IsGenericType);
 			foreach (var targetType in targetTypes)
 				if (targetType.GetGenericTypeDefinition() == typeof (Func<,>))
 					ConfigureAsSimpleFactory(builder, targetType, type);
@@ -44,16 +44,16 @@ namespace SimpleContainer.Factories
 
 		private static Type GetImplementationDefinitionOrNull(Type serviceType, Type pluggableType)
 		{
-			var implementationTypes = pluggableType.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
-				.Where(serviceType.IsAssignableFrom)
+			var implementationTypes = pluggableType.GetTypeInfo().DeclaredNestedTypes
+				.Where(x => serviceType.IsAssignableFrom(x.AsType()))
 				.Where(x => !x.IsAbstract)
 				.ToArray();
 			if (implementationTypes.Length != 1)
 				return null;
 			var implementationType = implementationTypes[0];
-			if (!implementationType.IsGenericTypeDefinition || implementationType.GetGenericArguments().Length != 1)
+			if (!implementationType.IsGenericTypeDefinition || implementationType.AsType().GetGenericArguments().Length != 1)
 				return null;
-			return implementationType;
+			return implementationType.AsType();
 		}
 
 		private Delegate CreateGenericFactory(Type serviceType, Type implementationDefinition, IContainer container)
@@ -75,14 +75,14 @@ namespace SimpleContainer.Factories
 			if (arguments[0] != typeof (object))
 				return;
 			var serviceType = arguments[1];
-			if (!serviceType.IsAbstract)
+			if (!serviceType.GetTypeInfo().IsAbstract)
 				return;
 			var implementationDefinition = GetImplementationDefinitionOrNull(serviceType, pluggableType);
 			if (implementationDefinition == null)
 				return;
 			var closingParameters = implementationDefinition.GetConstructors().Single()
 				.GetParameters()
-				.Where(p => p.ParameterType.ContainsGenericParameters)
+				.Where(p => p.ParameterType.GetTypeInfo().ContainsGenericParameters)
 				.ToArray();
 
 			if (closingParameters.Length != 1)
@@ -127,7 +127,6 @@ namespace SimpleContainer.Factories
 		{
 			var constructor = type.GetConstructors().Single();
 			var parameters = constructor.GetParameters().ToArray();
-			var constructorInvoker = ReflectionHelpers.EmitCallOf(constructor);
 
 			return delegate(object o)
 			{
@@ -145,12 +144,12 @@ namespace SimpleContainer.Factories
 						else if (parameter.HasDefaultValue)
 							parameterValue = parameter.DefaultValue;
 						else
-							container.Get(parameter.ParameterType, null);
+							container.Get(parameter.ParameterType);
 					}
 					parameterValues[i] = parameterValue;
 				}
 
-				return constructorInvoker(null, parameterValues);
+				return MethodInvoker.Invoke(constructor, null, parameterValues);
 			};
 		}
 	}

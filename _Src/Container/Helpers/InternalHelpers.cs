@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
@@ -46,7 +47,7 @@ namespace SimpleContainer.Helpers
 		public static T GetConfiguration<T>(this IContainerConfigurationRegistry registry, Type type) where T : class
 		{
 			var result = registry.GetOrNull<T>(type);
-			if (result == null && type.IsGenericType)
+			if (result == null && type.GetTypeInfo().IsGenericType)
 				result = registry.GetOrNull<T>(type.GetDefinition());
 			return result;
 		}

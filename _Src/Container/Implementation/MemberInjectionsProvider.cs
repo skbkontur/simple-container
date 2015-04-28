@@ -1,17 +1,17 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Helpers.ReflectionEmit;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
 	internal class MemberInjectionsProvider
 	{
-		private readonly ConcurrentDictionary<Type, MemberSetter[]> injections =
-			new ConcurrentDictionary<Type, MemberSetter[]>();
+		private readonly NonConcurrentDictionary<Type, MemberSetter[]> injections =
+			new NonConcurrentDictionary<Type, MemberSetter[]>();
 
 		private const BindingFlags bindingFlags =
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
@@ -31,15 +31,15 @@ namespace SimpleContainer.Implementation
 		private MemberSetter[] CreateMemberSetters(Type type)
 		{
 			var selfMembers = type
-				.GetProperties(bindingFlags)
+				.GetProperties()
 				.Where(m => m.CanWrite)
-				.Union(type.GetFields(bindingFlags).Cast<MemberInfo>())
+				.Union(type.GetFields().Cast<MemberInfo>())
 				.Where(m => m.IsDefined(typeof (InjectAttribute), true))
 				.ToArray();
 			MemberSetter[] baseSetters = null;
 			if (!type.IsDefined<FrameworkBoundaryAttribute>(false))
 			{
-				var baseType = type.BaseType;
+				var baseType = type.GetTypeInfo().BaseType;
 				if (baseType != typeof (object))
 					baseSetters = GetMembers(baseType);
 			}

@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Factories
 {
@@ -9,7 +11,7 @@ namespace SimpleContainer.Factories
 	{
 		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
 		{
-			if (!containerService.Type.IsGenericType)
+			if (!containerService.Type.GetTypeInfo().IsGenericType)
 				return false;
 			if (containerService.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return false;

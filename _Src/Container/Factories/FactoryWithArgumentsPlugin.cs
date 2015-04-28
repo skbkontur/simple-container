@@ -1,5 +1,7 @@
 using System;
+using System.Reflection;
 using SimpleContainer.Implementation;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Factories
 {
@@ -8,7 +10,7 @@ namespace SimpleContainer.Factories
 		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
 		{
 			var funcType = containerService.Type;
-			if (!funcType.IsGenericType)
+			if (!funcType.GetTypeInfo().IsGenericType)
 				return false;
 			if (funcType.GetGenericTypeDefinition() != typeof (Func<,>))
 				return false;

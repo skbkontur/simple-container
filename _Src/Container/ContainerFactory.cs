@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +8,7 @@ using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer
@@ -18,14 +18,13 @@ namespace SimpleContainer
 		private Type profile;
 		private Func<AssemblyName, bool> assembliesFilter;
 		private Func<Type, object> settingsLoader;
-		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
 		private readonly List<Assembly> pluginAssemblies = new List<Assembly>();
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
-			var cache = new ConcurrentDictionary<Type, object>();
+			var cache = new NonConcurrentDictionary<Type, object>();
 			settingsLoader = t => cache.GetOrAdd(t, newLoader);
 			return this;
 		}
@@ -39,12 +38,6 @@ namespace SimpleContainer
 		public ContainerFactory WithPlugin(Assembly assembly)
 		{
 			pluginAssemblies.Add(assembly);
-			return this;
-		}
-
-		public ContainerFactory WithConfigFile(string fileName)
-		{
-			configFileName = fileName;
 			return this;
 		}
 
@@ -69,39 +62,7 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public IStaticContainer FromDefaultBinDirectory(bool withExecutables)
-		{
-			return FromDirectory(GetBinDirectory(), withExecutables);
-		}
-
-		public IStaticContainer FromDirectory(string directory, bool withExecutables)
-		{
-			var assemblies = Directory.GetFiles(directory, "*.dll")
-				.Union(withExecutables ? Directory.GetFiles(directory, "*.exe") : Enumerable.Empty<string>())
-				.Select(delegate(string s)
-				{
-					try
-					{
-						return AssemblyName.GetAssemblyName(s);
-					}
-					catch (BadImageFormatException)
-					{
-						return null;
-					}
-				})
-				.NotNull()
-				.Where(assembliesFilter)
-				.AsParallel()
-				.Select(AssemblyHelpers.LoadAssembly);
-			return FromAssemblies(assemblies);
-		}
-
 		public IStaticContainer FromAssemblies(IEnumerable<Assembly> assemblies)
-		{
-			return FromAssemblies(assemblies.AsParallel());
-		}
-
-		private IStaticContainer FromAssemblies(ParallelQuery<Assembly> assemblies)
 		{
 			var types = assemblies
 				.Where(x => assembliesFilter(x.GetName()))
@@ -124,7 +85,7 @@ namespace SimpleContainer
 
 		public IStaticContainer FromTypes(Type[] types)
 		{
-			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
+			var defaultTypes = pluginAssemblies.Concat(typeof(ContainerFactory).GetTypeInfo().Assembly).SelectMany(x => x.GetTypes());
 			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
@@ -135,21 +96,8 @@ namespace SimpleContainer
 			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
 				runner.Run(builder, x => true);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies);
-		}
-
-		public IStaticContainer FromCurrentAppDomain()
-		{
-			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).Closure(assembliesFilter));
-		}
-
-		private static string GetBinDirectory()
-		{
-			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
-				? AppDomain.CurrentDomain.BaseDirectory
-				: AppDomain.CurrentDomain.RelativeSearchPath;
+				configurationContext, staticServices, null, errorLogger, infoLogger, pluginAssemblies);
 		}
 
 		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)

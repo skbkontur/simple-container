@@ -2,7 +2,6 @@ using System;
 
 namespace SimpleContainer.Interface
 {
-	[Serializable]
 	public class SimpleContainerException : Exception
 	{
 		public SimpleContainerException(string message)

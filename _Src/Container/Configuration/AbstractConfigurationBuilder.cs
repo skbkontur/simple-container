@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
@@ -33,8 +34,8 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind(Type interfaceType, Type implementationType, bool clearOld)
 		{
-			if (!interfaceType.IsGenericTypeDefinition && !implementationType.IsGenericTypeDefinition &&
-			    !interfaceType.IsAssignableFrom(implementationType))
+			if (!interfaceType.GetTypeInfo().IsGenericTypeDefinition && !implementationType.GetTypeInfo().IsGenericTypeDefinition &&
+				!interfaceType.IsAssignableFrom(implementationType))
 				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
 					implementationType.FormatName()));
 			GetOrCreate<InterfaceConfiguration>(interfaceType).AddImplementation(implementationType, clearOld);
@@ -53,7 +54,7 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind(Type interfaceType, object value, bool containerOwnsInstance = true)
 		{
-			if (interfaceType.ContainsGenericParameters)
+			if (interfaceType.GetTypeInfo().ContainsGenericParameters)
 				throw new SimpleContainerException(string.Format("can't bind value for generic definition [{0}]",
 					interfaceType.FormatName()));
 			if (value != null && interfaceType.IsInstanceOfType(value) == false)

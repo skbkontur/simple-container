@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Concurrent;
 using System.Reflection;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Helpers
 {
 	internal class AttributesCache
 	{
 		public static readonly AttributesCache instance = new AttributesCache();
-		private readonly ConcurrentDictionary<Key, object> cache = new ConcurrentDictionary<Key, object>();
+		private readonly NonConcurrentDictionary<Key, object> cache = new NonConcurrentDictionary<Key, object>();
 
 		public AttributesCache()
 		{
@@ -18,21 +18,31 @@ namespace SimpleContainer.Helpers
 
 		private static object CreateCustomAttributes(Key key)
 		{
-			return key.attributeProvider.GetCustomAttributes(key.attributeType, key.inherit);
+			var attributeProvider = key.attributeProvider;
+			var type = attributeProvider as Type;
+			if (type != null)
+				return type.GetCustomAttributes(key.attributeType, key.inherit);
+			var param = attributeProvider as ParameterInfo;
+			if (param != null)
+				return param.GetCustomAttributes(key.attributeType, key.inherit);
+			var member = attributeProvider as MemberInfo;
+			if (member != null)
+				return member.GetCustomAttributes(key.attributeType, key.inherit);
+			throw new NotSupportedException(string.Format("invalid type [{0}]", attributeProvider.GetType().FormatName()));
 		}
 
-		public object GetCustomAttributes(ICustomAttributeProvider attributeProvider, Type attributeType, bool inherit)
+		public object GetCustomAttributes(object attributeProvider, Type attributeType, bool inherit)
 		{
 			return cache.GetOrAdd(new Key(attributeProvider, attributeType, inherit), createDelegate);
 		}
 
 		private struct Key
 		{
-			public readonly ICustomAttributeProvider attributeProvider;
+			public readonly object attributeProvider;
 			public readonly Type attributeType;
 			public readonly bool inherit;
 
-			public Key(ICustomAttributeProvider attributeProvider, Type attributeType, bool inherit)
+			public Key(object attributeProvider, Type attributeType, bool inherit)
 			{
 				this.attributeProvider = attributeProvider;
 				this.attributeType = attributeType;

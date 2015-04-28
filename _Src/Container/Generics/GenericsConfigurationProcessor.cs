@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Generics
 {
@@ -30,12 +32,12 @@ namespace SimpleContainer.Generics
 				return Enumerable.Empty<Type>();
 			return constructor
 				.GetParameters()
-				.Select(x => x.ParameterType.IsGenericType && (x.ParameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
+				.Select(x => x.ParameterType.GetTypeInfo().IsGenericType && (x.ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
 				                                               || x.ParameterType.GetGenericTypeDefinition() == typeof (Func<>))
 					? x.ParameterType.GetGenericArguments()[0]
 					: x.ParameterType)
-				.Where(t => assemblyFilter(t.Assembly.GetName()))
-				.Where(t => t.IsGenericType && t.ContainsGenericParameters && TypeHelpers.HasEquivalentParameters(t, definition));
+				.Where(t => assemblyFilter(t.GetTypeInfo().Assembly.GetName()))
+				.Where(t => t.GetTypeInfo().IsGenericType && t.GetTypeInfo().ContainsGenericParameters && TypeHelpers.HasEquivalentParameters(t, definition));
 		}
 
 		private Type[] GetGenericConstraintsOrNull(Type type)
@@ -43,15 +45,15 @@ namespace SimpleContainer.Generics
 			var genericArguments = type.GetGenericArguments();
 			if (genericArguments.Length != 1)
 				return null;
-			var constraints = genericArguments[0].GetGenericParameterConstraints()
-				.Where(c => assemblyFilter(c.Assembly.GetName()))
+			var constraints = genericArguments[0].GetTypeInfo().GetGenericParameterConstraints()
+				.Where(c => assemblyFilter(c.GetTypeInfo().Assembly.GetName()))
 				.ToArray();
 			return constraints.Any() ? constraints : null;
 		}
 
 		private static bool IsGenericComponent(Type type)
 		{
-			return !type.IsAbstract && type.IsGenericType && !typeof (IEnumerable).IsAssignableFrom(type);
+			return !type.GetTypeInfo().IsAbstract && type.GetTypeInfo().IsGenericType && !typeof(IEnumerable).IsAssignableFrom(type);
 		}
 
 		public void FirstRun(Type type)
@@ -66,7 +68,7 @@ namespace SimpleContainer.Generics
 			{
 				var genericConstraint = GetGenericConstraintsOrNull(type);
 				if (genericConstraint != null)
-					configurators.Add(new GenericComponent(type, Type.EmptyTypes, genericConstraint));
+					configurators.Add(new GenericComponent(type, new Type[0], genericConstraint));
 			}
 		}
 
@@ -74,7 +76,7 @@ namespace SimpleContainer.Generics
 		{
 			if (!IsConcrete(type))
 				return;
-			var baseType = type.BaseType;
+			var baseType = type.GetTypeInfo().BaseType;
 			if (!IsGenericComponent(baseType))
 				return;
 
@@ -90,7 +92,7 @@ namespace SimpleContainer.Generics
 
 		private static bool IsConcrete(Type type)
 		{
-			return !type.IsAbstract && !type.IsGenericType;
+			return !type.GetTypeInfo().IsAbstract && !type.GetTypeInfo().IsGenericType;
 		}
 
 		public void SecondRun(ContainerConfigurationBuilder builder, Type type)

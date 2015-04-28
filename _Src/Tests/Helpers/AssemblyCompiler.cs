@@ -15,7 +15,8 @@ namespace SimpleContainer.Tests.Helpers
 		{
 			Assembly.GetExecutingAssembly(),
 			typeof (IComponent).Assembly,
-			typeof (NameValueCollection).Assembly
+			typeof (NameValueCollection).Assembly,
+			Assembly.LoadFile(@"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETPortable\v4.5\System.Runtime.dll")
 		};
 
 		static AssemblyCompiler()

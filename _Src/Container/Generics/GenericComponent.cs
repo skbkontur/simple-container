@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Generics
 {
@@ -28,9 +29,9 @@ namespace SimpleContainer.Generics
 			if (GenericConstraint.Any(c => !c.IsAssignableFrom(type)))
 				return false;
 			var genericArgument = Owner.GetGenericArguments()[0];
-			var needDefaultConstructor = (genericArgument.GenericParameterAttributes &
+			var needDefaultConstructor = (genericArgument.GetTypeInfo().GenericParameterAttributes &
 			                              GenericParameterAttributes.DefaultConstructorConstraint) != 0;
-			return !needDefaultConstructor || type.GetConstructor(Type.EmptyTypes) != null;
+			return !needDefaultConstructor || type.GetTypeInfo().DeclaredConstructors.SingleOrDefault(x => x.GetParameters().Length == 0) != null;
 		}
 
 		public void UseAsServiceProviderFor(GenericComponent dependent)

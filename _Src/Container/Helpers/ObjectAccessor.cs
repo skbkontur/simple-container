@@ -1,15 +1,15 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers.ReflectionEmit;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Helpers
 {
 	internal static class ObjectAccessor
 	{
-		private static readonly ConcurrentDictionary<Type, TypeAccessor> typeAccessors =
-			new ConcurrentDictionary<Type, TypeAccessor>();
+		private static readonly NonConcurrentDictionary<Type, TypeAccessor> typeAccessors =
+			new NonConcurrentDictionary<Type, TypeAccessor>();
 
 		private static readonly Func<Type, TypeAccessor> createTypeAccessor = t =>
 		{

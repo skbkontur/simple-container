@@ -32,20 +32,16 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 
-			var targetAssemblies = EnumerableHelpers.Return(primaryAssembly).Closure(assemblyFilter).Concat(pluginAssemblies).ToSet();
-			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
-			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
+			var localHierarchy = inheritors;
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
 			var localContext = configurationContext.Local(name, primaryAssembly, parameters);
 			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext))
 			{
-				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);
-				runner.Run(builder, c => c.GetType().Assembly == primaryAssembly);
+				runner.Run(builder, c => c.GetType().GetTypeInfo().Assembly != primaryAssembly);
+				runner.Run(builder, c => c.GetType().GetTypeInfo().Assembly == primaryAssembly);
 			}
 			if (configure != null)
 				configure(builder);
-			if (fileConfigurator != null)
-				fileConfigurator(filter, builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local,
 				staticServices, errorLogger, infoLogger);

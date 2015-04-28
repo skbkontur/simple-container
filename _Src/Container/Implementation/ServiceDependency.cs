@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Implementation
 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Generics
 {
@@ -17,18 +18,18 @@ namespace SimpleContainer.Generics
 		{
 			if (type.IsGenericParameter)
 				yield return type;
-			else if (type.IsGenericType)
+			else if (type.GetTypeInfo().IsGenericType)
 				foreach (var t in type.GetGenericArguments().SelectMany(SelectGenericParameters))
 					yield return t;
 		}
 
 		private static bool SatisfyConstraints(Type parameter, Type by)
 		{
-			if (parameter.GetGenericParameterConstraints().Any(c => !c.IsAssignableFrom(by)))
+			if (parameter.GetTypeInfo().GetGenericParameterConstraints().Any(c => !c.IsAssignableFrom(by)))
 				return false;
-			var needDefaultConstructor = (parameter.GenericParameterAttributes &
+			var needDefaultConstructor = (parameter.GetTypeInfo().GenericParameterAttributes &
 			                              GenericParameterAttributes.DefaultConstructorConstraint) != 0;
-			return !needDefaultConstructor || by.GetConstructor(Type.EmptyTypes) != null;
+			return !needDefaultConstructor || by.GetTypeInfo().DeclaredConstructors.SingleOrDefault(x => x.GetParameters().Length == 0) != null;
 		}
 
 		public static bool CanClose(Type what, Type by)
@@ -36,9 +37,9 @@ namespace SimpleContainer.Generics
 			if (what.IsGenericParameter)
 				return SatisfyConstraints(what, by);
 
-			if (what.IsGenericType ^ by.IsGenericType)
+			if (what.GetTypeInfo().IsGenericType ^ by.GetTypeInfo().IsGenericType)
 				return false;
-			if (what.IsGenericType)
+			if (what.GetTypeInfo().IsGenericType)
 			{
 				if (what.GetGenericTypeDefinition() != by.GetGenericTypeDefinition())
 					return false;
@@ -59,9 +60,9 @@ namespace SimpleContainer.Generics
 				matched[position] = value;
 				return true;
 			}
-			if (pattern.IsGenericType ^ value.IsGenericType)
+			if (pattern.GetTypeInfo().IsGenericType ^ value.GetTypeInfo().IsGenericType)
 				return false;
-			if (!pattern.IsGenericType)
+			if (!pattern.GetTypeInfo().IsGenericType)
 				return pattern == value;
 			if (pattern.GetGenericTypeDefinition() != value.GetGenericTypeDefinition())
 				return false;
@@ -85,7 +86,7 @@ namespace SimpleContainer.Generics
 		{
 			if (what.IsGenericParameter)
 				yield return new KeyValuePair<int, Type>(what.GenericParameterPosition, by);
-			if (!what.IsGenericType)
+			if (!what.GetTypeInfo().IsGenericType)
 				yield break;
 			var whatArguments = what.GetGenericArguments();
 			var byArguments = by.GetGenericArguments();
@@ -101,7 +102,7 @@ namespace SimpleContainer.Generics
 
 		public static Type[] GetGenericInterfaces(Type type)
 		{
-			return type.GetInterfaces().Concat(type).Where(x => x.IsGenericType).ToArray();
+			return type.GetInterfaces().Concat(type).Where(x => x.GetTypeInfo().IsGenericType).ToArray();
 		}
 	}
 }

@@ -1,13 +1,14 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using SimpleContainer.Configuration;
 using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
@@ -32,8 +33,8 @@ namespace SimpleContainer.Implementation
 		protected readonly LogInfo infoLogger;
 		protected readonly ISet<Type> staticServices;
 
-		private readonly ConcurrentDictionary<ServiceName, ContainerService> instanceCache =
-			new ConcurrentDictionary<ServiceName, ContainerService>();
+		private readonly NonConcurrentDictionary<ServiceName, ContainerService> instanceCache =
+			new NonConcurrentDictionary<ServiceName, ContainerService>();
 
 		private readonly Func<ServiceName, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
@@ -143,7 +144,7 @@ namespace SimpleContainer.Implementation
 					var implementationConfiguration = configuration.GetOrNull<ImplementationConfiguration>(type);
 					return implementationConfiguration == null || !implementationConfiguration.DontUseIt;
 				}).ToArray()
-				: Type.EmptyTypes;
+				: new Type[0];
 		}
 
 		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
@@ -242,19 +243,19 @@ namespace SimpleContainer.Implementation
 				implementationTypes = interfaceConfiguration.ImplementationTypes;
 				useAutosearch = interfaceConfiguration.UseAutosearch;
 			}
-			if (service.Type.IsValueType)
+			if (service.Type.GetTypeInfo().IsValueType)
 			{
 				service.SetError("can't create value type");
 				return;
 			}
 			if (factoryPlugins.Any(p => p.TryInstantiate(this, service)))
 				return;
-			if (service.Type.IsGenericType && service.Type.ContainsGenericParameters)
+			if (service.Type.GetTypeInfo().IsGenericType && service.Type.GetTypeInfo().ContainsGenericParameters)
 			{
 				service.SetError("can't create open generic");
 				return;
 			}
-			if (service.Type.IsAbstract)
+			if (service.Type.GetTypeInfo().IsAbstract)
 				InstantiateInterface(service, implementationTypes, useAutosearch);
 			else
 				InstantiateImplementation(service);
@@ -321,29 +322,30 @@ namespace SimpleContainer.Implementation
 
 		private static MethodInfo GetFactoryOrNull(Type type)
 		{
-			var factoryType = type.GetNestedType("Factory");
-			return factoryType == null ? null : factoryType.GetMethod("Create", Type.EmptyTypes);
+			var factoryType = type.GetTypeInfo().DeclaredNestedTypes.SingleOrDefault(x => x.Name == "Factory");
+			return factoryType == null ? null : factoryType.GetDeclaredMethod("Create");
 		}
 
 		private static IEnumerable<Type> ProcessGenerics(Type type, IEnumerable<Type> candidates)
 		{
 			foreach (var candidate in candidates)
 			{
-				if (!candidate.IsGenericType)
+				if (!candidate.GetTypeInfo().IsGenericType)
 				{
-					if (!type.IsGenericType || type.IsAssignableFrom(candidate))
+					if (!type.GetTypeInfo().IsGenericType || type.IsAssignableFrom(candidate))
 						yield return candidate;
 					continue;
 				}
-				if (!candidate.ContainsGenericParameters)
+				if (!candidate.GetTypeInfo().ContainsGenericParameters)
 				{
 					yield return candidate;
 					continue;
 				}
-				var argumentsCount = candidate.GetGenericArguments().Length;
-				var candidateInterfaces = type.IsInterface
+				var genericArguments = candidate.GetGenericArguments();
+				var argumentsCount = genericArguments.Length;
+				var candidateInterfaces = type.GetTypeInfo().IsInterface
 					? candidate.GetInterfaces()
-					: (type.IsAbstract ? candidate.ParentsOrSelf() : Enumerable.Repeat(candidate, 1));
+					: (type.GetTypeInfo().IsAbstract ? candidate.ParentsOrSelf() : Enumerable.Repeat(candidate, 1));
 				foreach (var candidateInterface in candidateInterfaces)
 				{
 					var arguments = new Type[argumentsCount];
@@ -358,7 +360,7 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (typeof (Delegate).IsAssignableFrom(type))
 				return Enumerable.Empty<Type>();
-			if (!type.IsAbstract)
+			if (!type.GetTypeInfo().IsAbstract)
 			{
 				var result = dependenciesInjector.GetDependencies(type)
 					.Select(UnwrapEnumerable)
@@ -471,12 +473,11 @@ namespace SimpleContainer.Implementation
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
-				var resourceStream = implementation.type.Assembly.GetManifestResourceStream(implementation.type,
-					resourceAttribute.Name);
+				var resourceStream = implementation.type.GetTypeInfo().Assembly.GetManifestResourceStream(GetResourceName(implementation.type, resourceAttribute.Name));
 				if (resourceStream == null)
 					return ServiceDependency.Error(null, formalParameter,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
-						resourceAttribute.Name, implementation.type, implementation.type.Assembly.GetName().Name);
+						resourceAttribute.Name, implementation.type, implementation.type.GetTypeInfo().Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
 			}
 			Type enumerableItem;
@@ -524,9 +525,25 @@ namespace SimpleContainer.Implementation
 			return resultService.AsSingleInstanceDependency(null);
 		}
 
-		private static bool IsOptional(ICustomAttributeProvider attributes)
+		private static string GetResourceName(Type type, string name)
 		{
-			return attributes.IsDefined<OptionalAttribute>() || attributes.IsDefined("CanBeNullAttribute");
+			var result = new StringBuilder();
+			var @namespace = type.Namespace;
+			if (@namespace != null)
+			{
+				result.Append(@namespace);
+				if (name != null)
+					result.Append(".");
+			}
+			if (name != null)
+				result.Append(name);
+			return result.ToString();
+		}
+		
+
+		private static bool IsOptional(ParameterInfo attributes)
+		{
+			return attributes.IsDefined(typeof(OptionalAttribute)) || attributes.IsDefined("CanBeNullAttribute");
 		}
 
 		private static bool TryUnwrapEnumerable(Type type, out Type result)
@@ -536,7 +553,7 @@ namespace SimpleContainer.Implementation
 				result = type.GetGenericArguments()[0];
 				return true;
 			}
-			if (type.IsArray)
+			if (type.GetTypeInfo().IsArray)
 			{
 				result = type.GetElementType();
 				return true;
@@ -547,7 +564,7 @@ namespace SimpleContainer.Implementation
 
 		private static bool IsEnumerable(Type type)
 		{
-			return type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>);
+			return type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
 		}
 
 		private static Type UnwrapEnumerable(Type type)
@@ -561,12 +578,20 @@ namespace SimpleContainer.Implementation
 		{
 			try
 			{
-				var instance = MethodInvoker.Invoke(method, self, actualArguments);
+				object instance = MethodInvoker.Invoke(method, self, actualArguments);
 				service.AddInstance(instance, true);
 			}
 			catch (ServiceCouldNotBeCreatedException e)
 			{
 				service.SetComment(e.Message);
+			}
+			catch (TargetInvocationException e)
+			{
+				Exception wrapped = e.InnerException;
+				if (wrapped is ServiceCouldNotBeCreatedException)
+					service.SetComment(wrapped.Message);
+				else
+					service.SetError(wrapped);
 			}
 			catch (Exception e)
 			{
