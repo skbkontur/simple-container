@@ -9,6 +9,13 @@ namespace SimpleContainer.Helpers
 {
 	internal static class ReflectionHelpers
 	{
+		public static Type UnwrapEnumerable(this Type type)
+		{
+			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+				return type.GetGenericArguments()[0];
+			return type.IsArray ? type.GetElementType() : type;
+		}
+
 		public static Type MemberType(this MemberInfo memberInfo)
 		{
 			if (memberInfo is PropertyInfo) return (memberInfo as PropertyInfo).PropertyType;

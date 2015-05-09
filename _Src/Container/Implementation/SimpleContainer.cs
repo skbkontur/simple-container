@@ -65,14 +65,11 @@ namespace SimpleContainer.Implementation
 			if (type == null)
 				throw new ArgumentNullException("type");
 			var contractsArray = CheckContracts(contracts);
-
-			Type enumerableItem;
-			var isEnumerable = TryUnwrapEnumerable(type, out enumerableItem);
-			var typeToResolve = isEnumerable ? enumerableItem : type;
+			var typeToResolve = type.UnwrapEnumerable();
 			var cacheKey = new ServiceName(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
 			var result = instanceCache.GetOrAdd(cacheKey, createInstanceDelegate);
 			result.WaitForResolveOrDie();
-			return new ResolvedService(result, this, isEnumerable);
+			return new ResolvedService(result, this, typeToResolve != type);
 		}
 
 		internal ContainerService NewService(Type type)
@@ -266,7 +263,7 @@ namespace SimpleContainer.Implementation
 				? implementationTypes.EmptyIfNull()
 					.Union(inheritors.GetOrNull(service.Type.GetDefinition()).EmptyIfNull())
 				: implementationTypes;
-			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
+			var localTypesArray = localTypes.MatchWith(service.Type).ToArray();
 			if (localTypesArray.Length == 0)
 			{
 				service.SetComment("has no implementations");
@@ -325,34 +322,6 @@ namespace SimpleContainer.Implementation
 			return factoryType == null ? null : factoryType.GetMethod("Create", Type.EmptyTypes);
 		}
 
-		private static IEnumerable<Type> ProcessGenerics(Type type, IEnumerable<Type> candidates)
-		{
-			foreach (var candidate in candidates)
-			{
-				if (!candidate.IsGenericType)
-				{
-					if (!type.IsGenericType || type.IsAssignableFrom(candidate))
-						yield return candidate;
-					continue;
-				}
-				if (!candidate.ContainsGenericParameters)
-				{
-					yield return candidate;
-					continue;
-				}
-				var argumentsCount = candidate.GetGenericArguments().Length;
-				var candidateInterfaces = type.IsInterface
-					? candidate.GetInterfaces()
-					: (type.IsAbstract ? candidate.ParentsOrSelf() : Enumerable.Repeat(candidate, 1));
-				foreach (var candidateInterface in candidateInterfaces)
-				{
-					var arguments = new Type[argumentsCount];
-					if (candidateInterface.MatchWith(type, arguments) && arguments.All(x => x != null))
-						yield return candidate.MakeGenericType(arguments);
-				}
-			}
-		}
-
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			EnsureNotDisposed();
@@ -361,7 +330,7 @@ namespace SimpleContainer.Implementation
 			if (!type.IsAbstract)
 			{
 				var result = dependenciesInjector.GetDependencies(type)
-					.Select(UnwrapEnumerable)
+					.Select(ReflectionHelpers.UnwrapEnumerable)
 					.ToArray();
 				if (result.Any())
 					return result;
@@ -374,7 +343,7 @@ namespace SimpleContainer.Implementation
 			return constructor.GetParameters()
 				.Where(p => implementation.GetDependencyConfiguration(p) == null)
 				.Select(x => x.ParameterType)
-				.Select(UnwrapEnumerable)
+				.Select(ReflectionHelpers.UnwrapEnumerable)
 				.Where(p => configuration.GetOrNull<object>(p) == null)
 				.Where(IsDependency);
 		}
@@ -479,9 +448,8 @@ namespace SimpleContainer.Implementation
 						resourceAttribute.Name, implementation.type, implementation.type.Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
 			}
-			Type enumerableItem;
-			var isEnumerable = TryUnwrapEnumerable(implementationType, out enumerableItem);
-			var dependencyType = isEnumerable ? enumerableItem : implementationType;
+			var dependencyType = implementationType.UnwrapEnumerable();
+			var isEnumerable = dependencyType != implementationType;
 			var attribute = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
 			var contracts = attribute == null ? null : new List<string>(1) {attribute.ContractName};
 			var interfaceConfiguration = context.GetConfiguration<InterfaceConfiguration>(dependencyType);
@@ -517,43 +485,11 @@ namespace SimpleContainer.Implementation
 			{
 				if (formalParameter.HasDefaultValue)
 					return ServiceDependency.Service(resultService, formalParameter.DefaultValue);
-				if (IsOptional(formalParameter))
+				if (formalParameter.IsDefined<OptionalAttribute>() || formalParameter.IsDefined("CanBeNullAttribute"))
 					return ServiceDependency.Service(resultService, null);
 				return ServiceDependency.NotResolved(resultService);
 			}
 			return resultService.AsSingleInstanceDependency(null);
-		}
-
-		private static bool IsOptional(ICustomAttributeProvider attributes)
-		{
-			return attributes.IsDefined<OptionalAttribute>() || attributes.IsDefined("CanBeNullAttribute");
-		}
-
-		private static bool TryUnwrapEnumerable(Type type, out Type result)
-		{
-			if (IsEnumerable(type))
-			{
-				result = type.GetGenericArguments()[0];
-				return true;
-			}
-			if (type.IsArray)
-			{
-				result = type.GetElementType();
-				return true;
-			}
-			result = null;
-			return false;
-		}
-
-		private static bool IsEnumerable(Type type)
-		{
-			return type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>);
-		}
-
-		private static Type UnwrapEnumerable(Type type)
-		{
-			Type result;
-			return TryUnwrapEnumerable(type, out result) ? result : type;
 		}
 
 		private static void InvokeConstructor(MethodBase method, object self, object[] actualArguments,

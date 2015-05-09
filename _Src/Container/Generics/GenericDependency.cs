@@ -8,7 +8,6 @@ namespace SimpleContainer.Generics
 	{
 		public Type Type { get; set; }
 		public GenericComponent Owner { get; set; }
-		public bool UseProviderInterface { get; set; }
 
 		public void Close(Type by, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
 		{

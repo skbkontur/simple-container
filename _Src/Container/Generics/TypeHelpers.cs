@@ -56,6 +56,12 @@ namespace SimpleContainer.Generics
 				var position = pattern.GenericParameterPosition;
 				if (matched[position] != null && matched[position] != value)
 					return false;
+				foreach (var constraint in pattern.GetGenericParameterConstraints())
+					if (!constraint.IsAssignableFrom(value))
+						return false;
+				if (pattern.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+					if (value.GetConstructor(Type.EmptyTypes) == null)
+						return false;
 				matched[position] = value;
 				return true;
 			}
@@ -99,7 +105,35 @@ namespace SimpleContainer.Generics
 			return by.Where(x => CanClose(what, x));
 		}
 
-		public static Type[] GetGenericInterfaces(Type type)
+		public static IEnumerable<Type> MatchWith(this IEnumerable<Type> candidates, Type type)
+		{
+			foreach (var candidate in candidates)
+			{
+				if (!candidate.IsGenericType)
+				{
+					if (!type.IsGenericType || type.IsAssignableFrom(candidate))
+						yield return candidate;
+					continue;
+				}
+				if (!candidate.ContainsGenericParameters)
+				{
+					yield return candidate;
+					continue;
+				}
+				var argumentsCount = candidate.GetGenericArguments().Length;
+				var candidateInterfaces = type.IsInterface
+					? candidate.GetInterfaces()
+					: (type.IsAbstract ? candidate.ParentsOrSelf() : Enumerable.Repeat(candidate, 1));
+				foreach (var candidateInterface in candidateInterfaces)
+				{
+					var arguments = new Type[argumentsCount];
+					if (candidateInterface.MatchWith(type, arguments) && arguments.All(x => x != null))
+						yield return candidate.MakeGenericType(arguments);
+				}
+			}
+		}
+
+		public static Type[] GetGenericInterfaces(this Type type)
 		{
 			return type.GetInterfaces().Concat(type).Where(x => x.IsGenericType).ToArray();
 		}

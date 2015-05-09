@@ -109,7 +109,7 @@ namespace SimpleContainer.Factories
 				{
 					var parameterTypes =
 						TypeHelpers.FindAllClosing(autoclosingParameter.ParameterType,
-							TypeHelpers.GetGenericInterfaces(autoclosingParameterValue.GetType())).ToArray();
+							autoclosingParameterValue.GetType().GetGenericInterfaces()).ToArray();
 					if (parameterTypes.Length > 1)
 						throw new NotSupportedException(
 							string.Format("cannot auto close type {0} with multiple interfaces on parameter {1} for serviceType {2}",

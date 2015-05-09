@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Remoting.Messaging;
 using SimpleContainer.Configuration;
 
 namespace SimpleContainer.Generics
@@ -12,15 +13,15 @@ namespace SimpleContainer.Generics
 		{
 			Owner = owner;
 			GenericConstraint = genericConstraint;
-			GenericDependencies = genericDependencies.Select(x => new GenericDependency {Type = x, Owner = this}).ToArray();
+			GenericDependencies = genericDependencies.ToList();
 			Overrides = new List<GenericOverrideInfo>();
-			BoundDependencies = new List<GenericDependency>();
+			DependenciesToClose = new List<GenericDependency>();
 		}
 
 		public Type Owner { get; private set; }
 		public Type[] GenericConstraint { get; private set; }
-		public IEnumerable<GenericDependency> GenericDependencies { get; private set; }
-		public List<GenericDependency> BoundDependencies { get; private set; }
+		public List<Type> GenericDependencies { get; private set; }
+		public List<GenericDependency> DependenciesToClose { get; private set; }
 		public List<GenericOverrideInfo> Overrides { get; private set; }
 
 		public bool SatisfyConstraints(Type type)
@@ -33,15 +34,15 @@ namespace SimpleContainer.Generics
 			return !needDefaultConstructor || type.GetConstructor(Type.EmptyTypes) != null;
 		}
 
-		public void UseAsServiceProviderFor(GenericComponent dependent)
+		public void UseAsServiceProviderFor(GenericComponent consumer)
 		{
-			foreach (var dependency in dependent.GenericDependencies.Where(g => CanClose(g.Type)))
-				BoundDependencies.Add(dependency);
+			foreach (var dependency in consumer.GenericDependencies.Where(CanClose))
+				DependenciesToClose.Add(new GenericDependency {Type = dependency, Owner = consumer});
 		}
 
 		public bool CanClose(Type dependency)
 		{
-			return TypeHelpers.FindAllClosing(dependency, TypeHelpers.GetGenericInterfaces(Owner)).Any();
+			return TypeHelpers.FindAllClosing(dependency, Owner.GetGenericInterfaces()).Any();
 		}
 
 		public void Close(Type[] by, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
@@ -51,13 +52,6 @@ namespace SimpleContainer.Generics
 			var closedOwner = Owner.MakeGenericType(by);
 			if (closedImplementations.Contains(closedOwner))
 				return;
-			CloseInternal(closedOwner, builder, closedImplementations);
-			closedImplementations.Add(closedOwner);
-		}
-
-		private void CloseInternal(Type closedOwner, ContainerConfigurationBuilder builder,
-			ICollection<Type> closedImplementations)
-		{
 			var closedInterfaces = closedOwner.GetInterfaces().ToArray();
 			foreach (var closedInterface in closedInterfaces)
 			{
@@ -65,10 +59,11 @@ namespace SimpleContainer.Generics
 				builder.Bind(closedInterface, closedOwner);
 			}
 			builder.Bind(closedOwner, closedOwner);
-			var interfacesForDependencies = TypeHelpers.GetGenericInterfaces(closedOwner);
-			foreach (var dependency in BoundDependencies)
+			var interfacesForDependencies = closedOwner.GetGenericInterfaces();
+			foreach (var dependency in DependenciesToClose)
 				foreach (var c in TypeHelpers.FindAllClosing(dependency.Type, interfacesForDependencies))
 					dependency.Close(c, builder, closedImplementations);
+			closedImplementations.Add(closedOwner);
 		}
 	}
 }

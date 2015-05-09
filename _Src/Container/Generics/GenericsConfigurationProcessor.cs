@@ -114,7 +114,7 @@ namespace SimpleContainer.Generics
 
 		private void CloseUsingDependencies(ContainerConfigurationBuilder builder, Type type)
 		{
-			var closedTypes = TypeHelpers.GetGenericInterfaces(type);
+			var closedTypes = type.GetGenericInterfaces();
 			foreach (var dependency in dependencies)
 				foreach (var c in TypeHelpers.FindAllClosing(dependency.Type, closedTypes))
 					dependency.Close(c, builder, processedClosedTypes);
@@ -126,7 +126,9 @@ namespace SimpleContainer.Generics
 				foreach (var c2 in configurators)
 					if (!ReferenceEquals(c1, c2))
 						c1.UseAsServiceProviderFor(c2);
-			dependencies = configurators.SelectMany(x => x.GenericDependencies).ToArray();
+			dependencies = configurators
+				.SelectMany(x => x.GenericDependencies.Select(y => new GenericDependency {Owner = x, Type = y}))
+				.ToArray();
 			componentsWithConstraints = configurators.Where(x => x.GenericConstraint != null).ToArray();
 			foreach (var genericOverrideInfo in genericOverrides)
 			{

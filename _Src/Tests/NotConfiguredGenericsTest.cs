@@ -1,7 +1,5 @@
-﻿using System;
+﻿using System.Linq;
 using NUnit.Framework;
-using SimpleContainer.Configuration;
-using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -121,6 +119,50 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Get<B>().a, Is.InstanceOf<A1>());
+			}
+		}
+
+		public class CheckConstraints : NotConfiguredGenericsTest
+		{
+			public interface IA<T1>
+			{
+			}
+
+			public interface IRestriction
+			{
+			}
+
+			public class A1<T2> : IA<T2>
+				where T2 : IRestriction
+			{
+			}
+
+			public class A2<T3> : IA<T3>
+				where T3: new()
+			{
+			}
+
+			public class A3<T4> : IA<T4>
+			{
+			}
+
+			public class S
+			{
+				public readonly int value;
+
+				public S(int value)
+				{
+					this.value = value;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var actual = container.GetAll<IA<S>>().ToArray();
+				Assert.That(actual.Length, Is.EqualTo(1));
+				Assert.That(actual[0], Is.InstanceOf<A3<S>>());
 			}
 		}
 	}
