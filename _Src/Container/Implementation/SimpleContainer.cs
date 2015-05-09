@@ -257,13 +257,30 @@ namespace SimpleContainer.Implementation
 				InstantiateImplementation(service);
 		}
 
+		public static IEnumerable<Type> ProcessGenerics(Type interfaceType, IEnumerable<Type> implTypes)
+		{
+			foreach (var implType in implTypes)
+			{
+				if (!implType.IsGenericType)
+				{
+					if (!interfaceType.IsGenericType || interfaceType.IsAssignableFrom(implType))
+						yield return implType;
+				}
+				else if (!implType.ContainsGenericParameters)
+					yield return implType;
+				else
+					foreach (var type in implType.CloseBy(interfaceType, implType))
+						yield return type;
+			}
+		}
+
 		private void InstantiateInterface(ContainerService service, IEnumerable<Type> implementationTypes, bool useAutosearch)
 		{
 			var localTypes = implementationTypes == null || useAutosearch
 				? implementationTypes.EmptyIfNull()
 					.Union(inheritors.GetOrNull(service.Type.GetDefinition()).EmptyIfNull())
 				: implementationTypes;
-			var localTypesArray = localTypes.MatchWith(service.Type).ToArray();
+			var localTypesArray = ProcessGenerics(service.Type, localTypes).ToArray();
 			if (localTypesArray.Length == 0)
 			{
 				service.SetComment("has no implementations");

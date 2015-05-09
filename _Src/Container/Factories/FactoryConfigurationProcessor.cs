@@ -59,14 +59,12 @@ namespace SimpleContainer.Factories
 		private Delegate CreateGenericFactory(Type serviceType, Type implementationDefinition, IContainer container)
 		{
 			return DelegateCaster.Create(serviceType)
-				.Cast((type, o) => GetGenericFactoryInternal(implementationDefinition, container, new[] {type})(o));
+				.Cast((type, o) => GetGenericFactoryInternal(implementationDefinition.MakeGenericType(type), container)(o));
 		}
 
-		private Func<object, object> GetGenericFactoryInternal(Type implementationDefinition, IContainer mtContainer,
-			Type[] closingSequence)
+		private Func<object, object> GetGenericFactoryInternal(Type type, IContainer mtContainer)
 		{
-			return genericFactories.GetOrAdd(implementationDefinition.MakeGenericType(closingSequence),
-				it => CreateFactory(it, mtContainer));
+			return genericFactories.GetOrAdd(type, it => CreateFactory(it, mtContainer));
 		}
 
 		private void ConfigureAsSimpleFactory(ContainerConfigurationBuilder builder, Type targetType, Type pluggableType)
@@ -94,31 +92,21 @@ namespace SimpleContainer.Factories
 		}
 
 		private Delegate CreateAutoClosingFactory(Type serviceType, Type implementationDefinition,
-			ParameterInfo autoclosingParameter, IContainer container)
+			ParameterInfo parameter, IContainer container)
 		{
 			Func<object, object> f = delegate(object o)
 			{
 				var accessor = ObjectAccessor.Get(o);
-				object autoclosingParameterValue;
-				if (!accessor.TryGet(autoclosingParameter.Name, out autoclosingParameterValue))
+				object parameterValue;
+				if (!accessor.TryGet(parameter.Name, out parameterValue))
 					throw new InvalidOperationException("can't detect type of " + implementationDefinition.FormatName());
-				Type[] closingTypesSequence;
-				if (autoclosingParameter.ParameterType.IsGenericParameter)
-					closingTypesSequence = new[] {autoclosingParameterValue.GetType()};
-				else
-				{
-					var parameterTypes =
-						TypeHelpers.FindAllClosing(autoclosingParameter.ParameterType,
-							autoclosingParameterValue.GetType().GetGenericInterfaces()).ToArray();
-					if (parameterTypes.Length > 1)
-						throw new NotSupportedException(
-							string.Format("cannot auto close type {0} with multiple interfaces on parameter {1} for serviceType {2}",
-								implementationDefinition, autoclosingParameter.ParameterType, serviceType));
-					var closedParameterType = parameterTypes.Single();
-
-					closingTypesSequence = TypeHelpers.GetClosingTypesSequence(autoclosingParameter.ParameterType, closedParameterType);
-				}
-				return GetGenericFactoryInternal(implementationDefinition, container, closingTypesSequence)(o);
+				var makeGenericTypes = implementationDefinition.CloseBy(parameter.ParameterType, parameterValue.GetType())
+					.ToArray();
+				if (makeGenericTypes.Length > 1)
+					throw new NotSupportedException(
+						string.Format("cannot auto close type {0} with multiple interfaces on parameter {1} for serviceType {2}",
+							implementationDefinition, parameter.ParameterType, serviceType));
+				return GetGenericFactoryInternal(makeGenericTypes[0], container)(o);
 			};
 			return DelegateCaster.Create(serviceType).Cast(f);
 		}

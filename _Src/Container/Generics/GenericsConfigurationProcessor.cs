@@ -112,13 +112,6 @@ namespace SimpleContainer.Generics
 			processedClosedTypes.Clear();
 		}
 
-		private void CloseUsingDependencies(ContainerConfigurationBuilder builder, Type type)
-		{
-			var closedTypes = type.GetGenericInterfaces();
-			foreach (var dependency in dependencies)
-				foreach (var c in TypeHelpers.FindAllClosing(dependency.Type, closedTypes))
-					dependency.Close(c, builder, processedClosedTypes);
-		}
 
 		private void FinalizeFirstRun()
 		{
@@ -140,13 +133,21 @@ namespace SimpleContainer.Generics
 
 		private GenericComponent GetGenericComponentOrNull(Type owner)
 		{
-			return configurators.FirstOrDefault(x => x.Owner == owner);
+			return configurators.FirstOrDefault(x => x.Type == owner);
 		}
 
 		private void CloseUsingConstraints(ContainerConfigurationBuilder builder, Type type)
 		{
 			foreach (var component in componentsWithConstraints.Where(x => x.SatisfyConstraints(type)))
 				component.Close(new[] {type}, builder, processedClosedTypes);
+		}
+
+		private void CloseUsingDependencies(ContainerConfigurationBuilder builder, Type type)
+		{
+			var closedTypes = type.GetGenericInterfaces();
+			foreach (var dependency in dependencies)
+				foreach (var c in closedTypes)
+					dependency.Close(c, builder, processedClosedTypes);
 		}
 	}
 }

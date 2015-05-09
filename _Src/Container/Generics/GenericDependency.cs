@@ -9,9 +9,11 @@ namespace SimpleContainer.Generics
 		public Type Type { get; set; }
 		public GenericComponent Owner { get; set; }
 
-		public void Close(Type by, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
+		public void Close(Type type, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
 		{
-			Owner.Close(TypeHelpers.GetClosingTypesSequence(Type, by), builder, closedImplementations);
+			var closingTypes = Owner.Type.MatchOrNull(Type, type);
+			if (closingTypes != null)
+				Owner.Close(closingTypes, builder, closedImplementations);
 		}
 	}
 }
