@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
@@ -17,12 +16,11 @@ namespace SimpleContainer.Configuration
 			ApplicationName = "global";
 		}
 
-		internal ConfigurationContext Local(string name, Assembly primaryAssembly, IParametersSource parameters)
+		internal ConfigurationContext Local(string name, IParametersSource parameters)
 		{
 			return new ConfigurationContext(profile, settingsLoader)
 			{
 				ApplicationName = name,
-				PrimaryAssembly = primaryAssembly,
 				Parameters = parameters ?? new EmptyParametersSource()
 			};
 		}
@@ -43,7 +41,6 @@ namespace SimpleContainer.Configuration
 		}
 
 		public string ApplicationName { get; private set; }
-		public Assembly PrimaryAssembly { get; private set; }
 		public IParametersSource Parameters { get; private set; }
 
 		public T Settings<T>()

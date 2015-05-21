@@ -22,6 +22,7 @@ namespace SimpleContainer
 		private LogError errorLogger;
 		private LogInfo infoLogger;
 		private readonly List<Assembly> pluginAssemblies = new List<Assembly>();
+		private Type[] configuratorTypes;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -33,6 +34,12 @@ namespace SimpleContainer
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
 			assembliesFilter = name => newAssembliesFilter(name) || name.Name == "SimpleContainer";
+			return this;
+		}
+
+		public ContainerFactory WithPriorities(params Type[] newConfiguratorTypes)
+		{
+			configuratorTypes = newConfiguratorTypes;
 			return this;
 		}
 
@@ -132,12 +139,13 @@ namespace SimpleContainer
 			var staticServices = new HashSet<Type>();
 			var builder = new ContainerConfigurationBuilder(staticServices, true);
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
+			using (
+				var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
 				runner.Run(builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies);
+				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()

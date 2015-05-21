@@ -1,15 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
-using SimpleContainer.Infection;
 using SimpleContainer.Interface;
-using SimpleContainer.Tests.Contracts;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -565,18 +561,16 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ApplicationNameAndPrimaryAssembly : ContainerConfigurationTest
+		public class ApplicationName : ContainerConfigurationTest
 		{
 			public class A
 			{
-				public A(string applicationName, Assembly primaryAssembly)
+				public A(string applicationName)
 				{
 					ApplicationName = applicationName;
-					PrimaryAssembly = primaryAssembly;
 				}
 
 				public string ApplicationName { get; private set; }
-				public Assembly PrimaryAssembly { get; private set; }
 			}
 
 			public class AConfigurator : IServiceConfigurator<A>
@@ -586,7 +580,6 @@ namespace SimpleContainer.Tests
 					builder.Dependencies(new
 					{
 						applicationName = context.ApplicationName,
-						primaryAssembly = context.PrimaryAssembly
 					});
 				}
 			}
@@ -596,11 +589,7 @@ namespace SimpleContainer.Tests
 			{
 				var staticContainer = CreateStaticContainer();
 				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null, null))
-				{
-					var a = c.Get<A>();
-					Assert.That(a.ApplicationName, Is.EqualTo("my-app-name"));
-					Assert.That(a.PrimaryAssembly, Is.SameAs(Assembly.GetExecutingAssembly()));
-				}
+					Assert.That(c.Get<A>().ApplicationName, Is.EqualTo("my-app-name"));
 			}
 		}
 
@@ -750,6 +739,10 @@ namespace SimpleContainer.Tests
 				}
 			}
 
+			public interface IHighPriorityServiceConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
 			public class AConfigurator1 : IHighPriorityServiceConfigurator<A>
 			{
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
@@ -769,8 +762,11 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var container = Container();
-				Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
+				Action<ContainerFactory> configureFactory =
+					f => f.WithPriorities(typeof (IServiceConfigurator<>), typeof (IHighPriorityServiceConfigurator<>));
+				using (var staticContainer = CreateStaticContainer(configureFactory))
+				using (var result = LocalContainer(staticContainer))
+					Assert.That(result.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
