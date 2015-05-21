@@ -133,7 +133,7 @@ namespace SimpleContainer
 			var builder = new ContainerConfigurationBuilder(staticServices, true);
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
 			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
-				runner.Run(builder, x => true);
+				runner.Run(builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,

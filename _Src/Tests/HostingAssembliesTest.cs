@@ -219,69 +219,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class LocalConfiguratorsExecuteLast : HostingAssembliesTest
-		{
-			private const string referencedAssemblycode = @"
-					using SimpleContainer.Configuration;
-					using SimpleContainer;
-					using System;
-
-					namespace A1
-					{
-						public class Impl1: IServiceProvider
-						{
-							public object GetService(Type serviceType)
-							{
-								return null;
-							}
-						}
-
-						public class Impl2: IServiceProvider
-						{
-							public object GetService(Type serviceType)
-							{
-								return null;
-							}
-						}
-				
-						public class ServiceConfigurator: IServiceConfigurator<IServiceProvider>
-						{
-							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IServiceProvider> builder)
-							{
-								builder.Bind<Impl1>();
-							}
-						}
-					}
-				";
-
-			private const string primaryAssemblyCode = @"
-					using SimpleContainer.Configuration;
-					using System;
-					using A1;
-
-					namespace A2
-					{
-						public class ServiceConfigurator: IServiceConfigurator<IServiceProvider>
-						{
-							public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IServiceProvider> builder)
-							{
-								builder.Bind<Impl2>(true);
-							}
-						}
-					}
-				";
-
-			[Test]
-			public void Test()
-			{
-				var a1 = AssemblyCompiler.Compile(referencedAssemblycode);
-				var a2 = AssemblyCompiler.Compile(primaryAssemblyCode, a1);
-				using (var staticContainer = Factory().FromAssemblies(new[] {a2, a1}))
-				using (var localContainer = staticContainer.CreateLocalContainer(null, a2, null, null))
-					Assert.That(localContainer.Get<IServiceProvider>().GetType().Name, Is.EqualTo("Impl2"));
-			}
-		}
-
 		public class UseAssembliesFilterForExplicitlySpecifiedAssemblies : HostingAssembliesTest
 		{
 			private const string primaryAssemblyCode = @"

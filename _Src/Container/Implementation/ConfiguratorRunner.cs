@@ -30,11 +30,10 @@ namespace SimpleContainer.Implementation
 			return new ConfiguratorRunner(context, container);
 		}
 
-		public void Run(ContainerConfigurationBuilder builder, Func<object, bool> configuratorsFilter)
+		public void Run(ContainerConfigurationBuilder builder)
 		{
-			var internalContext = new ConfigurationContextInternal(context, builder, configuratorsFilter);
 			foreach (var invoker in container.GetAll<IServiceConfiguratorInvoker>())
-				invoker.Configure(internalContext);
+				invoker.Configure(context, builder);
 		}
 
 		public void Dispose()
@@ -58,7 +57,7 @@ namespace SimpleContainer.Implementation
 
 		internal interface IServiceConfiguratorInvoker
 		{
-			void Configure(ConfigurationContextInternal internalContext);
+			void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder);
 		}
 
 		internal class ServiceConfiguratorInvoker<T> : IServiceConfiguratorInvoker
@@ -67,14 +66,26 @@ namespace SimpleContainer.Implementation
 
 			public ServiceConfiguratorInvoker(IEnumerable<IServiceConfigurator<T>> configurators)
 			{
-				this.configurators = configurators;
+				this.configurators = configurators.GroupBy(GetPriority)
+					.OrderByDescending(x => x.Key)
+					.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
+					.First();
 			}
 
-			public void Configure(ConfigurationContextInternal internalContext)
+			public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 			{
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(internalContext.Builder);
-				foreach (var configurator in internalContext.FilterConfigurators(configurators))
-					configurator.Configure(internalContext.Context, serviceConfigurationBuilder);
+				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(builder);
+				foreach (var configurator in configurators)
+					configurator.Configure(context, serviceConfigurationBuilder);
+			}
+
+			private static int GetPriority(IServiceConfigurator<T> configurator)
+			{
+				if (configurator is IHighPriorityServiceConfigurator<T>)
+					return 3;
+				if (configurator is IMediumPriorityServiceConfigurator<T>)
+					return 2;
+				return 1;
 			}
 		}
 
@@ -87,30 +98,10 @@ namespace SimpleContainer.Implementation
 				this.configurators = configurators;
 			}
 
-			public void Configure(ConfigurationContextInternal internalContext)
+			public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 			{
-				foreach (var c in internalContext.FilterConfigurators(configurators))
-					c.Configure(internalContext.Context, internalContext.Builder);
-			}
-		}
-
-		internal class ConfigurationContextInternal
-		{
-			public ConfigurationContext Context { get; private set; }
-			public ContainerConfigurationBuilder Builder { get; private set; }
-			private readonly Func<object, bool> configuratorsFilter;
-
-			public ConfigurationContextInternal(ConfigurationContext context, ContainerConfigurationBuilder builder,
-				Func<object, bool> configuratorsFilter)
-			{
-				Context = context;
-				Builder = builder;
-				this.configuratorsFilter = configuratorsFilter;
-			}
-
-			public IEnumerable<TConfigurator> FilterConfigurators<TConfigurator>(IEnumerable<TConfigurator> configurators)
-			{
-				return configurators.Where(x => configuratorsFilter(x));
+				foreach (var c in configurators)
+					c.Configure(context, builder);
 			}
 		}
 	}

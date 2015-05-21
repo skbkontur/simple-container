@@ -38,10 +38,7 @@ namespace SimpleContainer.Implementation
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
 			var localContext = configurationContext.Local(name, primaryAssembly, parameters);
 			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext))
-			{
-				runner.Run(builder, c => c.GetType().Assembly != primaryAssembly);
-				runner.Run(builder, c => c.GetType().Assembly == primaryAssembly);
-			}
+				runner.Run(builder);
 			if (configure != null)
 				configure(builder);
 			if (fileConfigurator != null)

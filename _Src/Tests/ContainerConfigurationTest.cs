@@ -7,6 +7,7 @@ using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Contracts;
 using SimpleContainer.Tests.Helpers;
@@ -734,6 +735,42 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var instance = container.Get<A>();
 				Assert.That(instance.dependency, Is.EqualTo(new[] {"a", "b"}));
+			}
+		}
+
+		public class Priorities : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class AConfigurator1 : IHighPriorityServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+
+			public class AConfigurator2 : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new { parameter = 43 });
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
