@@ -17,7 +17,7 @@ namespace SimpleContainer
 	{
 		private Type profile;
 		private Func<AssemblyName, bool> assembliesFilter;
-		private Func<Type, object> settingsLoader;
+		private Func<Type,string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
@@ -26,7 +26,14 @@ namespace SimpleContainer
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
 			var cache = new ConcurrentDictionary<Type, object>();
-			settingsLoader = t => cache.GetOrAdd(t, newLoader);
+			settingsLoader = (t, _) => cache.GetOrAdd(t, newLoader);
+			return this;
+		}
+		
+		public ContainerFactory WithSettingsLoader(Func<Type,string, object> newLoader)
+		{
+			var cache = new ConcurrentDictionary<string, object>();
+			settingsLoader = (t, k) => cache.GetOrAdd(t.Name + k, s => newLoader(t, k));
 			return this;
 		}
 
@@ -157,13 +164,18 @@ namespace SimpleContainer
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
 			var factoriesProcessor = new FactoryConfigurationProcessor();
 			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
+
 			foreach (var type in types)
 			{
-				genericsProcessor.FirstRun(type);
+				if (!type.Assembly.FullName.Contains("FunctionalTests"))
+					genericsProcessor.FirstRun(type);
 				factoriesProcessor.FirstRun(builder, type);
 			}
 			foreach (var type in types)
-				genericsProcessor.SecondRun(builder, type);
+			{
+				if (!type.Assembly.FullName.Contains("FunctionalTests"))
+					genericsProcessor.SecondRun(builder, type);
+			}
 			return builder.Build();
 		}
 	}
