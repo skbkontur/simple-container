@@ -22,7 +22,7 @@ namespace SimpleContainer.Implementation
 			this.priorities = priorities;
 		}
 
-		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
+		public static ConfiguratorRunner Create(bool isStatic, IConfigurationRegistry configuration,
 			IInheritanceHierarchy hierarchy, ConfigurationContext context, Type[] priorities)
 		{
 			Func<Type, bool> filter = x => x.Assembly == containerAssembly || x.IsDefined<StaticAttribute>() == isStatic;
@@ -45,9 +45,9 @@ namespace SimpleContainer.Implementation
 
 		private class ConfigurationContainer : SimpleContainer
 		{
-			public ConfigurationContainer(CacheLevel cacheLevel, IContainerConfiguration configuration,
+			public ConfigurationContainer(CacheLevel cacheLevel, IConfigurationRegistry configurationRegistry,
 				IInheritanceHierarchy inheritors)
-				: base(configuration, inheritors, null, cacheLevel, new HashSet<Type>(), null, null)
+				: base(configurationRegistry, inheritors, null, cacheLevel, new HashSet<Type>(), null, null)
 			{
 			}
 
@@ -73,18 +73,23 @@ namespace SimpleContainer.Implementation
 
 			public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder, Type[] priorities)
 			{
-				var targetConfigurators = configurators
-					.GroupBy(configurator => priorities == null
-						? 0
-						: configurator.GetType()
-							.GetInterfaces()
-							.Max(x => Array.IndexOf(priorities, x.GetDefinition())))
-					.OrderByDescending(x => x.Key)
-					.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
-					.First();
-				var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(builder);
-				foreach (var configurator in targetConfigurators)
-					configurator.Configure(context, serviceConfigurationBuilder);
+				var configurationSet = builder.RegistryBuilder.GetConfigurationSet(typeof (T));
+				configurationSet.RegisterLazyConfigurator(
+					delegate
+					{
+						var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(configurationSet);
+						var targetConfigurators = configurators
+							.GroupBy(configurator => priorities == null
+								? 0
+								: configurator.GetType()
+									.GetInterfaces()
+									.Max(x => Array.IndexOf(priorities, x.GetDefinition())))
+							.OrderByDescending(x => x.Key)
+							.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
+							.First();
+						foreach (var configurator in targetConfigurators)
+							configurator.Configure(context, serviceConfigurationBuilder);
+					});
 			}
 		}
 

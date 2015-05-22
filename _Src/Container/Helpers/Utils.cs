@@ -20,6 +20,32 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		public static bool IsSubsequenceOf<T>(this List<T> sequence, List<T> other, IEqualityComparer<T> comparer)
+		{
+			int i = 0, j = 0;
+			while (true)
+			{
+				if (i >= sequence.Count)
+					return true;
+				if (j >= other.Count)
+					return false;
+				if (comparer.Equals(sequence[i], other[j]))
+					i++;
+				j++;
+			}
+		}
+
+		public static List<T> Concat<T>(this List<T> first, List<T> second)
+		{
+			if (second.Count == 0)
+				return first;
+			if (first.Count == 0)
+				return second;
+			var result = new List<T>(first);
+			result.AddRange(second);
+			return result;
+		}
+
 		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
 		{
 			foreach (var t in source[index])

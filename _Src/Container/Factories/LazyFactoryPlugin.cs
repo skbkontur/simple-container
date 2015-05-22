@@ -7,16 +7,16 @@ namespace SimpleContainer.Factories
 {
 	internal class LazyFactoryPlugin : IFactoryPlugin
 	{
-		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
+		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService.Builder builder)
 		{
-			if (!containerService.Type.IsGenericType)
+			if (!builder.Type.IsGenericType)
 				return false;
-			if (containerService.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
+			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return false;
-			var type = containerService.Type.GetGenericArguments()[0];
+			var type = builder.Type.GetGenericArguments()[0];
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(type).GetConstructors().Single();
 			var lazyFactory = (ILazyFactory) MethodInvoker.Invoke(lazyFactoryCtor, null, new object[] {container});
-			containerService.AddInstance(lazyFactory.CreateLazy(), true);
+			builder.AddInstance(lazyFactory.CreateLazy(), true);
 			return true;
 		}
 

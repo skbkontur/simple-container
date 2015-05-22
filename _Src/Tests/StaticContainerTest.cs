@@ -60,11 +60,11 @@ namespace SimpleContainer.Tests
 			}
 
 			[Static]
-			public class StaticConfigurator : IServiceConfigurator<SomeService>
+			public class StaticConfigurator : IContainerConfigurator
 			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<SomeService> builder)
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.MakeStatic();
+					builder.MakeStatic(typeof (SomeService));
 				}
 			}
 
@@ -215,12 +215,12 @@ namespace SimpleContainer.Tests
 			}
 
 			[Static]
-			public class BConfigurator : IServiceConfigurator<B>
+			public class BConfigurator : IContainerConfigurator
 			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.MakeStatic();
-					builder.Dependencies(new {parameter = 43});
+					builder.MakeStatic(typeof (B));
+					builder.BindDependencies<B>(new {parameter = 43});
 				}
 			}
 
@@ -241,11 +241,11 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class Configurator : IServiceConfigurator<Service>
+			public class Configurator : IContainerConfigurator
 			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.MakeStatic();
+					builder.MakeStatic(typeof(Service));
 				}
 			}
 

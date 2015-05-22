@@ -1,26 +1,27 @@
 using System;
+using System.Collections.Generic;
 
 namespace SimpleContainer.Configuration
 {
-	internal class MergedConfiguration : IContainerConfiguration
+	internal class MergedConfiguration : IConfigurationRegistry
 	{
-		private readonly IContainerConfiguration parent;
-		private readonly IContainerConfiguration child;
+		private readonly IConfigurationRegistry parent;
+		private readonly IConfigurationRegistry child;
 
-		public MergedConfiguration(IContainerConfiguration parent, IContainerConfiguration child)
+		public MergedConfiguration(IConfigurationRegistry parent, IConfigurationRegistry child)
 		{
 			this.parent = parent;
 			this.child = child;
 		}
 
-		public T GetOrNull<T>(Type type) where T : class
+		public IServiceConfigurationSet GetConfiguration(Type type)
 		{
-			return child.GetOrNull<T>(type) ?? parent.GetOrNull<T>(type);
+			return child.GetConfiguration(type) ?? parent.GetConfiguration(type);
 		}
 
-		public ContractConfiguration[] GetContractConfigurations(string contract)
+		public List<string> GetContractsUnionOrNull(string contract)
 		{
-			return child.GetContractConfigurations(contract) ?? parent.GetContractConfigurations(contract);
+			return child.GetContractsUnionOrNull(contract) ?? parent.GetContractsUnionOrNull(contract);
 		}
 	}
 }

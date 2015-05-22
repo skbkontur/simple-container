@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Reflection;
+using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
@@ -9,89 +10,49 @@ namespace SimpleContainer.Implementation
 {
 	internal class ContainerService
 	{
-		public ServiceStatus status;
-		private List<string> usedContractNames;
-		private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
-		private IEnumerable<object> typedArray;
-		private readonly object lockObject = new object();
-		private bool instantiated;
-		private volatile bool runCalled;
+		public ServiceStatus Status { get; private set; }
 		public Type Type { get; private set; }
 		public string[] FinalUsedContracts { get; private set; }
-		public IObjectAccessor Arguments { get; private set; }
-		public bool CreateNew { get; private set; }
-		public ResolutionContext Context { get; private set; }
-		private List<ServiceDependency> dependencies;
+		private readonly object lockObject = new object();
 
-		//for construction log only
-		private string[] declaredContracts;
-		private readonly CacheLevel cacheLevel;
+		private IEnumerable<object> typedArray;
+		private volatile bool runCalled;
+		private CacheLevel cacheLevel;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
+		private ServiceDependency[] dependencies;
+		private InstanceWrap[] instances;
+		private string[] declaredContracts;
 
-		public ContainerService(Type type, CacheLevel cacheLevel)
+		private ContainerService()
 		{
-			Type = type;
-			this.cacheLevel = cacheLevel;
 		}
 
-		public void SetComment(string value)
+		public object GetSingleValue()
 		{
-			comment = value;
+			if (instances.Length == 1)
+				return instances[0].Instance;
+			var m = instances.Length == 0
+				? string.Format("no implementations for [{0}]", Type.FormatName())
+				: FormatManyImplementationsMessage();
+			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
 		}
 
-		public ContainerService ForFactory(IObjectAccessor arguments, bool createNew)
+		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
 		{
-			Arguments = arguments;
-			CreateNew = createNew;
-			return this;
+			if (Status.IsBad())
+				return ServiceDependency.ServiceError(this, dependencyName);
+			if (Status == ServiceStatus.NotResolved)
+				return ServiceDependency.NotResolved(this, dependencyName);
+			return instances.Length > 1
+				? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
+				: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
 		}
 
-		public void AttachToContext(ResolutionContext context)
+		public IEnumerable<object> GetAllValues()
 		{
-			Context = context;
-			declaredContracts = Context.DeclaredContractNames();
-		}
-
-		public void CheckOk()
-		{
-			if (status.IsGood())
-				return;
-			var errorTarget = SearchForError();
-			if (errorTarget == null)
-				throw new InvalidOperationException("assertion failure: can't find error target");
-			var constructionLog = GetConstructionLog();
-			var currentConstructionException = errorTarget.service != null ? errorTarget.service.constructionException : null;
-			var message = currentConstructionException != null
-				? string.Format("service [{0}] construction exception", errorTarget.service.Type.FormatName())
-				: (errorTarget.service != null ? errorTarget.service.errorMessage : errorTarget.dependency.ErrorMessage);
-			throw new SimpleContainerException(message + "\r\n\r\n" + constructionLog, currentConstructionException);
-		}
-
-		private class ErrorTarget
-		{
-			public ContainerService service;
-			public ServiceDependency dependency;
-		}
-
-		private ErrorTarget SearchForError()
-		{
-			if (status == ServiceStatus.Error)
-				return new ErrorTarget {service = this};
-			if (dependencies != null)
-				foreach (var dependency in dependencies)
-				{
-					if (dependency.Status == ServiceStatus.Error)
-						return new ErrorTarget {dependency = dependency};
-					if (dependency.ContainerService != null)
-					{
-						var result = dependency.ContainerService.SearchForError();
-						if (result != null)
-							return result;
-					}
-				}
-			return null;
+			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
 		public void EnsureRunCalled(LogInfo infoLogger)
@@ -100,7 +61,7 @@ namespace SimpleContainer.Implementation
 				lock (lockObject)
 					if (!runCalled)
 					{
-						if (status == ServiceStatus.Ok)
+						if (Status == ServiceStatus.Ok)
 						{
 							if (dependencies != null)
 								foreach (var dependency in dependencies)
@@ -134,210 +95,59 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public void AddInstance(object instance, bool owned)
+		public void CheckOk()
 		{
-			instances.Add(new InstanceWrap(instance, cacheLevel, owned));
+			if (Status.IsGood())
+				return;
+			var errorTarget = SearchForError();
+			if (errorTarget == null)
+				throw new InvalidOperationException("assertion failure: can't find error target");
+			var constructionLog = GetConstructionLog();
+			var currentConstructionException = errorTarget.service != null ? errorTarget.service.constructionException : null;
+			var message = currentConstructionException != null
+				? string.Format("service [{0}] construction exception", errorTarget.service.Type.FormatName())
+				: (errorTarget.service != null ? errorTarget.service.errorMessage : errorTarget.dependency.ErrorMessage);
+			throw new SimpleContainerException(message + "\r\n\r\n" + constructionLog, currentConstructionException);
 		}
 
-		public void AddDependency(ServiceDependency dependency, bool isUnion)
+		private class ErrorTarget
 		{
-			if (dependencies == null)
-				dependencies = new List<ServiceDependency>();
-			dependencies.Add(dependency);
-			status = DependencyStatusToServiceStatus(dependency.Status, isUnion);
+			public ContainerService service;
+			public ServiceDependency dependency;
 		}
 
-		private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)
+		private ErrorTarget SearchForError()
 		{
-			if (dependencyStatus == ServiceStatus.Error)
-				return ServiceStatus.DependencyError;
-			if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
-				return ServiceStatus.Ok;
-			return dependencyStatus;
-		}
-
-		public bool LinkTo(ContainerService childService)
-		{
-			AddDependency(childService.GetLinkedDependency(), true);
-			UnionUsedContracts(childService);
-			if (status.IsBad())
-				return false;
-			UnionInstances(childService);
-			return true;
+			if (Status == ServiceStatus.Error)
+				return new ErrorTarget {service = this};
+			if (dependencies != null)
+				foreach (var dependency in dependencies)
+				{
+					if (dependency.Status == ServiceStatus.Error)
+						return new ErrorTarget {dependency = dependency};
+					if (dependency.ContainerService != null)
+					{
+						var result = dependency.ContainerService.SearchForError();
+						if (result != null)
+							return result;
+					}
+				}
+			return null;
 		}
 
 		private ServiceDependency GetLinkedDependency()
 		{
-			if (status == ServiceStatus.Ok)
+			if (Status == ServiceStatus.Ok)
 				return ServiceDependency.Service(this, GetAllValues());
-			if (status == ServiceStatus.NotResolved)
+			if (Status == ServiceStatus.NotResolved)
 				return ServiceDependency.NotResolved(this);
 			return ServiceDependency.ServiceError(this);
-		}
-
-		public int FilterInstances(Func<object, bool> filter)
-		{
-			return instances.RemoveAll(o => !filter(o.Instance));
-		}
-
-		public void UseAllDeclaredContracts()
-		{
-			FinalUsedContracts = Context.DeclaredContractNames();
-			usedContractNames = FinalUsedContracts.ToList();
-		}
-
-		public void UnionUsedContracts(ContainerService dependency)
-		{
-			if (dependency.usedContractNames == null)
-				return;
-			if (usedContractNames == null)
-				usedContractNames = new List<string>();
-			var contractsToAdd = dependency.usedContractNames
-				.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-				.Where(Context.ContractDeclared);
-			foreach (var n in contractsToAdd)
-				usedContractNames.Add(n);
-		}
-
-		public void UnionStatusFrom(ContainerService containerService)
-		{
-			status = containerService.status;
-			errorMessage = containerService.errorMessage;
-			comment = containerService.comment;
-			constructionException = containerService.constructionException;
-		}
-
-		public void UnionInstances(ContainerService other)
-		{
-			foreach (var instance in other.instances)
-				if (!instances.Contains(instance))
-					instances.Add(instance);
-		}
-
-		public void UnionDependencies(ContainerService other)
-		{
-			if (other.dependencies == null)
-				return;
-			if (dependencies == null)
-				dependencies = new List<ServiceDependency>();
-			foreach (var dependency in other.dependencies)
-				if (dependency.ContainerService == null || dependencies.All(x => x.ContainerService != dependency.ContainerService))
-					AddDependency(dependency, false);
-		}
-
-		public void UseContractWithName(string n)
-		{
-			if (usedContractNames == null)
-				usedContractNames = new List<string>();
-			if (!usedContractNames.Contains(n, StringComparer.OrdinalIgnoreCase))
-				usedContractNames.Add(n);
-		}
-
-		public void SetError(string newErrorMessage)
-		{
-			errorMessage = newErrorMessage;
-			status = ServiceStatus.Error;
-		}
-
-		public void SetError(Exception error)
-		{
-			constructionException = error;
-			status = ServiceStatus.Error;
-		}
-
-		public void EndResolveDependencies()
-		{
-			if (FinalUsedContracts == null)
-				FinalUsedContracts = GetUsedContractNamesFromContext();
-		}
-
-		public object GetSingleValue()
-		{
-			if (instances.Count == 1)
-				return instances[0].Instance;
-			var m = instances.Count == 0
-				? string.Format("no implementations for [{0}]", Type.FormatName())
-				: FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
-		}
-
-		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
-		{
-			if (status.IsBad())
-				return ServiceDependency.ServiceError(this, dependencyName);
-			if (status == ServiceStatus.NotResolved)
-				return ServiceDependency.NotResolved(this, dependencyName);
-			return instances.Count > 1
-				? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
-				: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
-		}
-
-		public IEnumerable<object> GetAllValues()
-		{
-			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
-		}
-
-		public string[] GetUsedContractNames()
-		{
-			return FinalUsedContracts ?? GetUsedContractNamesFromContext();
-		}
-
-		private string[] GetUsedContractNamesFromContext()
-		{
-			return usedContractNames == null
-				? InternalHelpers.emptyStrings
-				: Context.GetDeclaredContractsByNames(usedContractNames);
 		}
 
 		private string FormatManyImplementationsMessage()
 		{
 			return string.Format("many implementations for [{0}]\r\n{1}", Type.FormatName(),
 				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
-		}
-
-		public bool WaitForResolve()
-		{
-			if (!instantiated)
-				lock (lockObject)
-					while (!instantiated)
-						Monitor.Wait(lockObject);
-			if (FinalUsedContracts == null)
-			{
-				const string messageFormat = "assertion failure: FinalUsedContracts == null, type [{0}]";
-				throw new InvalidOperationException(string.Format(messageFormat, Type));
-			}
-			return status.IsGood();
-		}
-
-		public void WaitForResolveOrDie()
-		{
-			if (!WaitForResolve())
-				CheckOk();
-		}
-
-		public bool AcquireInstantiateLock()
-		{
-			if (instantiated)
-				return false;
-			Monitor.Enter(lockObject);
-			if (!instantiated)
-				return true;
-			Monitor.Exit(lockObject);
-			return false;
-		}
-
-		public void ReleaseInstantiateLock()
-		{
-			instantiated = true;
-			Monitor.PulseAll(lockObject);
-			Monitor.Exit(lockObject);
-		}
-
-		public void EndInstantiate()
-		{
-			EndResolveDependencies();
-			if (status == ServiceStatus.Ok && instances.Count == 0)
-				status = ServiceStatus.NotResolved;
 		}
 
 		public string GetConstructionLog()
@@ -354,9 +164,9 @@ namespace SimpleContainer.Implementation
 
 		public void WriteConstructionLog(ConstructionLogContext context)
 		{
-			var usedContracts = GetUsedContractNames();
-			var attentionRequired = status.IsBad() ||
-			                        status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
+			var usedContracts = FinalUsedContracts;
+			var attentionRequired = Status.IsBad() ||
+			                        Status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
 			                                                                context.UsedFromDependency.Status ==
 			                                                                ServiceStatus.NotResolved);
 			if (attentionRequired)
@@ -376,9 +186,9 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta(currentContractsKey);
 				context.Writer.WriteMeta("]");
 			}
-			if (instances.Count > 1)
+			if (instances.Length > 1)
 				context.Writer.WriteMeta("++");
-			if (status == ServiceStatus.Error)
+			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			else if (comment != null)
 			{
@@ -399,57 +209,203 @@ namespace SimpleContainer.Implementation
 				}
 		}
 
-		private class InstanceWrap
+		public class Builder
 		{
-			private bool runCalled;
-			public object Instance { get; private set; }
-			public CacheLevel CacheLevel { get; private set; }
-			public bool Owned { get; set; }
+			public ServiceConfiguration Configuration { get; private set; }
+			private List<ServiceDependency> dependencies;
+			public IObjectAccessor Arguments { get; private set; }
+			public bool CreateNew { get; private set; }
+			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
+			private List<string> usedContractNames;
+			private ContainerService target;
+			public ResolutionContext Context { get; private set; }
 
-			public InstanceWrap(object instance, CacheLevel cacheLevel, bool owned)
+			public Builder(Type type, CacheLevel cacheLevel)
 			{
-				Instance = instance;
-				CacheLevel = cacheLevel;
-				Owned = owned;
+				target = new ContainerService
+				{
+					Type = type,
+					cacheLevel = cacheLevel,
+				};
 			}
 
-			public override bool Equals(object obj)
+			public Type Type
 			{
-				if (ReferenceEquals(null, obj)) return false;
-				if (ReferenceEquals(this, obj)) return true;
-				if (obj.GetType() != GetType()) return false;
-				return ReferenceEquals(Instance, ((InstanceWrap) obj).Instance);
+				get { return target.Type; }
 			}
 
-			public void EnsureRunCalled(ContainerService service, LogInfo infoLogger)
+			public ServiceStatus Status
 			{
-				var componentInstance = Instance as IComponent;
-				if (componentInstance == null)
+				get { return target.Status; }
+			}
+
+			public string[] DeclaredContracts
+			{
+				get { return target.declaredContracts; }
+			}
+
+			public string[] FinalUsedContracts
+			{
+				get { return target.FinalUsedContracts; }
+			}
+
+			public void AddInstance(object instance, bool owned)
+			{
+				instances.Add(new InstanceWrap(instance, target.cacheLevel, owned));
+			}
+
+			public void AddDependency(ServiceDependency dependency, bool isUnion)
+			{
+				if (dependencies == null)
+					dependencies = new List<ServiceDependency>();
+				dependencies.Add(dependency);
+				target.Status = DependencyStatusToServiceStatus(dependency.Status, isUnion);
+			}
+
+			public void SetComment(string value)
+			{
+				target.comment = value;
+			}
+
+			public Builder ForFactory(IObjectAccessor arguments, bool createNew)
+			{
+				Arguments = arguments;
+				CreateNew = createNew;
+				return this;
+			}
+
+			public void AttachToContext(ResolutionContext context)
+			{
+				Context = context;
+				target.declaredContracts = context.DeclaredContractNames();
+				Configuration = context.GetConfiguration(Type);
+				if (Configuration != null)
+					foreach (var contract in Configuration.Contracts)
+						UseContractWithName(contract);
+			}
+
+			public bool LinkTo(ContainerService childService)
+			{
+				AddDependency(childService.GetLinkedDependency(), true);
+				UnionUsedContracts(childService);
+				if (target.Status.IsBad())
+					return false;
+				UnionInstances(childService);
+				return true;
+			}
+
+			public int FilterInstances(Func<object, bool> filter)
+			{
+				return instances.RemoveAll(o => !filter(o.Instance));
+			}
+
+			public void UseAllDeclaredContracts()
+			{
+				target.FinalUsedContracts = target.declaredContracts;
+				usedContractNames = target.FinalUsedContracts.ToList();
+			}
+
+			public void UnionUsedContracts(ContainerService dependency)
+			{
+				if (dependency.FinalUsedContracts == null)
 					return;
-				if (!runCalled)
-					lock (this)
-						if (!runCalled)
-						{
-							var name = new ServiceName(Instance.GetType(), service.FinalUsedContracts);
-							if (infoLogger != null)
-								infoLogger(name, "run started");
-							try
-							{
-								componentInstance.Run();
-							}
-							catch (Exception e)
-							{
-								throw new SimpleContainerException(string.Format("exception running {0}", name), e);
-							}
-							if (infoLogger != null)
-								infoLogger(name, "run finished");
-							runCalled = true;
-						}
+				if (usedContractNames == null)
+					usedContractNames = new List<string>();
+				var contractsToAdd = dependency.FinalUsedContracts
+					.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+					.Where(x => target.declaredContracts.Any(x.EqualsIgnoringCase));
+				foreach (var n in contractsToAdd)
+					usedContractNames.Add(n);
 			}
 
-			public override int GetHashCode()
+			public void UnionStatusFrom(ContainerService containerService)
 			{
-				return Instance.GetHashCode();
+				target.Status = containerService.Status;
+				target.errorMessage = containerService.errorMessage;
+				target.comment = containerService.comment;
+				target.constructionException = containerService.constructionException;
+			}
+
+			public void UnionInstances(ContainerService other)
+			{
+				foreach (var instance in other.instances)
+					if (!instances.Contains(instance))
+						instances.Add(instance);
+			}
+
+			public void UnionDependencies(ContainerService other)
+			{
+				if (other.dependencies == null)
+					return;
+				if (dependencies == null)
+					dependencies = new List<ServiceDependency>();
+				foreach (var dependency in other.dependencies)
+					if (dependency.ContainerService == null || dependencies.All(x => x.ContainerService != dependency.ContainerService))
+						AddDependency(dependency, false);
+			}
+
+			public void UseContractWithName(string n)
+			{
+				if (usedContractNames == null)
+					usedContractNames = new List<string>();
+				if (!usedContractNames.Contains(n, StringComparer.OrdinalIgnoreCase))
+					usedContractNames.Add(n);
+			}
+
+			public void SetError(string newErrorMessage)
+			{
+				target.errorMessage = newErrorMessage;
+				target.Status = ServiceStatus.Error;
+			}
+
+			public void SetError(Exception error)
+			{
+				target.constructionException = error;
+				target.Status = ServiceStatus.Error;
+			}
+
+			public void EndResolveDependencies()
+			{
+				if (target.FinalUsedContracts == null)
+					target.FinalUsedContracts = GetUsedContractNamesFromContext();
+			}
+
+			public void Borrow(ContainerService containerService)
+			{
+				target = containerService;
+			}
+
+			public ImplentationDependencyConfiguration GetDependencyConfiguration(ParameterInfo formalParameter)
+			{
+				return Configuration == null ? null : Configuration.GetOrNull(formalParameter);
+			}
+
+			public ContainerService Build()
+			{
+				EndResolveDependencies();
+				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
+					target.Status = ServiceStatus.NotResolved;
+				target.instances = instances.ToArray();
+				target.dependencies = dependencies.ToArray();
+				return target;
+			}
+
+			private string[] GetUsedContractNamesFromContext()
+			{
+				return usedContractNames == null
+					? InternalHelpers.emptyStrings
+					: target.declaredContracts
+						.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+						.ToArray();
+			}
+
+			private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)
+			{
+				if (dependencyStatus == ServiceStatus.Error)
+					return ServiceStatus.DependencyError;
+				if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
+					return ServiceStatus.Ok;
+				return dependencyStatus;
 			}
 		}
 	}

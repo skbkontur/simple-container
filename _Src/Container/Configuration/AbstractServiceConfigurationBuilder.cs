@@ -1,82 +1,89 @@
 using System;
+using System.Collections.Generic;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
-	public abstract class AbstractServiceConfigurationBuilder<TSelf, TBuilder, TService>
-		where TSelf : AbstractServiceConfigurationBuilder<TSelf, TBuilder, TService>
-		where TBuilder : AbstractConfigurationBuilder<TBuilder>
+	public abstract class AbstractServiceConfigurationBuilder<TSelf, TService>
+		where TSelf : AbstractServiceConfigurationBuilder<TSelf, TService>
 	{
-		protected readonly TBuilder builder;
+		internal readonly ServiceConfigurationSet configurationSet;
+		protected readonly List<string> contracts;
 
 		protected TSelf Self
 		{
 			get { return (TSelf) this; }
 		}
 
-		protected AbstractServiceConfigurationBuilder(TBuilder builder)
+		internal AbstractServiceConfigurationBuilder(ServiceConfigurationSet configurationSet, List<string> contracts)
 		{
-			this.builder = builder;
+			this.configurationSet = configurationSet;
+			this.contracts = contracts;
 		}
 
 		public TSelf Dependencies(object values)
 		{
-			builder.BindDependencies<TService>(values);
+			GetServiceBuilder().BindDependencies(values);
 			return Self;
 		}
-		
+
 		public TSelf Dependencies(IParametersSource parameters)
 		{
-			builder.BindDependencies<TService>(parameters);
+			GetServiceBuilder().BindDependencies(parameters);
 			return Self;
 		}
 
 		public TSelf BindDependencyImplementation<TDependencyValue>(string dependencyName)
 		{
-			builder.BindDependencyImplementation<TService, TDependencyValue>(dependencyName);
+			GetServiceBuilder().BindDependencyImplementation<TDependencyValue>(dependencyName);
 			return Self;
 		}
 
 		public TSelf BindDependencyImplementation<TDependencyInterface, TDependencyImplementation>()
 		{
-			builder.BindDependencyImplementation<TService, TDependencyInterface, TDependencyImplementation>();
+			GetServiceBuilder().BindDependencyImplementation<TDependencyInterface, TDependencyImplementation>();
 			return Self;
 		}
 
 		public TSelf Bind<TImplementation>(bool clearOld = false) where TImplementation : TService
 		{
-			builder.Bind<TService, TImplementation>(clearOld);
+			GetServiceBuilder().Bind(typeof (TService), typeof (TImplementation), clearOld);
 			return Self;
 		}
 
 		public TSelf Bind(Type type, bool clearOld = false)
 		{
-			builder.Bind(typeof (TService), type, clearOld);
+			GetServiceBuilder().Bind(typeof(TService), type, clearOld);
 			return Self;
 		}
 
-		public TSelf Bind(Func<FactoryContext, TService> factory)
+		public TSelf Bind(Func<FactoryContext, TService> factory, bool containerOwnsInstance = true)
 		{
-			builder.Bind(factory);
+			GetServiceBuilder().Bind(factory, containerOwnsInstance);
 			return Self;
 		}
 
-		public TSelf Bind(object value)
+		public TSelf Bind(object value, bool containerOwnsInstance = true)
 		{
-			builder.Bind<TService>(value);
+			GetServiceBuilder().Bind(typeof (TService), value, containerOwnsInstance);
 			return Self;
 		}
 
 		public TSelf WithInstanceFilter(Func<TService, bool> filter)
 		{
-			builder.WithInstanceFilter(filter);
+			GetServiceBuilder().WithInstanceFilter(filter);
 			return Self;
 		}
 
 		public TSelf DontUse()
 		{
-			builder.DontUse<TService>();
+			GetServiceBuilder().DontUse();
 			return Self;
+		}
+
+		private ServiceConfiguration.Builder GetServiceBuilder()
+		{
+			return configurationSet.GetBuilder(contracts);
 		}
 	}
 }

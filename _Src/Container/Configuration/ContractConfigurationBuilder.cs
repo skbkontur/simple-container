@@ -8,26 +8,17 @@ namespace SimpleContainer.Configuration
 {
 	public class ContractConfigurationBuilder : AbstractConfigurationBuilder<ContractConfigurationBuilder>
 	{
-		private readonly ContainerConfigurationBuilder containerConfigurationBuilder;
-		private List<string> unionContractNames;
-		public List<string> RequiredContracts { get; private set; }
-		public string Name { get; private set; }
-
-		public ContractConfigurationBuilder(ContainerConfigurationBuilder containerConfigurationBuilder,
-			string name, List<string> requiredContracts,
+		internal ContractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts,
 			ISet<Type> staticServices, bool isStaticConfiguration)
-			: base(staticServices, isStaticConfiguration)
+			: base(registryBuilder, contracts, staticServices, isStaticConfiguration)
 		{
-			this.containerConfigurationBuilder = containerConfigurationBuilder;
-			Name = name;
-			RequiredContracts = requiredContracts;
 		}
 
 		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames, bool clearOld = false)
 		{
-			if (unionContractNames == null || clearOld)
-				unionContractNames = new List<string>();
-			unionContractNames.AddRange(contractNames);
+			if (contracts.Count != 1)
+				throw new InvalidOperationException("assertion failure");
+			RegistryBuilder.DefineContractsUnion(contracts[0], contractNames, clearOld);
 			return this;
 		}
 
@@ -47,20 +38,16 @@ namespace SimpleContainer.Configuration
 			return UnionOf(contractNames.AsEnumerable(), clearOld);
 		}
 
-		public ContractConfigurationBuilder Contract(string name)
+		public ContractConfigurationBuilder Contract(params string[] newContracts)
 		{
-			return containerConfigurationBuilder.Contract(Enumerable.Concat(RequiredContracts, new[] {Name, name}).ToArray());
+			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()),
+				staticServices, isStatic);
 		}
 
 		public ContractConfigurationBuilder Contract<T>()
 			where T : RequireContractAttribute, new()
 		{
 			return Contract(InternalHelpers.NameOf<T>());
-		}
-
-		internal ContractConfiguration Build()
-		{
-			return new ContractConfiguration(Name, RequiredContracts, configurations, unionContractNames);
 		}
 	}
 }

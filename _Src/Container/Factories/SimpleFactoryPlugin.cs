@@ -5,16 +5,16 @@ namespace SimpleContainer.Factories
 {
 	internal class SimpleFactoryPlugin : IFactoryPlugin
 	{
-		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService containerService)
+		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService.Builder builder)
 		{
-			if (!containerService.Type.IsGenericType)
+			if (!builder.Type.IsGenericType)
 				return false;
-			if (containerService.Type.GetGenericTypeDefinition() != typeof (Func<>))
+			if (builder.Type.GetGenericTypeDefinition() != typeof (Func<>))
 				return false;
-			var type = containerService.Type.GetGenericArguments()[0];
-			var factoryWithArguments = FactoryCreator.CreateFactory(type, container, containerService);
+			var type = builder.Type.GetGenericArguments()[0];
+			var factoryWithArguments = FactoryCreator.CreateFactory(type, container, builder);
 			Func<object> factory = () => factoryWithArguments(null);
-			containerService.AddInstance(DelegateCaster.Create(type).Cast(factory), true);
+			builder.AddInstance(DelegateCaster.Create(type).Cast(factory), true);
 			return true;
 		}
 	}

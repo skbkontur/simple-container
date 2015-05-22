@@ -71,7 +71,7 @@ namespace SimpleContainer.Interface
 
 		public bool HasInstances()
 		{
-			return containerService.status == ServiceStatus.Ok;
+			return containerService.Status == ServiceStatus.Ok;
 		}
 
 		public IEnumerable<object> All()

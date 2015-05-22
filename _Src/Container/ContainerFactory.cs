@@ -142,7 +142,7 @@ namespace SimpleContainer
 			using (
 				var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
 				runner.Run(builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
 				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
@@ -160,7 +160,7 @@ namespace SimpleContainer
 				: AppDomain.CurrentDomain.RelativeSearchPath;
 		}
 
-		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)
+		private IConfigurationRegistry CreateDefaultConfiguration(Type[] types)
 		{
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
 			var factoriesProcessor = new FactoryConfigurationProcessor();
@@ -172,7 +172,7 @@ namespace SimpleContainer
 			}
 			foreach (var type in types)
 				genericsProcessor.SecondRun(builder, type);
-			return builder.Build();
+			return builder.RegistryBuilder.Build();
 		}
 	}
 }
