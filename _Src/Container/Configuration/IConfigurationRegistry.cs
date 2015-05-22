@@ -5,7 +5,7 @@ namespace SimpleContainer.Configuration
 {
 	internal interface IConfigurationRegistry
 	{
-		IServiceConfigurationSet GetConfiguration(Type type);
+		ServiceConfiguration GetConfiguration(Type type, List<string> contracts);
 		List<string> GetContractsUnionOrNull(string contract);
 	}
 }

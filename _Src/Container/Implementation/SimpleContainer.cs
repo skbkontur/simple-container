@@ -110,7 +110,6 @@ namespace SimpleContainer.Implementation
 			var contractsArray = CheckContracts(contracts);
 
 			var result = Create(type, contractsArray, arguments, null);
-			result.CheckOk();
 			return new ResolvedService(result, this, false);
 		}
 
@@ -123,8 +122,7 @@ namespace SimpleContainer.Implementation
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
 		{
-			var configurationSet = configurationRegistry.GetConfiguration(type);
-			return configurationSet == null ? null : configurationSet.GetConfiguration(new List<string>());
+			return configurationRegistry.GetConfiguration(type, new List<string>());
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)

@@ -17,9 +17,10 @@ namespace SimpleContainer.Configuration
 			this.contractUnions = contractUnions;
 		}
 
-		public IServiceConfigurationSet GetConfiguration(Type type)
+		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
 		{
-			return configurations.GetOrDefault(type);
+			var configurationSet = configurations.GetOrDefault(type);
+			return configurationSet == null ? null : configurationSet.GetConfiguration(contracts);
 		}
 
 		public List<string> GetContractsUnionOrNull(string contract)

@@ -8,10 +8,7 @@ namespace SimpleContainer.Configuration
 	internal class FilteredContainerConfiguration : IConfigurationRegistry
 	{
 		private readonly IConfigurationRegistry parent;
-
-		private readonly IDictionary<Type, IServiceConfigurationSet> filteredCache =
-			new Dictionary<Type, IServiceConfigurationSet>();
-
+		private readonly IDictionary<Type, ServiceConfiguration> filteredCache = new Dictionary<Type, ServiceConfiguration>();
 		private readonly Func<Type, bool> filter;
 
 		public FilteredContainerConfiguration(IConfigurationRegistry parent, Func<Type, bool> filter)
@@ -20,12 +17,12 @@ namespace SimpleContainer.Configuration
 			this.filter = filter;
 		}
 
-		public IServiceConfigurationSet GetConfiguration(Type type)
+		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
 		{
-			IServiceConfigurationSet result;
+			ServiceConfiguration result;
 			if (!filteredCache.TryGetValue(type, out result))
 			{
-				result = parent.GetConfiguration(type);
+				result = parent.GetConfiguration(type, contracts);
 				if (result != null)
 					result = result.CloneWithFilter(filter);
 				filteredCache.Add(type, result);

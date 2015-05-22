@@ -31,6 +31,7 @@ namespace SimpleContainer.Implementation
 
 		public object GetSingleValue()
 		{
+			CheckOk();
 			if (instances.Length == 1)
 				return instances[0].Instance;
 			var m = instances.Length == 0
@@ -52,24 +53,24 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetAllValues()
 		{
+			CheckOk();
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
 		public void EnsureRunCalled(LogInfo infoLogger)
 		{
+			if (Status.IsBad())
+				return;
 			if (!runCalled)
 				lock (lockObject)
 					if (!runCalled)
 					{
-						if (Status == ServiceStatus.Ok)
-						{
-							if (dependencies != null)
-								foreach (var dependency in dependencies)
-									if (dependency.ContainerService != null)
-										dependency.ContainerService.EnsureRunCalled(infoLogger);
-							foreach (var instance in instances)
-								instance.EnsureRunCalled(this, infoLogger);
-						}
+						if (dependencies != null)
+							foreach (var dependency in dependencies)
+								if (dependency.ContainerService != null)
+									dependency.ContainerService.EnsureRunCalled(infoLogger);
+						foreach (var instance in instances)
+							instance.EnsureRunCalled(this, infoLogger);
 						runCalled = true;
 					}
 		}
@@ -77,6 +78,8 @@ namespace SimpleContainer.Implementation
 		public void CollectInstances(Type interfaceType, CacheLevel targetCacheLevel,
 			ISet<object> seen, List<NamedInstance> target)
 		{
+			if (Status.IsBad())
+				return;
 			if (cacheLevel != targetCacheLevel)
 				return;
 			if (dependencies != null)
@@ -95,7 +98,66 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public void CheckOk()
+		public string GetConstructionLog()
+		{
+			var writer = new SimpleTextLogWriter();
+			WriteConstructionLog(writer);
+			return writer.GetText();
+		}
+
+		public void WriteConstructionLog(ISimpleLogWriter writer)
+		{
+			WriteConstructionLog(new ConstructionLogContext(writer));
+		}
+
+		public void WriteConstructionLog(ConstructionLogContext context)
+		{
+			var usedContracts = FinalUsedContracts;
+			var attentionRequired = Status.IsBad() ||
+									Status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
+																			context.UsedFromDependency.Status ==
+																			ServiceStatus.NotResolved);
+			if (attentionRequired)
+				context.Writer.WriteMeta("!");
+			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
+			context.Writer.WriteName(cacheLevel == CacheLevel.Static ? "(s)" + formattedName : formattedName);
+			if (usedContracts != null && usedContracts.Length > 0)
+				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
+			var previousContractsKey =
+				InternalHelpers.FormatContractsKey(context.UsedFromService == null
+					? null
+					: context.UsedFromService.declaredContracts);
+			var currentContractsKey = InternalHelpers.FormatContractsKey(declaredContracts);
+			if (previousContractsKey != currentContractsKey && !string.IsNullOrEmpty(currentContractsKey))
+			{
+				context.Writer.WriteMeta("->[");
+				context.Writer.WriteMeta(currentContractsKey);
+				context.Writer.WriteMeta("]");
+			}
+			if (instances.Length > 1)
+				context.Writer.WriteMeta("++");
+			if (Status == ServiceStatus.Error)
+				context.Writer.WriteMeta(" <---------------");
+			else if (comment != null)
+			{
+				context.Writer.WriteMeta(" - ");
+				context.Writer.WriteMeta(comment);
+			}
+			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
+				context.UsedFromDependency.Value == null)
+				context.Writer.WriteMeta(" = <null>");
+			context.Writer.WriteNewLine();
+			if (context.Seen.Add(new ServiceName(Type, usedContracts)) && dependencies != null)
+				foreach (var d in dependencies)
+				{
+					context.UsedFromService = this;
+					context.Indent++;
+					d.WriteConstructionLog(context);
+					context.Indent--;
+				}
+		}
+
+		private void CheckOk()
 		{
 			if (Status.IsGood())
 				return;
@@ -150,65 +212,6 @@ namespace SimpleContainer.Implementation
 				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
-		public string GetConstructionLog()
-		{
-			var writer = new SimpleTextLogWriter();
-			WriteConstructionLog(writer);
-			return writer.GetText();
-		}
-
-		public void WriteConstructionLog(ISimpleLogWriter writer)
-		{
-			WriteConstructionLog(new ConstructionLogContext(writer));
-		}
-
-		public void WriteConstructionLog(ConstructionLogContext context)
-		{
-			var usedContracts = FinalUsedContracts;
-			var attentionRequired = Status.IsBad() ||
-			                        Status == ServiceStatus.NotResolved && (context.UsedFromDependency == null ||
-			                                                                context.UsedFromDependency.Status ==
-			                                                                ServiceStatus.NotResolved);
-			if (attentionRequired)
-				context.Writer.WriteMeta("!");
-			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
-			context.Writer.WriteName(cacheLevel == CacheLevel.Static ? "(s)" + formattedName : formattedName);
-			if (usedContracts != null && usedContracts.Length > 0)
-				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-			var previousContractsKey =
-				InternalHelpers.FormatContractsKey(context.UsedFromService == null
-					? null
-					: context.UsedFromService.declaredContracts);
-			var currentContractsKey = InternalHelpers.FormatContractsKey(declaredContracts);
-			if (previousContractsKey != currentContractsKey && !string.IsNullOrEmpty(currentContractsKey))
-			{
-				context.Writer.WriteMeta("->[");
-				context.Writer.WriteMeta(currentContractsKey);
-				context.Writer.WriteMeta("]");
-			}
-			if (instances.Length > 1)
-				context.Writer.WriteMeta("++");
-			if (Status == ServiceStatus.Error)
-				context.Writer.WriteMeta(" <---------------");
-			else if (comment != null)
-			{
-				context.Writer.WriteMeta(" - ");
-				context.Writer.WriteMeta(comment);
-			}
-			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
-			    context.UsedFromDependency.Value == null)
-				context.Writer.WriteMeta(" = <null>");
-			context.Writer.WriteNewLine();
-			if (context.Seen.Add(new ServiceName(Type, usedContracts)) && dependencies != null)
-				foreach (var d in dependencies)
-				{
-					context.UsedFromService = this;
-					context.Indent++;
-					d.WriteConstructionLog(context);
-					context.Indent--;
-				}
-		}
-
 		public class Builder
 		{
 			public ServiceConfiguration Configuration { get; private set; }
@@ -218,6 +221,7 @@ namespace SimpleContainer.Implementation
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
 			private List<string> usedContractNames;
 			private ContainerService target;
+			private bool borrowed;
 			public ResolutionContext Context { get; private set; }
 
 			public Builder(Type type, CacheLevel cacheLevel)
@@ -225,7 +229,7 @@ namespace SimpleContainer.Implementation
 				target = new ContainerService
 				{
 					Type = type,
-					cacheLevel = cacheLevel,
+					cacheLevel = cacheLevel
 				};
 			}
 
@@ -373,6 +377,7 @@ namespace SimpleContainer.Implementation
 			public void Borrow(ContainerService containerService)
 			{
 				target = containerService;
+				borrowed = true;
 			}
 
 			public ImplentationDependencyConfiguration GetDependencyConfiguration(ParameterInfo formalParameter)
@@ -382,11 +387,14 @@ namespace SimpleContainer.Implementation
 
 			public ContainerService Build()
 			{
+				if (borrowed)
+					return target;
 				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
 					target.Status = ServiceStatus.NotResolved;
 				target.instances = instances.ToArray();
-				target.dependencies = dependencies.ToArray();
+				if (dependencies != null)
+					target.dependencies = dependencies.ToArray();
 				return target;
 			}
 

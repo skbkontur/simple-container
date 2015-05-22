@@ -26,16 +26,17 @@ namespace SimpleContainer.Configuration
 						lazyConfigurators = null;
 						initialized = true;
 					}
-			return configurations.FirstOrDefault(x => contracts.IsSubsequenceOf(x.Contracts, StringComparer.OrdinalIgnoreCase));
-		}
-
-		public IServiceConfigurationSet CloneWithFilter(Func<Type, bool> filter)
-		{
-			return new ServiceConfigurationSet
+			ServiceConfiguration result = null;
+			var maxIndex = -1;
+			foreach (var c in configurations)
 			{
-				configurations = configurations.Select(x => x.CloneWithFilter(filter)).ToArray(),
-				initialized = true
-			};
+				var index = c.Contracts.GetSubsequenceLastIndex(contracts, StringComparer.OrdinalIgnoreCase);
+				if (index < 0 || result != null && index <= maxIndex)
+					continue;
+				maxIndex = index;
+				result = c;
+			}
+			return result;
 		}
 
 		public void RegisterLazyConfigurator(Action configurator)

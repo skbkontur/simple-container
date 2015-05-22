@@ -50,14 +50,14 @@ namespace SimpleContainer.Implementation
 
 		public ServiceConfiguration GetConfiguration(Type type)
 		{
-			var configurationSet = configurationRegistry.GetConfiguration(type);
-			return configurationSet == null ? null : configurationSet.GetConfiguration(contracts);
+			return configurationRegistry.GetConfiguration(type, contracts);
 		}
 
 		public void Instantiate(ContainerService.Builder builder, SimpleContainer container, object id)
 		{
 			stack.Add(builder);
-			builderByToken.Add(id, builder);
+			if (id != null)
+				builderByToken.Add(id, builder);
 			builder.AttachToContext(this);
 			var expandResult = TryExpandUnions();
 			if (!expandResult.isOk)
@@ -76,7 +76,8 @@ namespace SimpleContainer.Implementation
 			else
 				container.Instantiate(builder);
 			stack.RemoveLast();
-			builderByToken.Remove(id);
+			if (id != null)
+				builderByToken.Remove(id);
 		}
 
 		private FuncResult<string[][]> TryExpandUnions()

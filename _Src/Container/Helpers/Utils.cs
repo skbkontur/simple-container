@@ -20,15 +20,15 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static bool IsSubsequenceOf<T>(this List<T> sequence, List<T> other, IEqualityComparer<T> comparer)
+		public static int GetSubsequenceLastIndex<T>(this List<T> sequence, List<T> other, IEqualityComparer<T> comparer)
 		{
 			int i = 0, j = 0;
 			while (true)
 			{
 				if (i >= sequence.Count)
-					return true;
+					return j;
 				if (j >= other.Count)
-					return false;
+					return -1;
 				if (comparer.Equals(sequence[i], other[j]))
 					i++;
 				j++;

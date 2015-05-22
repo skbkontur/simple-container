@@ -14,9 +14,9 @@ namespace SimpleContainer.Configuration
 			this.child = child;
 		}
 
-		public IServiceConfigurationSet GetConfiguration(Type type)
+		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
 		{
-			return child.GetConfiguration(type) ?? parent.GetConfiguration(type);
+			return child.GetConfiguration(type, contracts) ?? parent.GetConfiguration(type, contracts);
 		}
 
 		public List<string> GetContractsUnionOrNull(string contract)
