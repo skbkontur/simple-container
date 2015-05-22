@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\ConfigurationRegistryWithGenericDefinitionFallback.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />

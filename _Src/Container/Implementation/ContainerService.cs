@@ -15,7 +15,7 @@ namespace SimpleContainer.Implementation
 		public string[] FinalUsedContracts { get; private set; }
 		private readonly object lockObject = new object();
 
-		private IEnumerable<object> typedArray;
+		private object[] typedArray;
 		private volatile bool runCalled;
 		private CacheLevel cacheLevel;
 		private string comment;

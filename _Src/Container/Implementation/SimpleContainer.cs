@@ -42,7 +42,7 @@ namespace SimpleContainer.Implementation
 			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
 			LogInfo infoLogger)
 		{
-			this.configurationRegistry = configurationRegistry;
+			this.configurationRegistry = new ConfigurationRegistryWithGenericDefinitionFallback(configurationRegistry);
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			this.cacheLevel = cacheLevel;
