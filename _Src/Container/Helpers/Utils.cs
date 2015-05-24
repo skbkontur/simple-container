@@ -20,6 +20,16 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		public static bool StartsWith<T>(this T[] source, T[] other, IEqualityComparer<T> comparer)
+		{
+			if (other.Length > source.Length)
+				return false;
+			for (var i = 0; i < other.Length; i++)
+				if (!comparer.Equals(source[i], other[i]))
+					return false;
+			return true;
+		}
+
 		public static int GetSubsequenceLastIndex<T>(this List<T> sequence, List<T> other, IEqualityComparer<T> comparer)
 		{
 			int i = 0, j = 0;

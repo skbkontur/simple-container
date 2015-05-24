@@ -19,11 +19,8 @@ namespace SimpleContainer.Implementation
 
 		private static readonly IFactoryPlugin[] factoryPlugins =
 		{
-			new SimpleFactoryPlugin(),
-			new GenericFactoryPlugin(),
-			new GenericMegaFactoryPlugin(),
-			new FactoryWithArgumentsPlugin(),
-			new LazyFactoryPlugin()
+			new FactoryPlugin(),
+			new LazyPlugin()
 		};
 
 		private readonly StaticContainer staticContainer;

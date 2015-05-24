@@ -5,7 +5,7 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {
-	internal class LazyFactoryPlugin : IFactoryPlugin
+	internal class LazyPlugin : IFactoryPlugin
 	{
 		public bool TryInstantiate(ContainerService.Builder builder)
 		{
