@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
@@ -9,9 +8,8 @@ namespace SimpleContainer.Configuration
 {
 	public class ContractConfigurationBuilder : AbstractConfigurationBuilder<ContractConfigurationBuilder>
 	{
-		internal ContractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts,
-			ISet<Type> staticServices, bool isStaticConfiguration)
-			: base(registryBuilder, contracts, staticServices, isStaticConfiguration)
+		internal ContractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts)
+			: base(registryBuilder, contracts)
 		{
 		}
 
@@ -44,8 +42,7 @@ namespace SimpleContainer.Configuration
 
 		public ContractConfigurationBuilder Contract(params string[] newContracts)
 		{
-			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()),
-				staticServices, isStatic);
+			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()));
 		}
 
 		public ContractConfigurationBuilder Contract<T>()

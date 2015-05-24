@@ -46,6 +46,7 @@
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
+    <Compile Include="Configuration\StaticServicesConfigurator.cs" />
     <Compile Include="Factories\LazyPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />

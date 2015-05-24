@@ -74,33 +74,36 @@ namespace SimpleContainer.Implementation
 			public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder, Type[] priorities)
 			{
 				var configurationSet = builder.RegistryBuilder.GetConfigurationSet(typeof (T));
-				configurationSet.RegisterLazyConfigurator(
-					delegate
+				Action action = delegate
+				{
+					var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(configurationSet, builder.StaticServices);
+					var targetConfigurators = configurators
+						.GroupBy(configurator => priorities == null
+							? 0
+							: configurator.GetType()
+								.GetInterfaces()
+								.Max(x => Array.IndexOf(priorities, x.GetDefinition())))
+						.OrderByDescending(x => x.Key)
+						.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
+						.First();
+					foreach (var configurator in targetConfigurators)
 					{
-						var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(configurationSet);
-						var targetConfigurators = configurators
-							.GroupBy(configurator => priorities == null
-								? 0
-								: configurator.GetType()
-									.GetInterfaces()
-									.Max(x => Array.IndexOf(priorities, x.GetDefinition())))
-							.OrderByDescending(x => x.Key)
-							.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
-							.First();
-						foreach (var configurator in targetConfigurators)
+						try
 						{
-							try
-							{
-								configurator.Configure(context, serviceConfigurationBuilder);
-							}
-							catch (Exception e)
-							{
-								const string messageFormat = "error executing configurator [{0}]";
-								configurationSet.SetError(string.Format(messageFormat, configurator.GetType().FormatName()), e);
-								return;
-							}
+							configurator.Configure(context, serviceConfigurationBuilder);
 						}
-					});
+						catch (Exception e)
+						{
+							const string messageFormat = "error executing configurator [{0}]";
+							configurationSet.SetError(string.Format(messageFormat, configurator.GetType().FormatName()), e);
+							return;
+						}
+					}
+				};
+				if (context.IsLocal)
+					configurationSet.RegisterLazyConfigurator(action);
+				else
+					action();
 			}
 		}
 

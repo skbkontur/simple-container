@@ -60,11 +60,11 @@ namespace SimpleContainer.Tests
 			}
 
 			[Static]
-			public class StaticConfigurator : IContainerConfigurator
+			public class StaticConfigurator : IServiceConfigurator<SomeService>
 			{
-				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<SomeService> builder)
 				{
-					builder.MakeStatic(typeof (SomeService));
+					builder.MakeStatic();
 				}
 			}
 
@@ -215,12 +215,12 @@ namespace SimpleContainer.Tests
 			}
 
 			[Static]
-			public class BConfigurator : IContainerConfigurator
+			public class BConfigurator : IServiceConfigurator<B>
 			{
-				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
 				{
-					builder.MakeStatic(typeof (B));
-					builder.BindDependencies<B>(new {parameter = 43});
+					builder.MakeStatic();
+					builder.Dependencies(new { parameter = 43 });
 				}
 			}
 
@@ -241,11 +241,11 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class Configurator : IContainerConfigurator
+			public class Configurator : IServiceConfigurator<Service>
 			{
-				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
 				{
-					builder.MakeStatic(typeof(Service));
+					builder.MakeStatic();
 				}
 			}
 
@@ -253,9 +253,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				using (var staticContainer = CreateStaticContainer())
+				using (var localContainer = LocalContainer(staticContainer))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("can't make type [Service] static using non static configurator"));
+					var error = Assert.Throws<SimpleContainerException>(() => localContainer.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message,
+						Is.EqualTo("can't make type [Service] static using non static configurator"));
 				}
 			}
 		}

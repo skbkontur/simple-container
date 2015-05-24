@@ -37,7 +37,7 @@ namespace SimpleContainer.Implementation
 			var targetAssemblies = EnumerableHelpers.Return(primaryAssembly).Closure(assemblyFilter).Concat(pluginAssemblies).ToSet();
 			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
-			var builder = new ContainerConfigurationBuilder(staticServices, false);
+			var builder = new ContainerConfigurationBuilder(false);
 			var localContext = configurationContext.Local(name, parameters);
 			using (var runner = ConfiguratorRunner.Create(false, Configuration, localHierarchy, localContext, priorities))
 				runner.Run(builder);

@@ -135,16 +135,15 @@ namespace SimpleContainer
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
 
-			var staticServices = new HashSet<Type>();
-			var builder = new ContainerConfigurationBuilder(staticServices, true);
+			var builder = new ContainerConfigurationBuilder(true);
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (
-				var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
+			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
 				runner.Run(builder);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
+				configurationContext, builder.StaticServices.GetStaticServices(), fileConfigurator,
+				errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()

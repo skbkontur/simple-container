@@ -9,16 +9,11 @@ namespace SimpleContainer.Configuration
 	{
 		internal ConfigurationRegistry.Builder RegistryBuilder { get; private set; }
 		protected readonly List<string> contracts;
-		protected readonly bool isStatic;
-		protected readonly ISet<Type> staticServices;
 
-		internal AbstractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts,
-			ISet<Type> staticServices, bool isStatic)
+		internal AbstractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts)
 		{
 			RegistryBuilder = registryBuilder;
 			this.contracts = contracts;
-			this.staticServices = staticServices;
-			this.isStatic = isStatic;
 		}
 
 		public TSelf Bind<TInterface, TImplementation>(bool clearOld = false)

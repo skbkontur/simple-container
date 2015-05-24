@@ -178,7 +178,7 @@ namespace SimpleContainer.Implementation
 		{
 			if (configure == null)
 				return Configuration;
-			var builder = new ContainerConfigurationBuilder(staticServices, CacheLevel == CacheLevel.Static);
+			var builder = new ContainerConfigurationBuilder(false);
 			configure(builder);
 			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
 		}

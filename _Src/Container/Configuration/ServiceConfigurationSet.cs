@@ -36,10 +36,11 @@ namespace SimpleContainer.Configuration
 			foreach (var c in configurations)
 			{
 				var index = c.Contracts.GetSubsequenceLastIndex(contracts, StringComparer.OrdinalIgnoreCase);
-				if (index < 0 || result != null && index <= maxIndex)
-					continue;
-				maxIndex = index;
-				result = c;
+				if (index > maxIndex)
+				{
+					maxIndex = index;
+					result = c;
+				}
 			}
 			return result;
 		}

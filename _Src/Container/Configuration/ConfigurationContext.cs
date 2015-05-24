@@ -21,9 +21,12 @@ namespace SimpleContainer.Configuration
 			return new ConfigurationContext(profile, settingsLoader)
 			{
 				ApplicationName = name,
-				Parameters = parameters ?? new EmptyParametersSource()
+				Parameters = parameters ?? new EmptyParametersSource(),
+				IsLocal = true
 			};
 		}
+
+		internal bool IsLocal { get; private set; }
 
 		private class EmptyParametersSource : IParametersSource
 		{
