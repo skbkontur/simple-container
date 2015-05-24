@@ -43,6 +43,12 @@ namespace SimpleContainer.Configuration
 			};
 		}
 
+		internal static readonly ServiceConfiguration empty = new ServiceConfiguration(new List<string>())
+		{
+			ContainerOwnsInstance = true,
+			dependencies = new ImplentationDependencyConfiguration[0]
+		};
+
 		public ImplentationDependencyConfiguration GetByKeyOrNull(string key)
 		{
 			return dependencies.SingleOrDefault(x => x.Key == key);

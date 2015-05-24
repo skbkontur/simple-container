@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -9,15 +10,23 @@ namespace SimpleContainer.Configuration
 	{
 		private readonly IDictionary<Type, IServiceConfigurationSet> configurations;
 		private readonly IDictionary<string, List<string>> contractUnions;
+		private readonly IDictionary<Type, Type[]> genericMappings;
 
 		private ConfigurationRegistry(IDictionary<Type, IServiceConfigurationSet> configurations,
-			IDictionary<string, List<string>> contractUnions)
+			IDictionary<string, List<string>> contractUnions,
+			IDictionary<Type, Type[]> genericMappings)
 		{
 			this.configurations = configurations;
 			this.contractUnions = contractUnions;
+			this.genericMappings = genericMappings;
 		}
 
-		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
+		public Type[] GetGenericMappingsOrNull(Type type)
+		{
+			return genericMappings.GetOrDefault(type);
+		}
+
+		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
 			var configurationSet = configurations.GetOrDefault(type);
 			return configurationSet == null ? null : configurationSet.GetConfiguration(contracts);
@@ -34,6 +43,7 @@ namespace SimpleContainer.Configuration
 				new Dictionary<Type, ServiceConfigurationSet>();
 
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
+			private readonly IDictionary<Type, List<Type>> genericMappings = new Dictionary<Type, List<Type>>();
 
 			public ServiceConfigurationSet GetConfigurationSet(Type type)
 			{
@@ -43,7 +53,7 @@ namespace SimpleContainer.Configuration
 				return result;
 			}
 
-			public void DefineContractsUnion(string contract, IEnumerable<string> contractNames, bool clearOld = false)
+			public void DefineContractsUnion(string contract, List<string> contractNames, bool clearOld = false)
 			{
 				List<string> union;
 				if (!contractUnions.TryGetValue(contract, out union))
@@ -53,10 +63,19 @@ namespace SimpleContainer.Configuration
 				union.AddRange(contractNames);
 			}
 
+			public void DefinedGenericMapping(Type from, Type to)
+			{
+				List<Type> mappings;
+				if (!genericMappings.TryGetValue(from, out mappings))
+					genericMappings.Add(from, mappings = new List<Type>());
+				mappings.Add(to);
+			}
+
 			public ConfigurationRegistry Build()
 			{
 				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
-				return new ConfigurationRegistry(builtConfigurations, contractUnions);
+				var builtMappings = genericMappings.ToDictionary(x => x.Key, x => x.Value.ToArray());
+				return new ConfigurationRegistry(builtConfigurations, contractUnions, builtMappings);
 			}
 		}
 	}

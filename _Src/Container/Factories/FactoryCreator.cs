@@ -7,21 +7,20 @@ namespace SimpleContainer.Factories
 {
 	internal static class FactoryCreator
 	{
-		public static Func<object, object> CreateFactory(Type type, Implementation.SimpleContainer container,
-			ContainerService.Builder builder)
+		public static Func<Type, object, object> CreateFactory(ContainerService.Builder builder)
 		{
 			var declaredContractNames = builder.DeclaredContracts;
 			var hostService = builder.Context.GetPreviousService();
 			builder.UseAllDeclaredContracts();
-			return delegate(object arguments)
+			return delegate(Type type, object arguments)
 			{
 				if (hostService == null || hostService != builder.Context.GetTopService())
 				{
-					var resolvedService = container.Create(type, declaredContractNames, arguments);
+					var resolvedService = builder.Container.Create(type, declaredContractNames, arguments);
 					resolvedService.Run();
 					return resolvedService.Single();
 				}
-				var result = container.Create(type, declaredContractNames, arguments, builder.Context);
+				var result = builder.Container.Create(type, declaredContractNames, arguments, builder.Context);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 				hostService.AddDependency(resultDependency, false);
 				if (hostService.Status != ServiceStatus.Ok)

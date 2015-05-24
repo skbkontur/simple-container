@@ -53,7 +53,7 @@ namespace SimpleContainer.Implementation
 
 			internal override CacheLevel GetCacheLevel(Type type)
 			{
-				return cacheLevel;
+				return CacheLevel;
 			}
 		}
 
@@ -88,7 +88,18 @@ namespace SimpleContainer.Implementation
 							.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
 							.First();
 						foreach (var configurator in targetConfigurators)
-							configurator.Configure(context, serviceConfigurationBuilder);
+						{
+							try
+							{
+								configurator.Configure(context, serviceConfigurationBuilder);
+							}
+							catch (Exception e)
+							{
+								const string messageFormat = "error executing configurator [{0}]";
+								configurationSet.SetError(string.Format(messageFormat, configurator.GetType().FormatName()), e);
+								return;
+							}
+						}
 					});
 			}
 		}

@@ -20,17 +20,13 @@ namespace SimpleContainer.Implementation
 		private static readonly IFactoryPlugin[] factoryPlugins =
 		{
 			new SimpleFactoryPlugin(),
+			new GenericFactoryPlugin(),
+			new GenericMegaFactoryPlugin(),
 			new FactoryWithArgumentsPlugin(),
 			new LazyFactoryPlugin()
 		};
 
-		protected readonly IConfigurationRegistry configurationRegistry;
-		protected readonly IInheritanceHierarchy inheritors;
 		private readonly StaticContainer staticContainer;
-		protected readonly CacheLevel cacheLevel;
-		protected readonly LogError errorLogger;
-		protected readonly LogInfo infoLogger;
-		protected readonly ISet<Type> staticServices;
 
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
@@ -38,14 +34,22 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 
+		protected readonly IInheritanceHierarchy inheritors;
+		protected readonly LogError errorLogger;
+		protected readonly LogInfo infoLogger;
+		protected readonly ISet<Type> staticServices;
+
+		internal CacheLevel CacheLevel { get; private set; }
+		internal IConfigurationRegistry Configuration { get; private set; }
+
 		public SimpleContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
 			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
 			LogInfo infoLogger)
 		{
-			this.configurationRegistry = new ConfigurationRegistryWithGenericDefinitionFallback(configurationRegistry);
+			Configuration = new ConfigurationRegistryWithGenericDefinitionFallback(configurationRegistry);
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
-			this.cacheLevel = cacheLevel;
+			CacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
 			this.staticServices = staticServices;
@@ -64,20 +68,15 @@ namespace SimpleContainer.Implementation
 			var wrap = instanceCache.GetOrAdd(cacheKey, createWrap);
 			ContainerService result;
 			if (!wrap.TryGet(out result))
-				result = ResolveSingleton(cacheKey.Type, new ResolutionContext(configurationRegistry, cacheKey.Contracts));
+				result = ResolveSingleton(cacheKey.Type, new ResolutionContext(cacheKey.Contracts));
 			return new ResolvedService(result, this, typeToResolve != type);
-		}
-
-		internal ContainerService.Builder NewService(Type type)
-		{
-			return new ContainerService.Builder(type, cacheLevel);
 		}
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
-			context = context ?? new ResolutionContext(configurationRegistry, InternalHelpers.ToInternalContracts(contracts, type));
-			var resultBuilder = NewService(type).ForFactory(ObjectAccessor.Get(arguments), true);
-			context.Instantiate(resultBuilder, this, null);
+			context = context ?? new ResolutionContext(InternalHelpers.ToInternalContracts(contracts, type));
+			var resultBuilder = new ContainerService.Builder(type, this, context).ForFactory(ObjectAccessor.Get(arguments), true);
+			context.Instantiate(resultBuilder, this);
 			var result = resultBuilder.Build();
 			if (result.Status.IsGood() && resultBuilder.Arguments != null)
 			{
@@ -116,13 +115,18 @@ namespace SimpleContainer.Implementation
 		internal void Run(ContainerService containerService, string constructionLog)
 		{
 			if (constructionLog != null && infoLogger != null)
-				infoLogger(new ServiceName(containerService.Type, containerService.FinalUsedContracts), "\r\n" + constructionLog);
+				infoLogger(new ServiceName(containerService.Type, containerService.UsedContracts), "\r\n" + constructionLog);
 			containerService.EnsureRunCalled(infoLogger);
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
 		{
-			return configurationRegistry.GetConfiguration(type, new List<string>());
+			return Configuration.GetConfigurationOrNull(type, new List<string>());
+		}
+
+		internal ServiceConfiguration GetConfiguration(Type type, ResolutionContext context)
+		{
+			return Configuration.GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
@@ -161,7 +165,7 @@ namespace SimpleContainer.Implementation
 			{
 				ContainerService service;
 				if (wrap.TryGet(out service))
-					service.CollectInstances(interfaceType, cacheLevel, seen, target);
+					service.CollectInstances(interfaceType, CacheLevel, seen, target);
 			}
 			return target;
 		}
@@ -170,16 +174,16 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
-				cacheLevel, staticServices, null, infoLogger);
+				CacheLevel, staticServices, null, infoLogger);
 		}
 
 		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
 		{
 			if (configure == null)
-				return configurationRegistry;
-			var builder = new ContainerConfigurationBuilder(staticServices, cacheLevel == CacheLevel.Static);
+				return Configuration;
+			var builder = new ContainerConfigurationBuilder(staticServices, CacheLevel == CacheLevel.Static);
 			configure(builder);
-			return new MergedConfiguration(configurationRegistry, builder.RegistryBuilder.Build());
+			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
 		}
 
 		internal virtual CacheLevel GetCacheLevel(Type type)
@@ -189,9 +193,9 @@ namespace SimpleContainer.Implementation
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
 		{
-			if (cacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
+			if (CacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
 				return staticContainer.ResolveSingleton(type, context);
-			var cacheKey = new ServiceName(type, context.DeclaredContractNames());
+			var cacheKey = new ServiceName(type, context.Contracts.ToArray());
 			var id = instanceCache.GetOrAdd(cacheKey, createWrap);
 			var cycle = context.BuilderByToken(id);
 			if (cycle != null)
@@ -199,15 +203,15 @@ namespace SimpleContainer.Implementation
 				var previous = context.GetTopService();
 				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
 					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-				var cycleBuilder = NewService(type);
+				var cycleBuilder = new ContainerService.Builder(type, this, context);
 				cycleBuilder.SetError(message);
 				return cycleBuilder.Build();
 			}
 			ContainerService result;
 			if (!id.AcquireInstantiateLock(out result))
 				return result;
-			var resultBuilder = NewService(type);
-			context.Instantiate(resultBuilder, this, id);
+			var resultBuilder = new ContainerService.Builder(type, this, context);
+			context.Instantiate(resultBuilder, id);
 			result = resultBuilder.Build();
 			id.ReleaseInstantiateLock(result);
 			return result;
@@ -216,96 +220,80 @@ namespace SimpleContainer.Implementation
 		internal void Instantiate(ContainerService.Builder builder)
 		{
 			if (builder.Type.IsSimpleType())
-			{
 				builder.SetError("can't create simple type");
-				return;
-			}
-			if (builder.Type == typeof (IContainer))
-			{
+			else if (builder.Type == typeof (IContainer))
 				builder.AddInstance(this, false);
-				return;
-			}
-			IEnumerable<Type> implementationTypes = null;
-			var useAutosearch = false;
-			if (builder.Configuration != null)
-			{
-				if (builder.Configuration.ImplementationAssigned)
+			else if (builder.Configuration.ImplementationAssigned)
+				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance);
+			else if (builder.Configuration.Factory != null)
+				builder.AddInstance(builder.Configuration.Factory(new FactoryContext
 				{
-					builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance);
-					return;
-				}
-				if (builder.Configuration.Factory != null)
-				{
-					builder.AddInstance(builder.Configuration.Factory(new FactoryContext
-					{
-						container = this,
-						contracts = builder.DeclaredContracts
-					}), builder.Configuration.ContainerOwnsInstance);
-					return;
-				}
-				implementationTypes = builder.Configuration.ImplementationTypes;
-				useAutosearch = builder.Configuration.UseAutosearch;
-			}
-			if (builder.Type.IsValueType)
-			{
+					container = this,
+					contracts = builder.DeclaredContracts
+				}), builder.Configuration.ContainerOwnsInstance);
+			else if (builder.Type.IsValueType)
 				builder.SetError("can't create value type");
-				return;
-			}
-			if (factoryPlugins.Any(p => p.TryInstantiate(this, builder)))
-				return;
-			if (builder.Type.IsGenericType && builder.Type.ContainsGenericParameters)
-			{
+			else if (builder.Type.IsGenericType && builder.Type.ContainsGenericParameters)
 				builder.SetError("can't create open generic");
-				return;
+			else if (factoryPlugins.Any(p => p.TryInstantiate(builder)))
+			{
 			}
-			if (builder.Type.IsAbstract)
-				InstantiateInterface(builder, implementationTypes, useAutosearch);
+			else if (builder.Type.IsAbstract)
+				InstantiateInterface(builder);
 			else
 				InstantiateImplementation(builder);
 		}
 
-		public static IEnumerable<Type> ProcessGenerics(Type interfaceType, IEnumerable<Type> implTypes)
+		private void InstantiateInterface(ContainerService.Builder builder)
 		{
-			foreach (var implType in implTypes)
-			{
-				if (!implType.IsGenericType)
-				{
-					if (!interfaceType.IsGenericType || interfaceType.IsAssignableFrom(implType))
-						yield return implType;
-				}
-				else if (!implType.ContainsGenericParameters)
-					yield return implType;
-				else
-					foreach (var type in implType.CloseBy(interfaceType, implType))
-						yield return type;
-			}
-		}
-
-		private void InstantiateInterface(ContainerService.Builder builder, IEnumerable<Type> implementationTypes, bool useAutosearch)
-		{
-			var localTypes = implementationTypes == null || useAutosearch
-				? implementationTypes.EmptyIfNull()
-					.Union(inheritors.GetOrNull(builder.Type.GetDefinition()).EmptyIfNull())
-				: implementationTypes;
-			var localTypesArray = ProcessGenerics(builder.Type, localTypes).ToArray();
-			if (localTypesArray.Length == 0)
+			var implementationTypes = GetInterfaceImplementationTypes(builder).Distinct().ToArray();
+			if (implementationTypes.Length == 0)
 			{
 				builder.SetComment("has no implementations");
 				return;
 			}
-			foreach (var implementationType in localTypesArray)
+			foreach (var implementationType in implementationTypes)
 			{
 				ContainerService childService;
 				if (builder.CreateNew)
 				{
-					var childServiceBuilder = NewService(implementationType).ForFactory(builder.Arguments, false);
-					builder.Context.Instantiate(childServiceBuilder, this, null);
+					var childServiceBuilder = new ContainerService.Builder(implementationType, this, builder.Context)
+						.ForFactory(builder.Arguments, false);
+					builder.Context.Instantiate(childServiceBuilder, null);
 					childService = childServiceBuilder.Build();
 				}
 				else
 					childService = builder.Context.Resolve(implementationType, null, this);
 				if (!builder.LinkTo(childService))
 					return;
+			}
+		}
+
+		private IEnumerable<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
+		{
+			var candidates = new List<Type>();
+			if (builder.Configuration.ImplementationTypes != null)
+				candidates.AddRange(builder.Configuration.ImplementationTypes);
+			else
+			{
+				var mapped = Configuration.GetGenericMappingsOrNull(builder.Type);
+				if (mapped != null)
+					candidates.AddRange(mapped);
+			}
+			if (builder.Configuration.ImplementationTypes == null || builder.Configuration.UseAutosearch)
+				candidates.AddRange(inheritors.GetOrNull(builder.Type.GetDefinition()).EmptyIfNull());
+			foreach (var implType in candidates)
+			{
+				if (!implType.IsGenericType)
+				{
+					if (!builder.Type.IsGenericType || builder.Type.IsAssignableFrom(implType))
+						yield return implType;
+				}
+				else if (!implType.ContainsGenericParameters)
+					yield return implType;
+				else
+					foreach (var type in implType.CloseBy(builder.Type, implType))
+						yield return type;
 			}
 		}
 
@@ -316,7 +304,7 @@ namespace SimpleContainer.Implementation
 				builder.SetComment("IgnoredImplementation");
 				return;
 			}
-			if (builder.Configuration != null && builder.Configuration.DontUseIt)
+			if (builder.Configuration.DontUseIt)
 			{
 				builder.SetComment("DontUse");
 				return;
@@ -332,7 +320,7 @@ namespace SimpleContainer.Implementation
 				if (dependency.Status == ServiceStatus.Ok)
 					InvokeConstructor(factoryMethod, dependency.Value, new object[0], builder);
 			}
-			if (builder.Configuration != null && builder.Configuration.InstanceFilter != null)
+			if (builder.Configuration.InstanceFilter != null)
 			{
 				var filteredOutCount = builder.FilterInstances(builder.Configuration.InstanceFilter);
 				if (filteredOutCount > 0)
@@ -406,13 +394,10 @@ namespace SimpleContainer.Implementation
 				actualArguments[i] = dependency.Value;
 			}
 			builder.EndResolveDependencies();
-			var unusedDependencyConfigurations = builder.Configuration != null
-				? builder.Configuration.GetUnusedDependencyConfigurationKeys()
-				: new string[0];
-			if (unusedDependencyConfigurations.Length > 0)
+			var unusedConfigurationKeys = builder.Configuration.GetUnusedDependencyConfigurationKeys();
+			if (unusedConfigurationKeys.Length > 0)
 			{
-				builder.SetError(string.Format("unused dependency configurations [{0}]",
-					unusedDependencyConfigurations.JoinStrings(",")));
+				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));
 				return;
 			}
 			if (builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
@@ -438,10 +423,10 @@ namespace SimpleContainer.Implementation
 			object actualArgument;
 			if (builder.Arguments != null && builder.Arguments.TryGet(formalParameter.Name, out actualArgument))
 				return ServiceDependency.Constant(formalParameter, actualArgument);
-			var parameters = builder.Configuration == null ? null : builder.Configuration.ParametersSource;
+			var parameters = builder.Configuration.ParametersSource;
 			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualArgument))
 				return ServiceDependency.Constant(formalParameter, actualArgument);
-			var dependencyConfiguration = builder.GetDependencyConfiguration(formalParameter);
+			var dependencyConfiguration = builder.Configuration.GetOrNull(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
 			{
@@ -457,7 +442,7 @@ namespace SimpleContainer.Implementation
 			{
 				var resourceStream = builder.Type.Assembly.GetManifestResourceStream(builder.Type, resourceAttribute.Name);
 				if (resourceStream == null)
-					return ServiceDependency.Error(null, formalParameter,
+					return ServiceDependency.Error(null, formalParameter.Name,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
 						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
@@ -466,10 +451,21 @@ namespace SimpleContainer.Implementation
 			var isEnumerable = dependencyType != implementationType;
 			var attribute = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
 			var contracts = attribute == null ? null : new List<string>(1) {attribute.ContractName};
-			var interfaceConfiguration = builder.Context.GetConfiguration(dependencyType);
-			if (interfaceConfiguration != null && interfaceConfiguration.Factory != null)
+
+			ServiceConfiguration interfaceConfiguration;
+			try
 			{
-				var declaredContracts = new List<string>(builder.Context.DeclaredContractNames());
+				interfaceConfiguration = GetConfiguration(dependencyType, builder.Context);
+			}
+			catch (Exception e)
+			{
+				var dependencyService = new ContainerService.Builder(dependencyType, this, builder.Context);
+				dependencyService.SetError(e);
+				return ServiceDependency.ServiceError(dependencyService.Build());
+			}
+			if (interfaceConfiguration.Factory != null)
+			{
+				var declaredContracts = new List<string>(builder.Context.Contracts);
 				if (contracts != null)
 					declaredContracts.AddRange(contracts);
 				var instance = interfaceConfiguration.Factory(new FactoryContext
@@ -485,7 +481,7 @@ namespace SimpleContainer.Implementation
 			if (dependencyType.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)
-					return ServiceDependency.Error(null, formalParameter,
+					return ServiceDependency.Error(null, formalParameter.Name,
 						"parameter [{0}] of service [{1}] is not configured",
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);

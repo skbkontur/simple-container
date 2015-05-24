@@ -93,7 +93,7 @@ namespace SimpleContainer.Generics
 			return !type.IsAbstract && !type.IsGenericType;
 		}
 
-		public void SecondRun(ContainerConfigurationBuilder builder, Type type)
+		public void SecondRun(ConfigurationRegistry.Builder builder, Type type)
 		{
 			if (!firstRunFinalized)
 			{
@@ -136,13 +136,13 @@ namespace SimpleContainer.Generics
 			return configurators.FirstOrDefault(x => x.Type == owner);
 		}
 
-		private void CloseUsingConstraints(ContainerConfigurationBuilder builder, Type type)
+		private void CloseUsingConstraints(ConfigurationRegistry.Builder builder, Type type)
 		{
 			foreach (var component in componentsWithConstraints.Where(x => x.SatisfyConstraints(type)))
 				component.Close(new[] {type}, builder, processedClosedTypes);
 		}
 
-		private void CloseUsingDependencies(ContainerConfigurationBuilder builder, Type type)
+		private void CloseUsingDependencies(ConfigurationRegistry.Builder builder, Type type)
 		{
 			var closedTypes = type.GetGenericInterfaces();
 			foreach (var dependency in dependencies)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -17,8 +18,11 @@ namespace SimpleContainer.Configuration
 		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames, bool clearOld = false)
 		{
 			if (contracts.Count != 1)
-				throw new InvalidOperationException("assertion failure");
-			RegistryBuilder.DefineContractsUnion(contracts[0], contractNames, clearOld);
+			{
+				const string messageFormat = "UnionOf can be applied to single contract, current contracts [{0}]";
+				throw new SimpleContainerException(string.Format(messageFormat, contracts.JoinStrings(", ")));
+			}
+			RegistryBuilder.DefineContractsUnion(contracts[0], contractNames.ToList(), clearOld);
 			return this;
 		}
 

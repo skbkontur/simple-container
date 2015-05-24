@@ -75,7 +75,6 @@
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
-    <Compile Include="Factories\FactoryConfigurationProcessor.cs" />
     <Compile Include="Factories\FactoryWithArgumentsPlugin.cs" />
     <Compile Include="Factories\DelegateCaster.cs" />
     <Compile Include="Factories\IFactoryPlugin.cs" />

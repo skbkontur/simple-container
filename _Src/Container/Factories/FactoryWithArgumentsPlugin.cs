@@ -5,7 +5,7 @@ namespace SimpleContainer.Factories
 {
 	internal class FactoryWithArgumentsPlugin : IFactoryPlugin
 	{
-		public bool TryInstantiate(Implementation.SimpleContainer container, ContainerService.Builder builder)
+		public bool TryInstantiate(ContainerService.Builder builder)
 		{
 			var funcType = builder.Type;
 			if (!funcType.IsGenericType)
@@ -16,7 +16,8 @@ namespace SimpleContainer.Factories
 			if (typeArguments[0] != typeof (object))
 				return false;
 			var type = typeArguments[1];
-			var factory = FactoryCreator.CreateFactory(typeArguments[1], container, builder);
+			var baseFactory = FactoryCreator.CreateFactory(builder);
+			Func<object, object> factory = o => baseFactory(type, o);
 			builder.AddInstance(DelegateCaster.Create(type).Cast(factory), true);
 			return true;
 		}

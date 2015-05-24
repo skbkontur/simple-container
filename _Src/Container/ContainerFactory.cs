@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
@@ -163,16 +162,12 @@ namespace SimpleContainer
 		private IConfigurationRegistry CreateDefaultConfiguration(Type[] types)
 		{
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
-			var factoriesProcessor = new FactoryConfigurationProcessor();
-			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
+			var builder = new ConfigurationRegistry.Builder();
 			foreach (var type in types)
-			{
 				genericsProcessor.FirstRun(type);
-				factoriesProcessor.FirstRun(builder, type);
-			}
 			foreach (var type in types)
 				genericsProcessor.SecondRun(builder, type);
-			return builder.RegistryBuilder.Build();
+			return builder.Build();
 		}
 	}
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -12,6 +13,8 @@ namespace SimpleContainer.Configuration
 		private volatile bool initialized;
 		private readonly object lockObject = new object();
 		private ServiceConfiguration[] configurations;
+		private Exception exception;
+		private string errorMessage;
 
 		public ServiceConfiguration GetConfiguration(List<string> contracts)
 		{
@@ -26,6 +29,8 @@ namespace SimpleContainer.Configuration
 						lazyConfigurators = null;
 						initialized = true;
 					}
+			if (exception != null)
+				throw new SimpleContainerException(errorMessage, exception);
 			ServiceConfiguration result = null;
 			var maxIndex = -1;
 			foreach (var c in configurations)
@@ -37,6 +42,12 @@ namespace SimpleContainer.Configuration
 				result = c;
 			}
 			return result;
+		}
+
+		public void SetError(string newErrorMessage, Exception newException)
+		{
+			errorMessage = newErrorMessage;
+			exception = newException;
 		}
 
 		public void RegisterLazyConfigurator(Action configurator)

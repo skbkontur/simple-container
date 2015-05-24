@@ -39,13 +39,13 @@ namespace SimpleContainer.Implementation
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
 			var builder = new ContainerConfigurationBuilder(staticServices, false);
 			var localContext = configurationContext.Local(name, parameters);
-			using (var runner = ConfiguratorRunner.Create(false, configurationRegistry, localHierarchy, localContext, priorities))
+			using (var runner = ConfiguratorRunner.Create(false, Configuration, localHierarchy, localContext, priorities))
 				runner.Run(builder);
 			if (configure != null)
 				configure(builder);
 			if (fileConfigurator != null)
 				fileConfigurator(filter, builder);
-			var containerConfiguration = new MergedConfiguration(configurationRegistry, builder.RegistryBuilder.Build());
+			var containerConfiguration = new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
 			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local, staticServices,
 				errorLogger, infoLogger);
 		}

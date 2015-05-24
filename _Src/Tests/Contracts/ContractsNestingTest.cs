@@ -61,7 +61,7 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A\r\n\tB[x]->[x]\r\n\t\tC[x->y]->[x->y]\r\n\t\t\tcontext -> xy"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A\r\n\tB[x]\r\n\t\tC[x->y]\r\n\t\t\tcontext -> xy"));
 			}
 		}
 
@@ -212,7 +212,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(builder => builder.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\n!A->[c1]\r\n\t!B->[c1->c2] <---------------"));
+					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\n!A[c1]\r\n\t!B[c1->c2] <---------------"));
 			}
 		}
 	}

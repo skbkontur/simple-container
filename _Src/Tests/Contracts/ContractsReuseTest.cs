@@ -321,7 +321,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(b => b.Contract("x").DontUse<B>());
 				Assert.That(container.Get<Wrap>().a.b, Is.Null);
-				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A[x]->[x]\r\n\tB[x] - DontUse = <null>"));
+				Assert.That(container.Resolve<A>("x").GetConstructionLog(), Is.EqualTo("A[x]\r\n\tB[x] - DontUse = <null>"));
 			}
 		}
 
@@ -353,7 +353,7 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				var a = container.Get<A>();
 				Assert.That(a.b1, Is.SameAs(a.b2));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB->[x]\r\n\tB->[y]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB\r\n\tB"));
 			}
 		}
 

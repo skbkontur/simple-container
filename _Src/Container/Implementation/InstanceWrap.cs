@@ -34,7 +34,7 @@ namespace SimpleContainer.Implementation
 				lock (this)
 					if (!runCalled)
 					{
-						var name = new ServiceName(Instance.GetType(), service.FinalUsedContracts);
+						var name = new ServiceName(Instance.GetType(), service.UsedContracts);
 						if (infoLogger != null)
 							infoLogger(name, "run started");
 						try

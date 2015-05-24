@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -21,13 +22,19 @@ namespace SimpleContainer.Configuration
 			this.filter = filter;
 		}
 
-		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
+		public Type[] GetGenericMappingsOrNull(Type type)
+		{
+			var result = parent.GetGenericMappingsOrNull(type);
+			return result == null ? null : result.Where(filter).ToArray();
+		}
+
+		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
 			var key = new ServiceNameForListContracts(type, contracts);
 			ServiceConfiguration result;
 			if (!filteredCache.TryGetValue(key, out result))
 			{
-				result = parent.GetConfiguration(type, contracts);
+				result = parent.GetConfigurationOrNull(type, contracts);
 				if (result != null)
 					result = result.CloneWithFilter(filter);
 				filteredCache.Add(key, result);

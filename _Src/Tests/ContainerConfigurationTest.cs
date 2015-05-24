@@ -99,10 +99,44 @@ namespace SimpleContainer.Tests
 					return new MySubsystemSettings {MyParameter = "abc"};
 				};
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (LocalContainer(staticContainer))
-				{
-				}
+				using (var localContainer = LocalContainer(staticContainer))
+					localContainer.Get<Service>();
 				Assert.That(log.ToString(), Is.EqualTo("load MySubsystemSettings "));
+			}
+		}
+
+		public class ServiceConfiguratorsAreLazy : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public static int callCount;
+
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					callCount++;
+					builder.Dependencies(new {parameter = 72});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(AConfigurator.callCount, Is.EqualTo(0));
+				Assert.That(container.Get<A>().parameter, Is.EqualTo(72));
+				Assert.That(AConfigurator.callCount, Is.EqualTo(1));
+				Assert.That(container.Get<Func<A>>().Invoke().parameter, Is.EqualTo(72));
+				Assert.That(AConfigurator.callCount, Is.EqualTo(1));
 			}
 		}
 
@@ -141,11 +175,10 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void SettingsLoaderIsNotConfigured()
 			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
-				}
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+				Assert.That(error.InnerException.InnerException.Message,
+					Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
 			}
 
 			[Test]
@@ -153,9 +186,10 @@ namespace SimpleContainer.Tests
 			{
 				Func<Type, object> loadSettings = t => null;
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
+				using(var container = LocalContainer(staticContainer))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
+					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
 				}
 			}
 
@@ -164,9 +198,10 @@ namespace SimpleContainer.Tests
 			{
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
 				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
+				using (var container = LocalContainer(staticContainer))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message,
+					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message,
 						Is.EqualTo("invalid settings type, required [MySubsystemSettings], actual [OtherSubsystemSettings]"));
 				}
 			}

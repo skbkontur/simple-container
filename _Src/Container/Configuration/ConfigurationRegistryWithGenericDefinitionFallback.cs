@@ -13,11 +13,16 @@ namespace SimpleContainer.Configuration
 			this.parent = parent;
 		}
 
-		public ServiceConfiguration GetConfiguration(Type type, List<string> contracts)
+		public Type[] GetGenericMappingsOrNull(Type type)
 		{
-			var result = parent.GetConfiguration(type, contracts);
+			return parent.GetGenericMappingsOrNull(type);
+		}
+
+		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
+		{
+			var result = parent.GetConfigurationOrNull(type, contracts);
 			if (result == null && type.IsGenericType)
-				result = parent.GetConfiguration(type.GetDefinition(), contracts);
+				result = parent.GetConfigurationOrNull(type.GetDefinition(), contracts);
 			return result;
 		}
 
