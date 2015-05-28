@@ -412,7 +412,7 @@ namespace SimpleContainer.Implementation
 				serviceForUsedContractsId.ReleaseInstantiateLock(serviceForUsedContracts);
 			}
 			else
-				builder.Borrow(serviceForUsedContracts);
+				builder.Reuse(serviceForUsedContracts);
 		}
 
 		private ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)

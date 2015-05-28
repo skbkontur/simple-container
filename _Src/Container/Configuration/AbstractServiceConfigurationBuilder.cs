@@ -45,6 +45,12 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf BindDependencyFactory(string dependencyName, Func<IContainer, object> creator)
+		{
+			GetServiceBuilder().BindDependencyFactory(dependencyName, creator);
+			return Self;
+		}
+
 		public TSelf Bind<TImplementation>(bool clearOld = false) where TImplementation : TService
 		{
 			GetServiceBuilder().Bind(typeof (TService), typeof (TImplementation), clearOld);

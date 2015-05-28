@@ -39,16 +39,6 @@ namespace SimpleContainer.Configuration
 		{
 			return UnionOf(contractNames.AsEnumerable(), clearOld);
 		}
-
-		public ContractConfigurationBuilder Contract(params string[] newContracts)
-		{
-			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()));
-		}
-
-		public ContractConfigurationBuilder Contract<T>()
-			where T : RequireContractAttribute, new()
-		{
-			return Contract(InternalHelpers.NameOf<T>());
-		}
+		
 	}
 }
