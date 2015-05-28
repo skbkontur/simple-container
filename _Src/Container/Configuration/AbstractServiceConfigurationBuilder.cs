@@ -47,7 +47,7 @@ namespace SimpleContainer.Configuration
 
 		public TSelf BindDependencyFactory(string dependencyName, Func<IContainer, object> creator)
 		{
-			builder.BindDependencyFactory<TService>(dependencyName, creator);
+			GetServiceBuilder().BindDependencyFactory(dependencyName, creator);
 			return Self;
 		}
 
