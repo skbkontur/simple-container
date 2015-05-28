@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Factories;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
@@ -143,16 +142,15 @@ namespace SimpleContainer
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
 
-			var staticServices = new HashSet<Type>();
-			var builder = new ContainerConfigurationBuilder(staticServices, true);
+			var builder = new ContainerConfigurationBuilder(true);
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (
-				var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
+			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
 				runner.Run(builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
+			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, fileConfigurator, errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
+				configurationContext, builder.StaticServices.GetStaticServices(), fileConfigurator,
+				errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
 		}
 
 		public IStaticContainer FromCurrentAppDomain()
@@ -167,18 +165,14 @@ namespace SimpleContainer
 				: AppDomain.CurrentDomain.RelativeSearchPath;
 		}
 
-		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)
+		private IConfigurationRegistry CreateDefaultConfiguration(Type[] types)
 		{
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
-			var factoriesProcessor = new FactoryConfigurationProcessor();
-			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
+			var builder = new ConfigurationRegistry.Builder();
 
 			foreach (var type in types)
-			{
 				if (!type.Assembly.FullName.Contains("FunctionalTests"))
 					genericsProcessor.FirstRun(type);
-				factoriesProcessor.FirstRun(builder, type);
-			}
 			foreach (var type in types)
 			{
 				if (!type.Assembly.FullName.Contains("FunctionalTests"))

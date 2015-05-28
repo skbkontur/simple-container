@@ -220,7 +220,7 @@ namespace SimpleContainer.Tests
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
 				{
 					builder.MakeStatic();
-					builder.Dependencies(new {parameter = 43});
+					builder.Dependencies(new { parameter = 43 });
 				}
 			}
 
@@ -253,9 +253,11 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				using (var staticContainer = CreateStaticContainer())
+				using (var localContainer = LocalContainer(staticContainer))
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("can't make type [Service] static using non static configurator"));
+					var error = Assert.Throws<SimpleContainerException>(() => localContainer.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message,
+						Is.EqualTo("can't make type [Service] static using non static configurator"));
 				}
 			}
 		}

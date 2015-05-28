@@ -82,12 +82,6 @@ namespace SimpleContainer.Implementation
 			}.WithName(null, name);
 		}
 
-		public static ServiceDependency Error(ContainerService containerService, ParameterInfo parameterInfo, string message,
-			params object[] args)
-		{
-			return Error(containerService, parameterInfo.Name, message, args);
-		}
-
 		public static ServiceDependency ServiceError(ContainerService service, string name = null)
 		{
 			return new ServiceDependency

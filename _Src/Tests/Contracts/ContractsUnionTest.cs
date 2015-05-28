@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -10,35 +11,51 @@ namespace SimpleContainer.Tests.Contracts
 {
 	public abstract class ContractsUnionTest : SimpleContainerTestBase
 	{
-		public class MultipleUnionOfDefinitionsOfSingleDeclarationIsProhibited : ContractsUnionTest
+		public class WrapExceptionsFromConfigurators : ContractsUnionTest
 		{
-			[TestContract("c1")]
-			public class A
+			public class AWrap
 			{
-				public readonly B b;
+				public readonly A a;
 
-				public A([TestContract("c2")] B b)
+				public AWrap(A a)
 				{
-					this.b = b;
+					this.a = a;
 				}
 			}
 
-			public class B
+			public class A
 			{
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					throw new InvalidOperationException("my exception");
+				}
 			}
 
 			[Test]
 			public void Test()
 			{
-				var container = Container(delegate(ContainerConfigurationBuilder b)
-				{
-					b.Contract("c1").Contract("c2").UnionOf("x1", "x2");
-					b.Contract("c2").UnionOf("x3", "x4");
-				});
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message,
-					Is.EqualTo(
-						"contract [c2] has conflicting unions [x1,x2] and [x3,x4]\r\n\r\n!A->[c1]\r\n\t!B->[c1->c2] <---------------"));
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
+				Assert.That(error.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!AWrap\r\n\t!A <---------------"));
+				Assert.That(error.InnerException, Is.InstanceOf<SimpleContainerException>());
+				Assert.That(error.InnerException.Message, Is.EqualTo("error executing configurator [AConfigurator]"));
+				Assert.That(error.InnerException.InnerException, Is.InstanceOf<InvalidOperationException>());
+				Assert.That(error.InnerException.InnerException.Message, Is.EqualTo("my exception"));
+			}
+		}
+
+		public class UnionOfAppliedToManyContracts_CorrectException : ContractsUnionTest
+		{
+			[Test]
+			public void Test()
+			{
+				var error = Assert.Throws<SimpleContainerException>(() => Container(
+					b => b.Contract("c1").Contract("c2").UnionOf("x1", "x2")));
+				Assert.That(error.Message, Is.EqualTo("UnionOf can be applied to single contract, current contracts [c1, c2]"));
 			}
 		}
 

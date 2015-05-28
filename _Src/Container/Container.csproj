@@ -39,28 +39,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\IContainerConfigurationRegistry.cs" />
-    <Compile Include="Factories\LazyFactoryPlugin.cs" />
+    <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\ConfigurationRegistryWithGenericDefinitionFallback.cs" />
+    <Compile Include="Configuration\IConfigurationRegistry.cs" />
+    <Compile Include="Configuration\IServiceConfigurationSet.cs" />
+    <Compile Include="Configuration\ServiceConfigurationSet.cs" />
+    <Compile Include="Configuration\ConfigurationRegistry.cs" />
+    <Compile Include="Configuration\ServiceConfiguration.cs" />
+    <Compile Include="Configuration\StaticServicesConfigurator.cs" />
+    <Compile Include="Factories\LazyPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
+    <Compile Include="Implementation\ConstructorsInfo.cs" />
+    <Compile Include="Implementation\ContainerServiceId.cs" />
     <Compile Include="Implementation\FuncResult.cs" />
+    <Compile Include="Implementation\InstanceWrap.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\NamedInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
-    <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
     <Compile Include="Configuration\AbstractServiceConfigurationBuilder.cs" />
     <Compile Include="Configuration\ConfigurationContext.cs" />
-    <Compile Include="Configuration\ConfigurationRegistry.cs" />
-    <Compile Include="Configuration\ContainerConfiguration.cs" />
-    <Compile Include="Configuration\ContractConfiguration.cs" />
     <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
     <Compile Include="Configuration\FilteredContainerConfiguration.cs" />
-    <Compile Include="Configuration\IContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
-    <Compile Include="Configuration\IInternalConfigurationBuilder.cs" />
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Factories\FactoryCreator.cs" />
@@ -72,11 +76,9 @@
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
-    <Compile Include="Factories\FactoryConfigurationProcessor.cs" />
-    <Compile Include="Factories\FactoryWithArgumentsPlugin.cs" />
     <Compile Include="Factories\DelegateCaster.cs" />
     <Compile Include="Factories\IFactoryPlugin.cs" />
-    <Compile Include="Factories\SimpleFactoryPlugin.cs" />
+    <Compile Include="Factories\FactoryPlugin.cs" />
     <Compile Include="Interface\FactoryContext.cs" />
     <Compile Include="Generics\GenericComponent.cs" />
     <Compile Include="Generics\GenericDependency.cs" />
@@ -86,7 +88,6 @@
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Configuration\FileBasedConfigurator.cs" />
-    <Compile Include="Implementation\Implementation.cs" />
     <Compile Include="Implementation\MemberSetter.cs" />
     <Compile Include="Implementation\MemberInjectionsProvider.cs" />
     <Compile Include="Interface\IParametersSource.cs" />
@@ -101,7 +102,6 @@
     <Compile Include="IStaticContainer.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="Implementation\IInheritanceHierarchy.cs" />
-    <Compile Include="Configuration\ImplementationConfiguration.cs" />
     <Compile Include="Configuration\ImplentationDependencyConfiguration.cs" />
     <Compile Include="Infection\ContainerConstructorAttribute.cs" />
     <Compile Include="Infection\StaticAttribute.cs" />
@@ -110,7 +110,6 @@
     <Compile Include="Infection\IgnoredImplementationAttribute.cs" />
     <Compile Include="Infection\InjectAttribute.cs" />
     <Compile Include="Infection\RequireContractAttribute.cs" />
-    <Compile Include="Configuration\InterfaceConfiguration.cs" />
     <Compile Include="Helpers\IObjectAccessor.cs" />
     <Compile Include="Interface\ISimpleLogWriter.cs" />
     <Compile Include="Interface\IComponent.cs" />

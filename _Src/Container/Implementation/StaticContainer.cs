@@ -16,11 +16,11 @@ namespace SimpleContainer.Implementation
 		private readonly List<Assembly> pluginAssemblies;
 		private readonly Type[] priorities;
 
-		public StaticContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
+		public StaticContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
 			Func<AssemblyName, bool> assemblyFilter, ConfigurationContext configurationContext, ISet<Type> staticServices,
 			Action<Func<Type, bool>, ContainerConfigurationBuilder> fileConfigurator, LogError logError, LogInfo logInfo,
 			List<Assembly> pluginAssemblies, Type[] priorities)
-			: base(configuration, inheritors, null, CacheLevel.Static, staticServices, logError, logInfo)
+			: base(configurationRegistry, inheritors, null, CacheLevel.Static, staticServices, logError, logInfo)
 		{
 			this.assemblyFilter = assemblyFilter;
 			this.configurationContext = configurationContext;
@@ -37,17 +37,17 @@ namespace SimpleContainer.Implementation
 			var targetAssemblies = EnumerableHelpers.Return(primaryAssembly).Closure(assemblyFilter).Concat(pluginAssemblies).ToSet();
 			Func<Type, bool> filter = x => targetAssemblies.Contains(x.Assembly);
 			var localHierarchy = new FilteredInheritanceHierarchy(inheritors, filter);
-			var builder = new ContainerConfigurationBuilder(staticServices, false);
+			var builder = new ContainerConfigurationBuilder(false);
 			var localContext = configurationContext.Local(name, parameters);
-			using (var runner = ConfiguratorRunner.Create(false, configuration, localHierarchy, localContext, priorities))
+			using (var runner = ConfiguratorRunner.Create(false, Configuration, localHierarchy, localContext, priorities))
 				runner.Run(builder);
 			if (configure != null)
 				configure(builder);
 			if (fileConfigurator != null)
 				fileConfigurator(filter, builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local,
-				staticServices, errorLogger, infoLogger);
+			var containerConfiguration = new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
+			return new SimpleContainer(containerConfiguration, localHierarchy, this, CacheLevel.Local, staticServices,
+				errorLogger, infoLogger);
 		}
 
 		public new IStaticContainer Clone(Action<ContainerConfigurationBuilder> configure)

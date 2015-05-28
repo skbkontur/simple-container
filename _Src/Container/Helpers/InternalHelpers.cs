@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
@@ -41,14 +40,6 @@ namespace SimpleContainer.Helpers
 			var result = contracts.ToList();
 			result.Add(attribute.ContractName);
 			return result.ToArray();
-		}
-
-		public static T GetConfiguration<T>(this IContainerConfigurationRegistry registry, Type type) where T : class
-		{
-			var result = registry.GetOrNull<T>(type);
-			if (result == null && type.IsGenericType)
-				result = registry.GetOrNull<T>(type.GetDefinition());
-			return result;
 		}
 
 		public static string ByNameDependencyKey(string name)

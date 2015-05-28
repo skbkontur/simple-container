@@ -40,7 +40,7 @@ namespace SimpleContainer.Generics
 					DependenciesToClose.Add(new GenericDependency {Type = dependency, Owner = consumer});
 		}
 
-		public void Close(Type[] by, ContainerConfigurationBuilder builder, ICollection<Type> closedImplementations)
+		public void Close(Type[] by, ConfigurationRegistry.Builder builder, ICollection<Type> closedImplementations)
 		{
 			if (by.Length == 1 && Overrides.Any(x => x.TypeArgument == by[0]))
 				return;
@@ -49,11 +49,8 @@ namespace SimpleContainer.Generics
 				return;
 			var closedInterfaces = closedOwner.GetInterfaces().ToArray();
 			foreach (var closedInterface in closedInterfaces)
-			{
-				builder.UseAutosearch(closedInterface, true);
-				builder.Bind(closedInterface, closedOwner);
-			}
-			builder.Bind(closedOwner, closedOwner);
+				builder.DefinedGenericMapping(closedInterface, closedOwner);
+			builder.DefinedGenericMapping(closedOwner, closedOwner);
 			var interfacesForDependencies = closedOwner.GetGenericInterfaces();
 			foreach (var dependency in DependenciesToClose)
 				foreach (var interfacesForDependency in interfacesForDependencies)

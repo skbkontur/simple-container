@@ -60,7 +60,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"no implementations for [Wrap]\r\n\r\n!Wrap\r\n\t!Service[c1]->[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations";
+					"no implementations for [Wrap]\r\n\r\n!Wrap\r\n\t!Service[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -81,6 +81,12 @@ namespace SimpleContainer.Tests.Contracts
 
 			public class A
 			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
 			}
 
 			[Test]
@@ -89,10 +95,11 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(delegate(ContainerConfigurationBuilder builder)
 				{
 					builder.Contract("a1");
-					builder.Contract("a2");
+					builder.BindDependency<A>("parameter", 53);
+					builder.Contract("a2").BindDependency<A>("parameter", 52);
 				});
 				container.Get<Wrap>();
-				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A->[a2]"));
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A[a2]\r\n\tparameter -> 52"));
 			}
 		}
 
@@ -117,7 +124,7 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A[a]->[a]\r\n\tFunc<B>[a]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A[a]\r\n\tFunc<B>[a]"));
 			}
 		}
 
@@ -166,7 +173,7 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A[c1]->[c1]\r\n\tB[c1->c2]->[c1->c2]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A[c1]\r\n\tB[c1->c2]"));
 			}
 		}
 	}

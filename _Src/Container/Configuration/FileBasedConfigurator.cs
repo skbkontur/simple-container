@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -16,7 +18,7 @@ namespace SimpleContainer.Configuration
 			var typesMap = types.ToLookup(x => x.Name);
 			return delegate(Func<Type, bool> f, ContainerConfigurationBuilder builder)
 			{
-				var context = new ParseContext(builder, typesMap, f);
+				var context = new ParseContext(builder.RegistryBuilder, typesMap, f);
 				foreach (var item in parseItems)
 					item(context);
 			};
@@ -27,14 +29,13 @@ namespace SimpleContainer.Configuration
 			return s.Split(new[] {by}, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).ToArray();
 		}
 
-		private static void BindDependency(Type type, string dependencyName, string dependencyText,
-			IInternalConfigurationBuilder builder)
+		private static void BindDependency(Type type, string dependencyName, string dependencyText, ParseContext parseContext)
 		{
-			var implementation = new Implementation.Implementation(type);
+			var constructorsInfo = new ConstructorsInfo(type);
 			ConstructorInfo constructor;
-			if (!implementation.TryGetConstructor(out constructor))
+			if (!constructorsInfo.TryGetConstructor(out constructor))
 			{
-				var messageFormat = implementation.publicConstructors.Length == 0
+				var messageFormat = constructorsInfo.publicConstructors.Length == 0
 					? "type [{0}] has no public ctors"
 					: "type [{0}] has many public ctors";
 				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
@@ -61,7 +62,7 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format(message, type.FormatName(), dependencyName,
 					dependencyText, formalParameter.ParameterType.FormatName()), e);
 			}
-			builder.BindDependency(type, dependencyName, parsedValue);
+			parseContext.GetServiceBuilder(type).BindDependency(dependencyName, parsedValue);
 		}
 
 		private static Action<ParseContext> Parse(string line)
@@ -74,22 +75,26 @@ namespace SimpleContainer.Configuration
 				return c => c.SetContract(contractName);
 			}
 			if (items.Length == 1)
-				return c => c.Builder.DontUse(c.ParseType(fromToken));
+				return c => c.GetServiceBuilder(c.ParseType(fromToken)).DontUse();
 			var toToken = items[1];
 			var fromTokenItems = SplitWithTrim(fromToken, ".");
 			if (fromTokenItems.Length > 1)
-				return c => BindDependency(c.ParseType(fromTokenItems[0]), fromTokenItems[1], toToken, c.Builder);
-			return c => c.Builder.Bind(c.ParseType(fromToken), c.ParseType(toToken));
+				return c => BindDependency(c.ParseType(fromTokenItems[0]), fromTokenItems[1], toToken, c);
+			return c =>
+			{
+				var type = c.ParseType(fromToken);
+				c.GetServiceBuilder(type).Bind(type, c.ParseType(toToken), true);
+			};
 		}
 
 		private class ParseContext
 		{
-			private readonly ContainerConfigurationBuilder builder;
+			private readonly ConfigurationRegistry.Builder builder;
 			private readonly ILookup<string, Type> typesMap;
 			private readonly Func<Type, bool> filter;
 			private string contractName;
 
-			public ParseContext(ContainerConfigurationBuilder builder, ILookup<string, Type> typesMap, Func<Type, bool> filter)
+			public ParseContext(ConfigurationRegistry.Builder builder, ILookup<string, Type> typesMap, Func<Type, bool> filter)
 			{
 				this.builder = builder;
 				this.typesMap = typesMap;
@@ -101,14 +106,12 @@ namespace SimpleContainer.Configuration
 				contractName = name;
 			}
 
-			public IInternalConfigurationBuilder Builder
+			public ServiceConfiguration.Builder GetServiceBuilder(Type type)
 			{
-				get
-				{
-					return string.IsNullOrEmpty(contractName)
-						? (IInternalConfigurationBuilder) builder
-						: builder.Contract(contractName);
-				}
+				var contracts = new List<string>();
+				if (!string.IsNullOrEmpty(contractName))
+					contracts.Add(contractName);
+				return builder.GetConfigurationSet(type).GetBuilder(contracts);
 			}
 
 			public Type ParseType(string name)

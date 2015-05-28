@@ -1,39 +1,96 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
 	//гнусный экспериментальный хак, нужен тока для GenericConfigurator-а
 	//выпилить, когда с generic-ами нормальная схема будет
-	internal class FilteredContainerConfiguration : IContainerConfiguration
+	internal class FilteredContainerConfiguration : IConfigurationRegistry
 	{
-		private readonly IContainerConfiguration parent;
-		private readonly IDictionary<Type, object> filteredCache = new Dictionary<Type, object>();
+		private readonly IConfigurationRegistry parent;
+
+		private readonly IDictionary<ServiceNameForListContracts, ServiceConfiguration> filteredCache =
+			new Dictionary<ServiceNameForListContracts, ServiceConfiguration>();
+
 		private readonly Func<Type, bool> filter;
 
-		public FilteredContainerConfiguration(IContainerConfiguration parent, Func<Type, bool> filter)
+		public FilteredContainerConfiguration(IConfigurationRegistry parent, Func<Type, bool> filter)
 		{
 			this.parent = parent;
 			this.filter = filter;
 		}
 
-		public T GetOrNull<T>(Type type) where T : class
+		public Type[] GetGenericMappingsOrNull(Type type)
 		{
-			var result = parent.GetOrNull<T>(type);
-			if (result == null)
-				return null;
-			var interfaceConfiguration = result as InterfaceConfiguration;
-			if (interfaceConfiguration == null || interfaceConfiguration.ImplementationTypes == null)
-				return result;
-			object resultObject;
-			if (!filteredCache.TryGetValue(type, out resultObject))
-				filteredCache.Add(type, resultObject = interfaceConfiguration.CloneWithFilter(filter));
-			return (T) resultObject;
+			var result = parent.GetGenericMappingsOrNull(type);
+			return result == null ? null : result.Where(filter).ToArray();
 		}
 
-		public ContractConfiguration[] GetContractConfigurations(string contract)
+		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
-			return parent.GetContractConfigurations(contract);
+			var key = new ServiceNameForListContracts(type, contracts);
+			ServiceConfiguration result;
+			if (!filteredCache.TryGetValue(key, out result))
+			{
+				result = parent.GetConfigurationOrNull(type, contracts);
+				if (result != null)
+					result = result.CloneWithFilter(filter);
+				filteredCache.Add(key, result);
+			}
+			return result;
+		}
+
+		public List<string> GetContractsUnionOrNull(string contract)
+		{
+			return parent.GetContractsUnionOrNull(contract);
+		}
+
+		//todo get rid of this shit
+		private struct ServiceNameForListContracts : IEquatable<ServiceNameForListContracts>
+		{
+			private readonly Type type;
+			private readonly List<string> contracts;
+
+			internal ServiceNameForListContracts(Type type, List<string> contracts)
+			{
+				this.type = type;
+				this.contracts = contracts;
+			}
+
+			public bool Equals(ServiceNameForListContracts other)
+			{
+				if (type != other.type)
+					return false;
+				if (contracts.Count != other.contracts.Count)
+					return false;
+				for (var i = 0; i < contracts.Count; i++)
+					if (!string.Equals(contracts[i], other.contracts[i], StringComparison.OrdinalIgnoreCase))
+						return false;
+				return true;
+			}
+
+			public override bool Equals(object obj)
+			{
+				return !ReferenceEquals(null, obj) && obj.GetType() == GetType() && Equals((ServiceName) obj);
+			}
+
+			public override int GetHashCode()
+			{
+				unchecked
+				{
+					var result = 0;
+					foreach (var contract in contracts)
+						result = CombineHashCodes(result, contract.GetHashCode());
+					return (type.GetHashCode()*397) ^ result;
+				}
+			}
+
+			private static int CombineHashCodes(int h1, int h2)
+			{
+				return ((h1 << 5) + h1) ^ h2;
+			}
 		}
 	}
 }

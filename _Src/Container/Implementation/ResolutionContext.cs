@@ -6,151 +6,92 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
-	internal class ResolutionContext : IContainerConfigurationRegistry
+	internal class ResolutionContext
 	{
-		private readonly IContainerConfiguration configuration;
-		private readonly List<ContainerService> current = new List<ContainerService>();
-		private readonly List<ContractDeclaration> declaredContracts = new List<ContractDeclaration>();
+		private readonly List<ContainerService.Builder> stack = new List<ContainerService.Builder>();
 
-		public ResolutionContext(IContainerConfiguration configuration, string[] contracts)
+		private readonly IDictionary<object, ContainerService.Builder> builderById =
+			new Dictionary<object, ContainerService.Builder>();
+
+		public List<string> Contracts { get; private set; }
+
+		public ResolutionContext(string[] contracts)
 		{
-			this.configuration = configuration;
+			Contracts = new List<string>();
 			if (contracts.Length > 0)
 				PushContracts(contracts);
 		}
 
-		public string[] DeclaredContractNames()
-		{
-			return declaredContracts.Select(x => x.name).ToArray();
-		}
-
-		public string[] GetDeclaredContractsByNames(List<string> names)
-		{
-			return declaredContracts
-				.Where(x => names.Contains(x.name, StringComparer.OrdinalIgnoreCase))
-				.Select(x => x.name)
-				.ToArray();
-		}
-
-		public int DeclaredContractsCount()
-		{
-			return declaredContracts.Count;
-		}
-
-		public bool ContractDeclared(string name)
-		{
-			return declaredContracts.Any(x => x.name.EqualsIgnoringCase(name));
-		}
-
 		public string DeclaredContractsKey()
 		{
-			return InternalHelpers.FormatContractsKey(DeclaredContractNames());
+			return InternalHelpers.FormatContractsKey(Contracts);
 		}
 
-		public T GetOrNull<T>(Type type) where T : class
+		public ContainerService.Builder BuilderByToken(object token)
 		{
-			for (var i = declaredContracts.Count - 1; i >= 0; i--)
+			return builderById.GetOrDefault(token);
+		}
+
+		public void Instantiate(ContainerService.Builder builder, object id)
+		{
+			if (builder.Status != ServiceStatus.Ok)
+				return;
+			stack.Add(builder);
+			if (id != null)
+				builderById.Add(id, builder);
+			var expandResult = TryExpandUnions(builder.Container.Configuration);
+			if (expandResult != null)
 			{
-				var declaration = declaredContracts[i];
-				foreach (var definition in declaration.definitions)
+				var poppedContracts = Contracts.PopMany(expandResult.Length);
+				foreach (var c in expandResult.CartesianProduct())
 				{
-					var result = definition.GetOrNull<T>(type);
-					if (result == null)
-						continue;
-					var containerService = GetTopService();
-					containerService.UseContractWithName(declaration.name);
-					foreach (var name in definition.RequiredContracts)
-						containerService.UseContractWithName(name);
-					return result;
-				}
-			}
-			return configuration.GetOrNull<T>(type);
-		}
-
-		public bool DetectCycle(ContainerService containerService, SimpleContainer container, out ContainerService cycle)
-		{
-			if (!current.Contains(containerService))
-			{
-				cycle = null;
-				return false;
-			}
-			var previous = current.Count == 0 ? null : current[current.Count - 1];
-			var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
-				containerService.Type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-			cycle = container.NewService(containerService.Type);
-			cycle.SetError(message);
-			return true;
-		}
-
-		public void Instantiate(ContainerService containerService, SimpleContainer container)
-		{
-			current.Add(containerService);
-			containerService.AttachToContext(this);
-			var expandResult = TryExpandUnions();
-			if (!expandResult.isOk)
-				containerService.SetError(expandResult.errorMessage);
-			else if (expandResult.value != null)
-			{
-				var poppedContracts = declaredContracts.PopMany(expandResult.value.Length);
-				foreach (var contracts in expandResult.value.CartesianProduct())
-				{
-					var childService = ResolveInternal(containerService.Type, contracts, container);
-					if (!containerService.LinkTo(childService))
+					var childService = ResolveInternal(builder.Type, c, builder.Container);
+					if (!builder.LinkTo(childService))
 						break;
 				}
-				declaredContracts.AddRange(poppedContracts);
+				Contracts.AddRange(poppedContracts);
 			}
 			else
-				container.Instantiate(containerService);
-			containerService.EndInstantiate();
-			current.RemoveAt(current.Count - 1);
+				builder.Container.Instantiate(builder);
+			stack.RemoveLast();
+			if (id != null)
+				builderById.Remove(id);
 		}
 
-		private FuncResult<string[][]> TryExpandUnions()
+		private string[][] TryExpandUnions(IConfigurationRegistry configuration)
 		{
 			string[][] result = null;
 			var startIndex = 0;
-			for (var i = 0; i < declaredContracts.Count; i++)
+			for (var i = 0; i < Contracts.Count; i++)
 			{
-				var declaredContract = declaredContracts[i];
-				ContractConfiguration union = null;
-				foreach (var definition in declaredContract.definitions)
-				{
-					if (definition.UnionContractNames == null)
-						continue;
-					if (union != null)
-						return FuncResult.Fail<string[][]>(string.Format("contract [{0}] has conflicting unions [{1}] and [{2}]",
-							declaredContract.name,
-							union.UnionContractNames.JoinStrings(","),
-							definition.UnionContractNames.JoinStrings(",")));
-					union = definition;
-				}
+				var contract = Contracts[i];
+				var union = configuration.GetContractsUnionOrNull(contract);
 				if (union == null)
 				{
 					if (result != null)
-						result[i - startIndex] = new[] {declaredContract.name};
+						result[i - startIndex] = new[] {contract};
 				}
 				else
 				{
 					if (result == null)
 					{
 						startIndex = i;
-						result = new string[declaredContracts.Count - startIndex][];
+						result = new string[Contracts.Count - startIndex][];
 					}
-					result[i - startIndex] = union.UnionContractNames;
+					result[i - startIndex] = union.ToArray();
 				}
 			}
-			return FuncResult.Ok(result);
+			return result;
 		}
 
-		public ContainerService GetTopService()
+		public ContainerService.Builder GetTopService()
 		{
-			return current.Count == 0 ? null : current[current.Count - 1];
+			return stack.Count == 0 ? null : stack[stack.Count - 1];
 		}
 
-		public ContainerService GetPreviousService()
+		public ContainerService.Builder GetPreviousService()
 		{
-			return current.Count <= 1 ? null : current[current.Count - 2];
+			return stack.Count <= 1 ? null : stack[stack.Count - 2];
 		}
 
 		public ContainerService Resolve(Type type, IEnumerable<string> contractNames, SimpleContainer container)
@@ -167,13 +108,14 @@ namespace SimpleContainer.Implementation
 			var pushContractsResult = PushContracts(contractNames);
 			if (!pushContractsResult.isOk)
 			{
-				result = container.NewService(type);
-				result.AttachToContext(this);
-				result.SetError(pushContractsResult.errorMessage);
+				var resultBuilder = new ContainerService.Builder(type, container, this);
+				if (resultBuilder.Status == ServiceStatus.Ok)
+					resultBuilder.SetError(pushContractsResult.errorMessage);
+				result = resultBuilder.Build();
 			}
 			else
 				result = container.ResolveSingleton(type, this);
-			declaredContracts.RemoveLast(pushContractsResult.value);
+			Contracts.RemoveLast(pushContractsResult.value);
 			return result;
 		}
 
@@ -182,42 +124,16 @@ namespace SimpleContainer.Implementation
 			var pushedContractsCount = 0;
 			foreach (var c in contractNames)
 			{
-				var duplicate = declaredContracts.FirstOrDefault(x => x.name.EqualsIgnoringCase(c));
+				var duplicate = Contracts.FirstOrDefault(x => x.EqualsIgnoringCase(c));
 				if (duplicate != null)
 				{
 					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
 					return FuncResult.Fail<int>(messageFormat, c, DeclaredContractsKey());
 				}
-				var contractDeclaration = new ContractDeclaration
-				{
-					name = c,
-					definitions = configuration.GetContractConfigurations(c)
-						.EmptyIfNull()
-						.Where(x => MatchWithDeclaredContracts(x.RequiredContracts))
-						.ToList()
-				};
-				declaredContracts.Add(contractDeclaration);
+				Contracts.Add(c);
 				pushedContractsCount++;
 			}
 			return FuncResult.Ok(pushedContractsCount);
-		}
-
-		private bool MatchWithDeclaredContracts(List<string> required)
-		{
-			for (int r = 0, d = 0; r < required.Count; d++)
-			{
-				if (d >= declaredContracts.Count)
-					return false;
-				if (required[r].EqualsIgnoringCase(declaredContracts[d].name))
-					r++;
-			}
-			return true;
-		}
-
-		private class ContractDeclaration
-		{
-			public string name;
-			public List<ContractConfiguration> definitions;
 		}
 	}
 }
