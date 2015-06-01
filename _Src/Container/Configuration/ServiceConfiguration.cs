@@ -19,7 +19,8 @@ namespace SimpleContainer.Configuration
 		public Type[] ImplementationTypes { get; private set; }
 		public object Implementation { get; private set; }
 		public bool ImplementationAssigned { get; private set; }
-		public Func<FactoryContext, object> Factory { get; set; }
+		public Func<IContainer, object> Factory { get; set; }
+		public Func<IContainer, Type, object> FactoryWithTarget { get; set; }
 		public bool UseAutosearch { get; private set; }
 		public bool ContainerOwnsInstance { get; private set; }
 		public bool DontUseIt { get; private set; }
@@ -112,15 +113,27 @@ namespace SimpleContainer.Configuration
 				target.InstanceFilter = o => filter((T) o);
 			}
 
-			public void Bind(Func<FactoryContext, object> creator, bool containerOwnsInstance)
+			public void Bind(Func<IContainer, object> creator, bool containerOwnsInstance)
 			{
 				target.Factory = creator;
 				target.ContainerOwnsInstance = containerOwnsInstance;
 			}
 
-			public void Bind<T>(Func<FactoryContext, T> creator, bool containerOwnsInstance)
+			public void Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance)
 			{
 				target.Factory = c => creator(c);
+				target.ContainerOwnsInstance = containerOwnsInstance;
+			}
+
+			public void Bind(Func<IContainer, Type, object> creator, bool containerOwnsInstance)
+			{
+				target.FactoryWithTarget = creator;
+				target.ContainerOwnsInstance = containerOwnsInstance;
+			}
+
+			public void Bind<T>(Func<IContainer, Type, T> creator, bool containerOwnsInstance)
+			{
+				target.FactoryWithTarget = (c, t) => creator(c, t);
 				target.ContainerOwnsInstance = containerOwnsInstance;
 			}
 

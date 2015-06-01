@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -378,6 +379,31 @@ namespace SimpleContainer.Implementation
 				if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
 					return ServiceStatus.Ok;
 				return dependencyStatus;
+			}
+
+			public void CreateInstanceBy(Func<object> creator, bool owned)
+			{
+				object instance;
+				try
+				{
+					instance = creator();
+				}
+				catch (ServiceCouldNotBeCreatedException e)
+				{
+					SetComment(e.Message);
+					return;
+				}
+				catch (Exception e)
+				{
+					SetError(e);
+					return;
+				}
+				AddInstance(instance, owned);
+			}
+
+			public void CreateInstance(MethodBase method, object self, object[] actualArguments)
+			{
+				CreateInstanceBy(() => MethodInvoker.Invoke(method, self, actualArguments), true);
 			}
 		}
 	}

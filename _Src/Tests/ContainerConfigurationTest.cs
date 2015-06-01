@@ -414,45 +414,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanBindFactoryViaServiceConfigurator : ContainerConfigurationTest
-		{
-			public class A
-			{
-				public readonly B b;
-
-				public A(B b)
-				{
-					this.b = b;
-				}
-			}
-
-			public class B
-			{
-				public readonly Type ownerType;
-
-				public B(Type ownerType)
-				{
-					this.ownerType = ownerType;
-				}
-			}
-
-			public class AConfigurator : IServiceConfigurator<B>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
-				{
-					builder.Bind(c => new B(c.target));
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var a = container.Get<A>();
-				Assert.That(a.b.ownerType, Is.EqualTo(typeof (A)));
-			}
-		}
-
 		public class GenericConfigurators : ContainerConfigurationTest
 		{
 			public class GenericReader<TItem>
@@ -586,47 +547,6 @@ namespace SimpleContainer.Tests
 				var instance = container.Get<TestService>();
 				Assert.That(instance.stringVal, Is.EqualTo("testString"));
 				Assert.That(instance.intVal, Is.EqualTo(42));
-			}
-		}
-
-		public class CanInjectStructViaExplicitConfiguration : BasicTest
-		{
-			public class A
-			{
-				public readonly Token token;
-
-				public A(Token token)
-				{
-					this.token = token;
-				}
-			}
-
-			public struct Token
-			{
-				public int value;
-			}
-
-			public class TokenSource
-			{
-				public Token CreateToken()
-				{
-					return new Token {value = 78};
-				}
-			}
-
-			public class TokenConfigurator : IServiceConfigurator<Token>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Token> builder)
-				{
-					builder.Bind(c => c.container.Get<TokenSource>().CreateToken());
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.Get<A>().token.value, Is.EqualTo(78));
 			}
 		}
 

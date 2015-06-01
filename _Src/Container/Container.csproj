@@ -79,7 +79,6 @@
     <Compile Include="Factories\DelegateCaster.cs" />
     <Compile Include="Factories\IFactoryPlugin.cs" />
     <Compile Include="Factories\FactoryPlugin.cs" />
-    <Compile Include="Interface\FactoryContext.cs" />
     <Compile Include="Generics\GenericComponent.cs" />
     <Compile Include="Generics\GenericDependency.cs" />
     <Compile Include="Generics\GenericOverrideInfo.cs" />
