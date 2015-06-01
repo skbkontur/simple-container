@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 
 namespace SimpleContainer.Configuration
 {
@@ -20,17 +17,6 @@ namespace SimpleContainer.Configuration
 		{
 			StaticServices.MakeStatic(type);
 			return this;
-		}
-
-		public ContractConfigurationBuilder Contract<T>()
-			where T : RequireContractAttribute, new()
-		{
-			return Contract(InternalHelpers.NameOf<T>());
-		}
-
-		public ContractConfigurationBuilder Contract(params string[] newContracts)
-		{
-			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()));
 		}
 	}
 }
