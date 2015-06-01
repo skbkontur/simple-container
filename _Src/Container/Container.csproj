@@ -67,7 +67,6 @@
     <Compile Include="Configuration\IContainerConfigurator.cs" />
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
-    <Compile Include="Factories\FactoryCreator.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />

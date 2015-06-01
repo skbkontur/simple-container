@@ -341,7 +341,11 @@ namespace SimpleContainer.Implementation
 			public void EndResolveDependencies()
 			{
 				if (target.UsedContracts == null)
-					target.UsedContracts = GetUsedContractNamesFromContext();
+					target.UsedContracts = usedContractNames == null
+						? InternalHelpers.emptyStrings
+						: DeclaredContracts
+							.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+							.ToArray();
 			}
 
 			public void Reuse(ContainerService containerService)
@@ -363,15 +367,6 @@ namespace SimpleContainer.Implementation
 				return target;
 			}
 
-			private string[] GetUsedContractNamesFromContext()
-			{
-				return usedContractNames == null
-					? InternalHelpers.emptyStrings
-					: DeclaredContracts
-						.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-						.ToArray();
-			}
-
 			private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)
 			{
 				if (dependencyStatus == ServiceStatus.Error)
@@ -390,7 +385,8 @@ namespace SimpleContainer.Implementation
 				}
 				catch (ServiceCouldNotBeCreatedException e)
 				{
-					SetComment(e.Message);
+					if (!string.IsNullOrEmpty(e.Message))
+						SetComment(e.Message);
 					return;
 				}
 				catch (Exception e)
