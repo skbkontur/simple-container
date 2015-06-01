@@ -207,7 +207,7 @@ namespace SimpleContainer.Implementation
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
 			private List<string> usedContractNames;
 			private ContainerService target;
-			private bool borrowed;
+			private bool reused;
 			public ResolutionContext Context { get; private set; }
 			public SimpleContainer Container { get; private set; }
 
@@ -343,15 +343,15 @@ namespace SimpleContainer.Implementation
 					target.UsedContracts = GetUsedContractNamesFromContext();
 			}
 
-			public void Borrow(ContainerService containerService)
+			public void Reuse(ContainerService containerService)
 			{
 				target = containerService;
-				borrowed = true;
+				reused = true;
 			}
 
 			public ContainerService Build()
 			{
-				if (borrowed)
+				if (reused)
 					return target;
 				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)

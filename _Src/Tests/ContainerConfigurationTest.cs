@@ -339,6 +339,40 @@ namespace SimpleContainer.Tests
 					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo(87));
 			}
 		}
+		
+		public class ContainerConfiguratorWithSettingsWithKey : ContainerConfigurationTest
+		{
+			public class MySettings
+			{
+				public string value;
+			}
+
+			public class SomeService
+			{
+				public SomeService(string value)
+				{
+					Value = value;
+				}
+
+				public string Value { get; private set; }
+			}
+
+			public class MyConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					builder.BindDependency<SomeService>("value", context.Settings<MySettings>("my_context_key").value);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Func<Type, string, object> loadSettings = (t, key) => new MySettings {value = key};
+				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
+					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo("my_context_key"));
+			}
+		}
 
 		public class CanAppendContracts : ContainerConfigurationTest
 		{
