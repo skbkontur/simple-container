@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
@@ -81,10 +80,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (var localContainer = LocalContainer(staticContainer))
+				using (var staticContainer = Factory().WithSettingsLoader(loadSettings).Build())
 				{
-					var instance = localContainer.Get<Service>();
+					var instance = staticContainer.Get<Service>();
 					Assert.That(instance.parameter, Is.EqualTo("abc"));
 				}
 			}
@@ -98,9 +96,8 @@ namespace SimpleContainer.Tests
 					log.AppendFormat("load {0} ", t.Name);
 					return new MySubsystemSettings {MyParameter = "abc"};
 				};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (var localContainer = LocalContainer(staticContainer))
-					localContainer.Get<Service>();
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					container.Get<Service>();
 				Assert.That(log.ToString(), Is.EqualTo("load MySubsystemSettings "));
 			}
 		}
@@ -185,8 +182,7 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderRetursNull()
 			{
 				Func<Type, object> loadSettings = t => null;
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using(var container = LocalContainer(staticContainer))
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
 					Assert.That(error.InnerException.InnerException.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
@@ -197,8 +193,7 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderReturnsObjectOfInvalidType()
 			{
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (var container = LocalContainer(staticContainer))
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
 					Assert.That(error.InnerException.InnerException.Message,
@@ -335,8 +330,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySettings {value = 87};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo(87));
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					Assert.That(container.Get<SomeService>().Value, Is.EqualTo(87));
 			}
 		}
 		
@@ -369,8 +364,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, string, object> loadSettings = (t, key) => new MySettings {value = key};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo("my_context_key"));
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					Assert.That(container.Get<SomeService>().Value, Is.EqualTo("my_context_key"));
 			}
 		}
 
@@ -550,38 +545,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class ApplicationName : ContainerConfigurationTest
-		{
-			public class A
-			{
-				public A(string applicationName)
-				{
-					ApplicationName = applicationName;
-				}
-
-				public string ApplicationName { get; private set; }
-			}
-
-			public class AConfigurator : IServiceConfigurator<A>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
-				{
-					builder.Dependencies(new
-					{
-						applicationName = context.ApplicationName,
-					});
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var staticContainer = CreateStaticContainer();
-				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null, null))
-					Assert.That(c.Get<A>().ApplicationName, Is.EqualTo("my-app-name"));
-			}
-		}
-
 		public class CanUseParametersSourceFromContext : ContainerConfigurationTest
 		{
 			public class A
@@ -624,8 +587,8 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var parameters = new SimpleParametersSource(new Dictionary<string, object> {{"parameter", 42}});
-				var container = Container(parameters: parameters);
-				Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
+				using (var container = Factory().WithParameters(parameters).Build())
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
@@ -751,11 +714,9 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				Action<ContainerFactory> configureFactory =
-					f => f.WithPriorities(typeof (IServiceConfigurator<>), typeof (IHighPriorityServiceConfigurator<>));
-				using (var staticContainer = CreateStaticContainer(configureFactory))
-				using (var result = LocalContainer(staticContainer))
-					Assert.That(result.Get<A>().parameter, Is.EqualTo(42));
+				var priorities = new[] {typeof (IServiceConfigurator<>), typeof (IHighPriorityServiceConfigurator<>)};
+				using (var container = Factory().WithPriorities(priorities).Build())
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
@@ -794,8 +755,8 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				Assert.That(container.Get<IDatabase>(), Is.InstanceOf<Database>());
 
-				var inMemoryContainer = Container(null, typeof (InMemoryProfile));
-				Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
+				using (var inMemoryContainer = Factory().WithProfile(typeof (InMemoryProfile)).Build())
+					Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
 			}
 		}
 	}

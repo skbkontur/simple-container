@@ -23,8 +23,6 @@ namespace SimpleContainer.Implementation
 			new LazyPlugin()
 		};
 
-		private readonly StaticContainer staticContainer;
-
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
 
@@ -34,22 +32,16 @@ namespace SimpleContainer.Implementation
 		protected readonly IInheritanceHierarchy inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
-		protected readonly ISet<Type> staticServices;
 
-		internal CacheLevel CacheLevel { get; private set; }
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
-			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
-			LogInfo infoLogger)
+			LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = new ConfigurationRegistryWithGenericDefinitionFallback(configurationRegistry);
 			this.inheritors = inheritors;
-			this.staticContainer = staticContainer;
-			CacheLevel = cacheLevel;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
-			this.staticServices = staticServices;
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
 		}
@@ -162,7 +154,7 @@ namespace SimpleContainer.Implementation
 			{
 				ContainerService service;
 				if (wrap.TryGet(out service))
-					service.CollectInstances(interfaceType, CacheLevel, seen, target);
+					service.CollectInstances(interfaceType, seen, target);
 			}
 			return target;
 		}
@@ -170,28 +162,20 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
-				CacheLevel, staticServices, null, infoLogger);
+			return new SimpleContainer(CloneConfiguration(configure), inheritors, null, infoLogger);
 		}
 
 		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
 		{
 			if (configure == null)
 				return Configuration;
-			var builder = new ContainerConfigurationBuilder(false);
+			var builder = new ContainerConfigurationBuilder();
 			configure(builder);
 			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
 		}
 
-		internal virtual CacheLevel GetCacheLevel(Type type)
-		{
-			return staticServices.Contains(type) || type.IsDefined<StaticAttribute>() ? CacheLevel.Static : CacheLevel.Local;
-		}
-
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
 		{
-			if (CacheLevel == CacheLevel.Local && GetCacheLevel(type) == CacheLevel.Static)
-				return staticContainer.ResolveSingleton(type, context);
 			var cacheKey = new ServiceName(type, context.Contracts.ToArray());
 			var id = instanceCache.GetOrAdd(cacheKey, createWrap);
 			var cycle = context.BuilderByToken(id);
@@ -492,6 +476,7 @@ namespace SimpleContainer.Implementation
 			}
 			return resultService.AsSingleInstanceDependency(null);
 		}
+
 		public void Dispose()
 		{
 			if (disposed)

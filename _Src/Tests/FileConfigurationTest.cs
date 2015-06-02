@@ -231,12 +231,10 @@ namespace SimpleContainer.Tests
 				File.WriteAllText(configFileName, "A.parameter->11");
 				var factory = new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
-					.WithConfigFile(configFileName);
-				using (var staticContainer = factory.FromAssemblies(new[] {assembly}))
-				{
-					var e = Assert.Throws<SimpleContainerException>(() => staticContainer.CreateLocalContainer(null, assembly, null, null));
-					Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
-				}
+					.WithConfigFile(configFileName)
+					.WithTypesFromAssemblies(new[] { assembly });
+				var e = Assert.Throws<SimpleContainerException>(() => factory.Build());
+				Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
 			}
 		}
 
@@ -260,9 +258,7 @@ namespace SimpleContainer.Tests
 		protected IContainer Container(string configText)
 		{
 			File.WriteAllText(configFileName, configText);
-			var staticContainer = CreateStaticContainer(f => f.WithConfigFile(configFileName));
-			disposables.Add(staticContainer);
-			var result = LocalContainer(staticContainer);
+			var result = Factory().WithConfigFile(configFileName).Build();
 			disposables.Add(result);
 			return result;
 		}

@@ -46,7 +46,6 @@
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
-    <Compile Include="Configuration\StaticServicesConfigurator.cs" />
     <Compile Include="Factories\LazyPlugin.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
@@ -69,7 +68,6 @@
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
-    <Compile Include="Implementation\CacheLevel.cs" />
     <Compile Include="Configuration\ContainerConfigurationBuilder.cs" />
     <Compile Include="Implementation\ConfiguratorRunner.cs" />
     <Compile Include="Implementation\ContainerService.cs" />
@@ -92,12 +90,9 @@
     <Compile Include="Interface\OptionalService.cs" />
     <Compile Include="Interface\ParametersSourceExtensions.cs" />
     <Compile Include="Interface\ServiceCouldNotBeCreatedException.cs" />
-    <Compile Include="Infection\ContainerReferenceAttribute.cs" />
-    <Compile Include="Implementation\StaticContainer.cs" />
     <Compile Include="ContainerFactory.cs" />
     <Compile Include="Configuration\IServiceConfigurator.cs" />
     <Compile Include="Infection\OptionalAttribute.cs" />
-    <Compile Include="IStaticContainer.cs" />
     <Compile Include="IContainer.cs" />
     <Compile Include="Implementation\IInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ImplentationDependencyConfiguration.cs" />
@@ -127,7 +122,6 @@
     <Compile Include="Helpers\ReflectionEmit\UnboxingCaster.cs" />
     <Compile Include="Helpers\ReflectionHelpers.cs" />
     <Compile Include="Implementation\ResolutionContext.cs" />
-    <Compile Include="Implementation\FilteredInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ServiceConfigurationBuilder.cs" />
     <Compile Include="Implementation\SimpleContainer.cs" />
     <Compile Include="Interface\SimpleContainerException.cs" />

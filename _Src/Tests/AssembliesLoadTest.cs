@@ -1,9 +1,7 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -45,13 +43,11 @@ namespace SimpleContainer.Tests
 
 		private class FactoryInvoker : MarshalByRefObject
 		{
-			public string CreateLocalContainerWithCrash(string primaryAssemblyName)
+			public string CreateCointainerWithCrash()
 			{
-				var staticContainer = CreateStaticCointainer();
 				try
 				{
-					var primaryAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(x => x.GetName().Name == primaryAssemblyName);
-					staticContainer.CreateLocalContainer(null, primaryAssembly, null, null);
+					CreateContainer();
 					return "can't reach here";
 				}
 				catch (Exception e)
@@ -60,37 +56,12 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public int CountOfClassInCurrentAppDomainClosure(string assembyPrefix, string primaryAssemblyName, string typeName)
+			private static void CreateContainer()
 			{
-				var primaryAssembly = Assembly.Load(primaryAssemblyName);
-				var factory = new ContainerFactory()
-					.WithAssembliesFilter(x => x.Name.StartsWith(assembyPrefix));
-				using (var staticContainer = factory.FromCurrentAppDomain())
-				{
-					var type = Type.GetType(typeName);
-					using (var localContainer = staticContainer.CreateLocalContainer(null, primaryAssembly, null, null))
-						return localContainer.GetAll(type).Count();
-				}
-			}
-
-			public string CreateStaticCointainerWithCrash()
-			{
-				try
-				{
-					CreateStaticCointainer();
-					return "can't reach here";
-				}
-				catch (Exception e)
-				{
-					return e.ToString();
-				}
-			}
-
-			private static IStaticContainer CreateStaticCointainer()
-			{
-				return new ContainerFactory()
+				new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
-					.FromDefaultBinDirectory(false);
+					.WithTypesFromDefaultBinDirectory(false)
+					.Build();
 			}
 		}
 
@@ -151,91 +122,13 @@ namespace SimpleContainer.Tests
 				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
 
-				var exceptionText = GetInvoker().CreateStaticCointainerWithCrash();
+				var exceptionText = GetInvoker().CreateCointainerWithCrash();
 				Assert.That(exceptionText, Is.StringContaining("A1.ISomeInterface.Do"));
 
 				const string englishText = "Unable to load one or more of the requested types";
 				const string russianText = "Не удается загрузить один или более запрошенных типов";
 				Assert.That(exceptionText, Is.StringContaining(englishText).Or.StringContaining(russianText));
 				Assert.That(exceptionText, Is.StringContaining(primaryAssembly.GetName().Name));
-			}
-		}
-
-		public class DontStopAssemblyTreeLookupIfFilterIsNotMatched : AssembliesLoadTest
-		{
-			private const string a1Code = @"
-					using System.Collections.Specialized;
-					using SimpleContainer.Interface;
-
-					namespace A1
-					{
-						public class Component1: IComponent
-						{
-							public void Run()
-							{
-							}
-						}
-					}
-				";
-
-			private const string a2Code = @"
-					using SimpleContainer.Infection;
-
-					[assembly: ContainerReference(""{0}"")]
-				";
-
-			[Test]
-			public void Test()
-			{
-				var a1 = AssemblyCompiler.Compile(a1Code, "tmp2_" + Guid.NewGuid().ToString("N") + ".dll");
-				var a2 = AssemblyCompiler.Compile(string.Format(a2Code, a1.GetName().Name),
-					"tmp1_" + Guid.NewGuid().ToString("N") + ".dll", a1);
-
-				CopyAssemblyToTestDirectory(a1);
-				CopyAssemblyToTestDirectory(a2);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
-
-				var componentsCount = GetInvoker()
-					.CountOfClassInCurrentAppDomainClosure("tmp2", a2.GetName().Name, typeof (IComponent).AssemblyQualifiedName);
-				Assert.That(componentsCount, Is.EqualTo(1));
-			}
-		}
-
-		public class DisplayReferenceChainForAssemblyLoadExceptions : AssembliesLoadTest
-		{
-			private const string a1Code = @"
-				";
-
-			private const string a2Code = @"
-					using SimpleContainer.Infection;
-
-					[assembly: ContainerReference(""{0}"")]
-				";
-
-			private const string a3Code = @"
-					using SimpleContainer.Infection;
-
-					[assembly: ContainerReference(""{0}"")]
-				";
-
-			[Test]
-			public void Test()
-			{
-				var a1 = AssemblyCompiler.Compile(a1Code);
-				var a2 = AssemblyCompiler.Compile(string.Format(a2Code, a1.GetName().Name), a1);
-				var a3 = AssemblyCompiler.Compile(string.Format(a3Code, a2.GetName().Name), a2);
-
-				CopyAssemblyToTestDirectory(a2);
-				CopyAssemblyToTestDirectory(a3);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
-
-				var exceptionText = GetInvoker().CreateLocalContainerWithCrash(a3.GetName().Name);
-				const string keyFormat = "exception loading assembly [{0}], " +
-				                         "reference chain [{1}]->[{2}], directories searched [{3}]";
-				var exceptionKey = string.Format(keyFormat, a1.GetName().Name, a3.GetName().Name, a2.GetName().Name, testDirectory);
-				Assert.That(exceptionText, Is.StringContaining(exceptionKey));
 			}
 		}
 	}

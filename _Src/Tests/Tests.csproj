@@ -83,13 +83,11 @@
     <Compile Include="RunComponentsTest.cs" />
     <Compile Include="DisposeTest.cs" />
     <Compile Include="CloneContainerTest.cs" />
-    <Compile Include="HostingAssembliesTest.cs" />
     <Compile Include="ContainerConfigurationTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="LongRunning\SimpleContainerConcurrentTest.cs" />
     <Compile Include="GetDependenciesTest.cs" />
     <Compile Include="Helpers\SimpleContainerTestBase.cs" />
-    <Compile Include="StaticContainerTest.cs" />
     <Compile Include="Helpers\UnitTestBase.cs" />
   </ItemGroup>
   <ItemGroup>

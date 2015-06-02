@@ -17,7 +17,6 @@ namespace SimpleContainer.Implementation
 
 		private object[] typedArray;
 		private volatile bool runCalled;
-		private CacheLevel cacheLevel;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
@@ -74,22 +73,18 @@ namespace SimpleContainer.Implementation
 					}
 		}
 
-		public void CollectInstances(Type interfaceType, CacheLevel targetCacheLevel,
-			ISet<object> seen, List<NamedInstance> target)
+		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
 		{
 			if (Status.IsBad())
-				return;
-			if (cacheLevel != targetCacheLevel)
 				return;
 			if (dependencies != null)
 				foreach (var dependency in dependencies)
 					if (dependency.ContainerService != null)
-						dependency.ContainerService.CollectInstances(interfaceType, targetCacheLevel, seen, target);
+						dependency.ContainerService.CollectInstances(interfaceType, seen, target);
 			foreach (var instance in instances)
 			{
 				var obj = instance.Instance;
 				var acceptInstance = instance.Owned &&
-				                     instance.CacheLevel == targetCacheLevel &&
 				                     interfaceType.IsInstanceOfType(obj) &&
 				                     seen.Add(obj);
 				if (acceptInstance)
@@ -119,7 +114,7 @@ namespace SimpleContainer.Implementation
 			if (attentionRequired)
 				context.Writer.WriteMeta("!");
 			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
-			context.Writer.WriteName(cacheLevel == CacheLevel.Static ? "(s)" + formattedName : formattedName);
+			context.Writer.WriteName(formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 			if (instances.Length > 1)
@@ -214,11 +209,7 @@ namespace SimpleContainer.Implementation
 
 			public Builder(Type type, SimpleContainer container, ResolutionContext context)
 			{
-				target = new ContainerService
-				{
-					Type = type,
-					cacheLevel = container.CacheLevel
-				};
+				target = new ContainerService {Type = type};
 				Context = context;
 				Container = container;
 				DeclaredContracts = context.Contracts.ToArray();
@@ -259,7 +250,7 @@ namespace SimpleContainer.Implementation
 
 			public void AddInstance(object instance, bool owned)
 			{
-				instances.Add(new InstanceWrap(instance, target.cacheLevel, owned));
+				instances.Add(new InstanceWrap(instance, owned));
 			}
 
 			public void AddDependency(ServiceDependency dependency, bool isUnion)

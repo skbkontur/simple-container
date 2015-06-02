@@ -9,24 +9,12 @@ namespace SimpleContainer.Configuration
 		private readonly Type profile;
 		private readonly Func<Type, string, object> settingsLoader;
 
-		internal ConfigurationContext(Type profile, Func<Type, string, object> settingsLoader)
+		internal ConfigurationContext(Type profile, Func<Type, string, object> settingsLoader, IParametersSource parameters)
 		{
 			this.profile = profile;
 			this.settingsLoader = settingsLoader;
-			ApplicationName = "global";
+			Parameters = parameters ?? new EmptyParametersSource();
 		}
-
-		internal ConfigurationContext Local(string name, IParametersSource parameters)
-		{
-			return new ConfigurationContext(profile, settingsLoader)
-			{
-				ApplicationName = name,
-				Parameters = parameters ?? new EmptyParametersSource(),
-				IsLocal = true
-			};
-		}
-
-		internal bool IsLocal { get; private set; }
 
 		private class EmptyParametersSource : IParametersSource
 		{
@@ -43,7 +31,6 @@ namespace SimpleContainer.Configuration
 			return profile == typeof (T);
 		}
 
-		public string ApplicationName { get; private set; }
 		public IParametersSource Parameters { get; private set; }
 
 		public T Settings<T>(string key = null)
@@ -53,7 +40,7 @@ namespace SimpleContainer.Configuration
 				const string message = "settings loader is not configured, use ContainerFactory.WithSettingsLoader";
 				throw new SimpleContainerException(message);
 			}
-			var settingsInstance = settingsLoader(typeof(T), key);
+			var settingsInstance = settingsLoader(typeof (T), key);
 			if (settingsInstance == null)
 			{
 				const string messageFormat = "settings loader returned null for type [{0}]";

@@ -16,12 +16,15 @@ namespace SimpleContainer
 	{
 		private Type profile;
 		private Func<AssemblyName, bool> assembliesFilter;
-		private Func<Type,string, object> settingsLoader;
+		private Func<Type, string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
 		private readonly List<Assembly> pluginAssemblies = new List<Assembly>();
-		private Type[] configuratorTypes;
+		private Type[] priorities;
+		private Action<ContainerConfigurationBuilder> configure;
+		private Type[] types;
+		private IParametersSource parameters;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -29,11 +32,23 @@ namespace SimpleContainer
 			settingsLoader = (t, _) => cache.GetOrAdd(t, newLoader);
 			return this;
 		}
-		
-		public ContainerFactory WithSettingsLoader(Func<Type,string, object> newLoader)
+
+		public ContainerFactory WithSettingsLoader(Func<Type, string, object> newLoader)
 		{
 			var cache = new ConcurrentDictionary<string, object>();
 			settingsLoader = (t, k) => cache.GetOrAdd(t.Name + k, s => newLoader(t, k));
+			return this;
+		}
+
+		public ContainerFactory WithConfigurator(Action<ContainerConfigurationBuilder> newConfigure)
+		{
+			configure = newConfigure;
+			return this;
+		}
+		
+		public ContainerFactory WithParameters(IParametersSource newParameters)
+		{
+			parameters = newParameters;
 			return this;
 		}
 
@@ -45,7 +60,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithPriorities(params Type[] newConfiguratorTypes)
 		{
-			configuratorTypes = newConfiguratorTypes;
+			priorities = newConfiguratorTypes;
 			return this;
 		}
 
@@ -82,12 +97,12 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public IStaticContainer FromDefaultBinDirectory(bool withExecutables)
+		public ContainerFactory WithTypesFromDefaultBinDirectory(bool withExecutables)
 		{
-			return FromDirectory(GetBinDirectory(), withExecutables);
+			return WithTypesFromDirectory(GetBinDirectory(), withExecutables);
 		}
 
-		public IStaticContainer FromDirectory(string directory, bool withExecutables)
+		public ContainerFactory WithTypesFromDirectory(string directory, bool withExecutables)
 		{
 			var assemblies = Directory.GetFiles(directory, "*.dll")
 				.Union(withExecutables ? Directory.GetFiles(directory, "*.exe") : Enumerable.Empty<string>())
@@ -106,17 +121,67 @@ namespace SimpleContainer
 				.Where(assembliesFilter)
 				.AsParallel()
 				.Select(AssemblyHelpers.LoadAssembly);
-			return FromAssemblies(assemblies);
+			return WithTypesFromAssemblies(assemblies);
 		}
 
-		public IStaticContainer FromAssemblies(IEnumerable<Assembly> assemblies)
+		public ContainerFactory WithTypesFromAssemblies(IEnumerable<Assembly> assemblies)
 		{
-			return FromAssemblies(assemblies.AsParallel());
+			return WithTypesFromAssemblies(assemblies.AsParallel());
 		}
 
-		private IStaticContainer FromAssemblies(ParallelQuery<Assembly> assemblies)
+
+		public ContainerFactory WithTypes(Type[] newTypes)
 		{
-			var types = assemblies
+			types = newTypes;
+			return this;
+		}
+
+		public IContainer Build()
+		{
+			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
+			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
+			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
+			var builder = new ContainerConfigurationBuilder();
+			var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
+			var configuration = CreateDefaultConfiguration(hostingTypes);
+			using (var container = new Implementation.SimpleContainer(configuration, inheritors, errorLogger, infoLogger))
+			{
+				var runner = container.Get<ConfiguratorRunner>();
+				runner.Run(builder, configurationContext, priorities);
+			}
+			if (configure != null)
+				configure(builder);
+			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
+			if (fileConfigurator != null)
+				fileConfigurator(_ => true, builder);
+			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
+			return new Implementation.SimpleContainer(containerConfiguration, inheritors, errorLogger, infoLogger);
+		}
+
+		private static string GetBinDirectory()
+		{
+			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
+				? AppDomain.CurrentDomain.BaseDirectory
+				: AppDomain.CurrentDomain.RelativeSearchPath;
+		}
+
+		private IConfigurationRegistry CreateDefaultConfiguration(Type[] targetTypes)
+		{
+			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
+			var builder = new ConfigurationRegistry.Builder();
+
+			foreach (var type in targetTypes)
+				if (!type.Assembly.FullName.Contains("FunctionalTests"))
+					genericsProcessor.FirstRun(type);
+			foreach (var type in targetTypes)
+				if (!type.Assembly.FullName.Contains("FunctionalTests"))
+					genericsProcessor.SecondRun(builder, type);
+			return builder.Build();
+		}
+
+		private ContainerFactory WithTypesFromAssemblies(ParallelQuery<Assembly> assemblies)
+		{
+			var newTypes = assemblies
 				.Where(x => assembliesFilter(x.GetName()))
 				.SelectMany(a =>
 				{
@@ -132,53 +197,7 @@ namespace SimpleContainer
 					}
 				})
 				.ToArray();
-			return FromTypes(types);
-		}
-
-		public IStaticContainer FromTypes(Type[] types)
-		{
-			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
-			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
-			var configuration = CreateDefaultConfiguration(hostingTypes);
-			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-
-			var builder = new ContainerConfigurationBuilder(true);
-			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, configuratorTypes))
-				runner.Run(builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
-			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
-			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, builder.StaticServices.GetStaticServices(), fileConfigurator,
-				errorLogger, infoLogger, pluginAssemblies, configuratorTypes);
-		}
-
-		public IStaticContainer FromCurrentAppDomain()
-		{
-			return FromAssemblies(AppDomain.CurrentDomain.GetAssemblies().Where(x => !x.IsDynamic).Closure(assembliesFilter));
-		}
-
-		private static string GetBinDirectory()
-		{
-			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
-				? AppDomain.CurrentDomain.BaseDirectory
-				: AppDomain.CurrentDomain.RelativeSearchPath;
-		}
-
-		private IConfigurationRegistry CreateDefaultConfiguration(Type[] types)
-		{
-			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
-			var builder = new ConfigurationRegistry.Builder();
-
-			foreach (var type in types)
-				if (!type.Assembly.FullName.Contains("FunctionalTests"))
-					genericsProcessor.FirstRun(type);
-			foreach (var type in types)
-			{
-				if (!type.Assembly.FullName.Contains("FunctionalTests"))
-					genericsProcessor.SecondRun(builder, type);
-			}
-			return builder.Build();
+			return WithTypes(newTypes);
 		}
 	}
 }
