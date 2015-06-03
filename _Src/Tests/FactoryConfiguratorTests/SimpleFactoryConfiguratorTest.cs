@@ -1,5 +1,6 @@
 ﻿using System;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -214,6 +215,22 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var a = container.Get<A>();
 				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
 				Assert.That(error.Message, Is.EqualTo("many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\nIB++\r\n\tB1\r\n\tB2"));
+			}
+		}
+
+		public class CanInjectFuncWithArgumentsUsingBuildUp : SimpleFactoryConfiguratorTest
+		{
+			public class A
+			{
+			}
+
+			[Inject] private Func<object, A> createA;
+
+			[Test]
+			public void Test()
+			{
+				Container().BuildUp(this, new string[0]);
+				Assert.DoesNotThrow(()=>createA(new object()));
 			}
 		}
 
