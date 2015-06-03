@@ -68,7 +68,6 @@
     <Compile Include="Configuration\IContainerConfigurator.cs" />
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />
-    <Compile Include="Factories\FactoryCreator.cs" />
     <Compile Include="Helpers\InternalHelpers.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
     <Compile Include="Implementation\CacheLevel.cs" />
@@ -80,7 +79,6 @@
     <Compile Include="Factories\DelegateCaster.cs" />
     <Compile Include="Factories\IFactoryPlugin.cs" />
     <Compile Include="Factories\FactoryPlugin.cs" />
-    <Compile Include="Interface\FactoryContext.cs" />
     <Compile Include="Generics\GenericComponent.cs" />
     <Compile Include="Generics\GenericDependency.cs" />
     <Compile Include="Generics\GenericOverrideInfo.cs" />

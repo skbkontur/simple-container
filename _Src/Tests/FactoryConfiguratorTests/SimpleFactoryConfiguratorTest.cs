@@ -234,6 +234,38 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
+		public class DoNotShowCommentForFactoryErrors : SimpleFactoryConfiguratorTest
+		{
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.GetAll<B>());
+				Assert.That(error.Message, Is.EqualTo("parameter [parameter] of service [A] is not configured\r\n\r\n!B\r\n\tFunc<A>\r\n\t!() => A\r\n\t\t!parameter <---------------"));
+			}
+
+			public class B
+			{
+				public readonly A createA;
+
+				public B(Func<A> createA)
+				{
+					this.createA = createA();
+					Assert.Fail("must not reach here");
+				}
+			}
+
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+		}
+
 		public class ArgumentsAreNotUsedForDependencies : SimpleFactoryConfiguratorTest
 		{
 			public class Wrap

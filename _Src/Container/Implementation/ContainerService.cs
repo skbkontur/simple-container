@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -340,7 +341,11 @@ namespace SimpleContainer.Implementation
 			public void EndResolveDependencies()
 			{
 				if (target.UsedContracts == null)
-					target.UsedContracts = GetUsedContractNamesFromContext();
+					target.UsedContracts = usedContractNames == null
+						? InternalHelpers.emptyStrings
+						: DeclaredContracts
+							.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+							.ToArray();
 			}
 
 			public void Reuse(ContainerService containerService)
@@ -362,15 +367,6 @@ namespace SimpleContainer.Implementation
 				return target;
 			}
 
-			private string[] GetUsedContractNamesFromContext()
-			{
-				return usedContractNames == null
-					? InternalHelpers.emptyStrings
-					: DeclaredContracts
-						.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-						.ToArray();
-			}
-
 			private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)
 			{
 				if (dependencyStatus == ServiceStatus.Error)
@@ -378,6 +374,32 @@ namespace SimpleContainer.Implementation
 				if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
 					return ServiceStatus.Ok;
 				return dependencyStatus;
+			}
+
+			public void CreateInstanceBy(Func<object> creator, bool owned)
+			{
+				object instance;
+				try
+				{
+					instance = creator();
+				}
+				catch (ServiceCouldNotBeCreatedException e)
+				{
+					if (!string.IsNullOrEmpty(e.Message))
+						SetComment(e.Message);
+					return;
+				}
+				catch (Exception e)
+				{
+					SetError(e);
+					return;
+				}
+				AddInstance(instance, owned);
+			}
+
+			public void CreateInstance(MethodBase method, object self, object[] actualArguments)
+			{
+				CreateInstanceBy(() => MethodInvoker.Invoke(method, self, actualArguments), true);
 			}
 		}
 	}

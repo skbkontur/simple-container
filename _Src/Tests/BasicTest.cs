@@ -753,37 +753,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class FactoryDependantOnServiceType : BasicTest
-		{
-			[Test]
-			public void Test()
-			{
-				var container = Container(builder => builder.Bind(c => new ChildService(c.target)));
-				Assert.That(container.Get<SomeService>().ChildService.ParentService, Is.EqualTo(typeof (SomeService)));
-				Assert.That(container.Get<ChildService>().ParentService, Is.Null);
-			}
-
-			public class ChildService
-			{
-				public ChildService(Type parentService)
-				{
-					ParentService = parentService;
-				}
-
-				public Type ParentService { get; private set; }
-			}
-
-			public class SomeService
-			{
-				public SomeService(ChildService childService)
-				{
-					ChildService = childService;
-				}
-
-				public ChildService ChildService { get; private set; }
-			}
-		}
-
 		public class GetAfterGetAll_CorrectErrorMessage : BasicTest
 		{
 			[Test]
@@ -949,59 +918,6 @@ namespace SimpleContainer.Tests
 
 			public class Impl2 : ISomeInterface
 			{
-			}
-		}
-
-		public class ImplementationWithExplicitDelegateFactory : BasicTest
-		{
-			[Test]
-			public void Test()
-			{
-				var impl = new Impl();
-				var container = Container(x => x.Bind<IInterface>(c => impl));
-				Assert.That(container.Get<IInterface>(), Is.SameAs(impl));
-			}
-
-			public interface IInterface
-			{
-			}
-
-			public class Impl : IInterface
-			{
-			}
-		}
-
-		public class ExplicitDelegateFactoryWithEnumerableInjection : BasicTest
-		{
-			public class A
-			{
-				public readonly IEnumerable<IX> instances;
-
-				public A(IEnumerable<IX> instances)
-				{
-					this.instances = instances;
-				}
-			}
-
-			public interface IX
-			{
-			}
-
-			public class X : IX
-			{
-				public readonly Type target;
-
-				public X(Type target)
-				{
-					this.target = target;
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Bind<IX>(c => new X(c.target)));
-				Assert.That(container.Get<A>().instances.Cast<X>().Single().target, Is.EqualTo(typeof (A)));
 			}
 		}
 
@@ -1735,35 +1651,6 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
 					Is.EqualTo("A\r\n\tIInterface\r\n\t\t!B1 - invalid test condition\r\n\t\tB2"));
-			}
-		}
-
-		public class LastConfigurationWins : BasicTest
-		{
-			public class A
-			{
-				public readonly B parameter;
-
-				public A(B parameter)
-				{
-					this.parameter = parameter;
-				}
-			}
-
-			public class B
-			{
-				public int value;
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(delegate(ContainerConfigurationBuilder b)
-				{
-					b.Bind(c => new B {value = 1});
-					b.Bind<B>(new B {value = 2});
-				});
-				Assert.That(container.Get<A>().parameter.value, Is.EqualTo(2));
 			}
 		}
 

@@ -5,6 +5,7 @@ using System.Reflection;
 using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Factories
 {
@@ -14,17 +15,17 @@ namespace SimpleContainer.Factories
 		{
 			if (!builder.Type.IsGenericType || !typeof (Delegate).IsAssignableFrom(builder.Type))
 				return false;
-			foreach (var factoryType in factoryTypes)
+			foreach (var creator in factoryCreators)
 			{
-				if (builder.Type.GetGenericTypeDefinition() != factoryType.FuncType)
+				if (builder.Type.GetGenericTypeDefinition() != creator.FuncType)
 					continue;
 				var arguments = builder.Type.GetGenericArguments();
-				if (arguments.Length != factoryType.FormalParameterTypes.Length + 1)
+				if (arguments.Length != creator.FormalParameterTypes.Length + 1)
 					continue;
-				if (!arguments.StartsWith(factoryType.FormalParameterTypes, EqualityComparer<Type>.Default))
+				if (!arguments.StartsWith(creator.FormalParameterTypes, EqualityComparer<Type>.Default))
 					continue;
 				var resultType = arguments[arguments.Length - 1];
-				var factory = factoryType.TryCreate(resultType, builder);
+				var factory = creator.TryCreate(resultType, builder);
 				if (factory == null)
 					continue;
 				builder.AddInstance(factory, true);
@@ -33,16 +34,16 @@ namespace SimpleContainer.Factories
 			return false;
 		}
 
-		private static FactoryType F(params Type[] types)
+		private static FactoryCreator F(params Type[] types)
 		{
-			return new FactoryType(types);
+			return new FactoryCreator(types);
 		}
 
-		private readonly FactoryType[] factoryTypes =
+		private readonly FactoryCreator[] factoryCreators =
 		{
 			F().CreateBy(delegate(Type type, ContainerService.Builder builder)
 			{
-				var baseFactory = FactoryCreator.CreateFactory(builder);
+				var baseFactory = CreateFactory(builder);
 				Func<object> factory = () => baseFactory(type, null);
 				return DelegateCaster.Create(type).Cast(factory);
 			}),
@@ -61,26 +62,25 @@ namespace SimpleContainer.Factories
 				if (closingParameters.Length != 1)
 					return null;
 				var parameter = closingParameters[0];
-				var baseFactory = FactoryCreator.CreateFactory(builder);
+				var baseFactory = CreateFactory(builder);
 				Func<object, object> factory = delegate(object o)
 				{
 					var accessor = ObjectAccessor.Get(o);
 					object parameterValue;
 					if (!accessor.TryGet(parameter.Name, out parameterValue))
 						throw new InvalidOperationException("can't detect type of " + implementationType.FormatName());
-					var makeGenericTypes = implementationType.CloseBy(parameter.ParameterType, parameterValue.GetType())
-						.ToArray();
-					if (makeGenericTypes.Length > 1)
+					var closedTypes = implementationType.CloseBy(parameter.ParameterType, parameterValue.GetType()).ToArray();
+					if (closedTypes.Length > 1)
 						throw new NotSupportedException(
 							string.Format("cannot auto close type {0} with multiple interfaces on parameter {1} for serviceType {2}",
 								implementationType, parameter.ParameterType, hostService.Type));
-					return baseFactory(makeGenericTypes[0], o);
+					return baseFactory(closedTypes[0], o);
 				};
 				return DelegateCaster.Create(type).Cast(factory);
 			}),
 			F(typeof (object)).CreateBy(delegate(Type type, ContainerService.Builder builder)
 			{
-				var baseFactory = FactoryCreator.CreateFactory(builder);
+				var baseFactory = CreateFactory(builder);
 				Func<object, object> factory = o => baseFactory(type, o);
 				return DelegateCaster.Create(type).Cast(factory);
 			}),
@@ -90,7 +90,7 @@ namespace SimpleContainer.Factories
 				var implementationType = GetImplementationDefinitionOrNull(type, hostService.Type);
 				if (implementationType == null)
 					return null;
-				var baseFactory = FactoryCreator.CreateFactory(builder);
+				var baseFactory = CreateFactory(builder);
 				Func<Type, object, object> factory = (t, o) => baseFactory(implementationType.MakeGenericType(t), o);
 				return DelegateCaster.Create(type).Cast(factory);
 			})
@@ -110,15 +110,37 @@ namespace SimpleContainer.Factories
 			return implementationType;
 		}
 
-		private class FactoryType
+		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder)
 		{
-			public FactoryType(params Type[] types)
+			var declaredContractNames = builder.DeclaredContracts;
+			var hostService = builder.Context.GetPreviousService();
+			builder.UseAllDeclaredContracts();
+			return delegate(Type type, object arguments)
+			{
+				if (hostService == null || hostService != builder.Context.GetTopService())
+				{
+					var resolvedService = builder.Container.Create(type, declaredContractNames, arguments);
+					resolvedService.Run();
+					return resolvedService.Single();
+				}
+				var result = builder.Container.Create(type, declaredContractNames, arguments, builder.Context);
+				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
+				hostService.AddDependency(resultDependency, false);
+				if (resultDependency.Status != ServiceStatus.Ok)
+					throw new ServiceCouldNotBeCreatedException();
+				return resultDependency.Value;
+			};
+		}
+
+		private class FactoryCreator
+		{
+			public FactoryCreator(params Type[] types)
 			{
 				FormalParameterTypes = types;
 				FuncType = GetFuncType(types.Length);
 			}
 
-			public FactoryType CreateBy(Func<Type, ContainerService.Builder, Delegate> creator)
+			public FactoryCreator CreateBy(Func<Type, ContainerService.Builder, Delegate> creator)
 			{
 				TryCreate = creator;
 				return this;
