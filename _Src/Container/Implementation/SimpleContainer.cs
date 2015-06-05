@@ -402,7 +402,7 @@ namespace SimpleContainer.Implementation
 				actualArguments[i] = dependency.Value;
 			}
 			builder.EndResolveDependencies();
-			var unusedConfigurationKeys = builder.Configuration.GetUnusedDependencyConfigurationKeys();
+			var unusedConfigurationKeys = builder.Configuration.GetUnusedDependencyConfigurationKeys(builder.Arguments);
 			if (unusedConfigurationKeys.Length > 0)
 			{
 				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));

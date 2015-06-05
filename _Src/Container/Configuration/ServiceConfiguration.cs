@@ -64,9 +64,10 @@ namespace SimpleContainer.Configuration
 			return result;
 		}
 
-		public string[] GetUnusedDependencyConfigurationKeys()
+		public string[] GetUnusedDependencyConfigurationKeys(IObjectAccessor arguments)
 		{
-			return dependencies.Where(x => !x.Used).Select(x => x.Key).ToArray();
+			var dependenciesResolvedByArguments = arguments == null ? InternalHelpers.emptyStrings : arguments.GetUsed().Select(InternalHelpers.ByNameDependencyKey);
+			return dependencies.Where(x => !x.Used).Select(x => x.Key).Except(dependenciesResolvedByArguments).ToArray();
 		}
 
 		internal class Builder

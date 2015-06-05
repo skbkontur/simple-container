@@ -42,6 +42,11 @@ namespace SimpleContainer.Helpers
 				return result;
 			}
 
+			public IEnumerable<string> GetUsed()
+			{
+				return used;
+			}
+
 			public IEnumerable<string> GetUnused()
 			{
 				return typeAccessor.GetNames().Except(used);
