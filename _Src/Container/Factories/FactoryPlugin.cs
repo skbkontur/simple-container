@@ -50,6 +50,8 @@ namespace SimpleContainer.Factories
 			F(typeof (object)).CreateBy(delegate(Type type, ContainerService.Builder builder)
 			{
 				var hostService = builder.Context.GetPreviousService();
+				if (hostService == null)
+					return null;
 				var implementationType = GetImplementationDefinitionOrNull(type, hostService.Type);
 				if (implementationType == null)
 					return null;
