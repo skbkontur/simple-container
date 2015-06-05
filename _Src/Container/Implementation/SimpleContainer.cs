@@ -43,7 +43,7 @@ namespace SimpleContainer.Implementation
 			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
 			LogInfo infoLogger)
 		{
-			Configuration = new ConfigurationRegistryWithGenericDefinitionFallback(configurationRegistry);
+			Configuration = configurationRegistry;
 			this.inheritors = inheritors;
 			this.staticContainer = staticContainer;
 			CacheLevel = cacheLevel;
@@ -118,12 +118,20 @@ namespace SimpleContainer.Implementation
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
 		{
-			return Configuration.GetConfigurationOrNull(type, new List<string>());
+			return GetConfigurationOrNull(type, new List<string>());
 		}
 
 		internal ServiceConfiguration GetConfiguration(Type type, ResolutionContext context)
 		{
-			return Configuration.GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
+			return GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
+		}
+
+		private ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
+		{
+			var result = Configuration.GetConfigurationOrNull(type, contracts);
+			if (result == null && type.IsGenericType)
+				result = Configuration.GetConfigurationOrNull(type.GetDefinition(), contracts);
+			return result;
 		}
 
 		public IEnumerable<Type> GetImplementationsOf(Type interfaceType)
