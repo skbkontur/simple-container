@@ -9,7 +9,7 @@ using SimpleContainer.Interface;
 
 namespace SimpleContainer.Factories
 {
-	internal class FactoryPlugin : IFactoryPlugin
+	internal static class FactoryCreator
 	{
 		private static readonly ILookup<Type, MethodInfo> signatures = typeof (SupportedSignatures)
 			.GetMethods(BindingFlags.Static | BindingFlags.Public)
@@ -24,19 +24,19 @@ namespace SimpleContainer.Factories
 			return Delegate.CreateDelegate(delegateType, key.signature.MakeGenericMethod(key.resultType));
 		};
 
-		public bool TryInstantiate(ContainerService.Builder builder)
+		public static object TryCreate(ContainerService.Builder builder)
 		{
 			var funcType = builder.Type;
 			if (!funcType.IsGenericType || !typeof (Delegate).IsAssignableFrom(funcType))
-				return false;
+				return null;
 			Type resultType;
 			var signature = FindSignature(funcType, out resultType);
 			if (signature == null)
-				return false;
+				return null;
+			var factory = CreateFactory(builder);
 			var caster = casters.GetOrAdd(new SignatureDelegateKey(resultType, signature), createCaster);
 			var typedCaster = (Func<Func<Type, object, object>, object>) caster;
-			builder.AddInstance(typedCaster(CreateFactory(builder)), true);
-			return true;
+			return typedCaster(factory);
 		}
 
 		private static MethodInfo FindSignature(Type funcType, out Type resultType)

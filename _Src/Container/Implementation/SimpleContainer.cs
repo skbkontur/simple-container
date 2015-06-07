@@ -16,13 +16,6 @@ namespace SimpleContainer.Implementation
 	internal class SimpleContainer : IContainer
 	{
 		private readonly Func<ServiceName, ContainerServiceId> createWrap;
-
-		private static readonly IFactoryPlugin[] factoryPlugins =
-		{
-			new FactoryPlugin(),
-			new LazyPlugin()
-		};
-
 		private readonly StaticContainer staticContainer;
 
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
@@ -243,13 +236,17 @@ namespace SimpleContainer.Implementation
 				builder.SetError("can't create value type");
 			else if (builder.Type.IsGenericType && builder.Type.ContainsGenericParameters)
 				builder.SetError("can't create open generic");
-			else if (factoryPlugins.Any(p => p.TryInstantiate(builder)))
-			{
-			}
 			else if (builder.Type.IsAbstract)
 				InstantiateInterface(builder);
 			else
 				InstantiateImplementation(builder);
+
+			if (builder.Configuration.InstanceFilter != null)
+			{
+				var filteredOutCount = builder.FilterInstances(builder.Configuration.InstanceFilter);
+				if (filteredOutCount > 0)
+					builder.SetComment("instance filter");
+			}
 		}
 
 		private void InstantiateInterface(ContainerService.Builder builder)
@@ -324,39 +321,15 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateImplementation(ContainerService.Builder builder)
 		{
-			if (builder.Type.IsDefined("IgnoredImplementationAttribute"))
-			{
+			var result = FactoryCreator.TryCreate(builder) ?? LazyCreator.TryCreate(builder);
+			if (result != null)
+				builder.AddInstance(result, true);
+			else if (builder.Type.IsDefined("IgnoredImplementationAttribute"))
 				builder.SetComment("IgnoredImplementation");
-				return;
-			}
-			if (builder.Configuration.DontUseIt)
-			{
+			else if (builder.Configuration.DontUseIt)
 				builder.SetComment("DontUse");
-				return;
-			}
-			var factoryMethod = GetFactoryOrNull(builder.Type);
-			if (factoryMethod == null)
+			else if (!NestedFactoryCreator.TryCreate(builder))
 				DefaultInstantiateImplementation(builder);
-			else
-			{
-				var factory = ResolveSingleton(factoryMethod.DeclaringType, builder.Context);
-				var dependency = factory.AsSingleInstanceDependency(null);
-				builder.AddDependency(dependency, false);
-				if (dependency.Status == ServiceStatus.Ok)
-					builder.CreateInstance(factoryMethod, dependency.Value, new object[0]);
-			}
-			if (builder.Configuration.InstanceFilter != null)
-			{
-				var filteredOutCount = builder.FilterInstances(builder.Configuration.InstanceFilter);
-				if (filteredOutCount > 0)
-					builder.SetComment("instance filter");
-			}
-		}
-
-		private static MethodInfo GetFactoryOrNull(Type type)
-		{
-			var factoryType = type.GetNestedType("Factory");
-			return factoryType == null ? null : factoryType.GetMethod("Create", Type.EmptyTypes);
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)

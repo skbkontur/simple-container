@@ -46,7 +46,8 @@
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
     <Compile Include="Configuration\StaticServicesConfigurator.cs" />
-    <Compile Include="Factories\LazyPlugin.cs" />
+    <Compile Include="Factories\LazyCreator.cs" />
+    <Compile Include="Factories\NestedFactoryCreator.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\Helpers.cs" />
@@ -73,8 +74,7 @@
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
-    <Compile Include="Factories\IFactoryPlugin.cs" />
-    <Compile Include="Factories\FactoryPlugin.cs" />
+    <Compile Include="Factories\FactoryCreator.cs" />
     <Compile Include="Generics\GenericComponent.cs" />
     <Compile Include="Generics\GenericDependency.cs" />
     <Compile Include="Generics\GenericOverrideInfo.cs" />
