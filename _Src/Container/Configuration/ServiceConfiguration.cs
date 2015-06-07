@@ -64,9 +64,9 @@ namespace SimpleContainer.Configuration
 			return result;
 		}
 
-		public string[] GetUnusedDependencyConfigurationKeys()
+		public IEnumerable<string> GetUnusedDependencyConfigurationKeys()
 		{
-			return dependencies.Where(x => !x.Used).Select(x => x.Key).ToArray();
+			return dependencies.Where(x => !x.Used).Select(x => x.Key);
 		}
 
 		internal class Builder

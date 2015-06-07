@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using SimpleContainer.Configuration;
+using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Tests.Helpers
@@ -31,7 +32,7 @@ namespace SimpleContainer.Tests.Helpers
 		protected IStaticContainer CreateStaticContainer(Action<ContainerFactory> configureContainerFactory = null,
 			Type profile = null)
 		{
-			var targetTypes = GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
+			var targetTypes = GetType().GetNestedTypesRecursive(BindingFlags.NonPublic | BindingFlags.Public);
 			var factory = new ContainerFactory()
 				.WithAssembliesFilter(x => x.Name.StartsWith("SimpleContainer"))
 				.WithProfile(profile);

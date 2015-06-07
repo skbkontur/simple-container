@@ -1,5 +1,7 @@
 ﻿using System;
 using NUnit.Framework;
+using SimpleContainer.Helpers;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -183,7 +185,8 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class FailedResolutionsCommunicatedAsSimpleContainerExceptionOutsideOfConstructor : SimpleFactoryConfiguratorTest
+		public class FailedResolutionsCommunicatedAsSimpleContainerExceptionOutsideOfConstructor :
+			SimpleFactoryConfiguratorTest
 		{
 			public class A
 			{
@@ -224,7 +227,9 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.GetAll<B>());
-				Assert.That(error.Message, Is.EqualTo("parameter [parameter] of service [A] is not configured\r\n\r\n!B\r\n\tFunc<A>\r\n\t!() => A\r\n\t\t!parameter <---------------"));
+				Assert.That(error.Message,
+					Is.EqualTo(
+						"parameter [parameter] of service [A] is not configured\r\n\r\n!B\r\n\tFunc<A>\r\n\t!() => A\r\n\t\t!parameter <---------------"));
 			}
 
 			public class B
@@ -288,8 +293,148 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new {argument = "qq"}));
 				Assert.That(error.Message,
-					Is.EqualTo("parameter [argument] of service [Dependency] is not configured\r\n\r\n!Service\r\n\t!Dependency\r\n\t\t!argument <---------------"));
+					Is.EqualTo(
+						"parameter [argument] of service [Dependency] is not configured\r\n\r\n!Service\r\n\t!Dependency\r\n\t\t!argument <---------------"));
 			}
 		}
+
+		public class CanInjectFuncWithArgumentsUsingBuildUp : SimpleFactoryConfiguratorTest
+		{
+			public class A
+			{
+			}
+
+			[Inject] private Func<object, A> createA;
+
+			[Test]
+			public void Test()
+			{
+				Container().BuildUp(this, new string[0]);
+				Assert.DoesNotThrow(() => createA(new object()));
+			}
+		}
+
+		public class CorrectExceptionForUnresolvedService : SimpleFactoryConfiguratorTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var creator = container.Get<Func<object, IA>>();
+				var exception = Assert.Throws<SimpleContainerException>(() => creator(new {parameter = 56}));
+				Assert.That(exception.Message, Is.EqualTo("no implementations for [IA]\r\n\r\n!IA - has no implementations"));
+			}
+		}
+
+		public class CanUseAutoclosingFactoriesInBuildUp : SimpleFactoryConfiguratorTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A<T> : IA
+			{
+				public readonly IS<T> s;
+
+				public A(IS<T> s)
+				{
+					this.s = s;
+				}
+			}
+
+			public interface IS<T>
+			{
+			}
+
+			public class S1<T2> : IS<W<T2>>
+			{
+			}
+
+			public class W<T>
+			{
+			}
+
+			[Inject] private Func<object, IA> createA;
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.BuildUp(this, new String[0]);
+				Assert.That(createA(new {s = new S1<int>()}).GetType().FormatName(), Is.EqualTo("A<W<int>>"));
+			}
+		}
+
+		public class CanInjectFuncWithTypeWithArgumentsUsingBuildUp : SimpleFactoryConfiguratorTest
+		{
+			public interface IA
+			{
+				string GetDescription();
+			}
+
+			public class A<T> : IA
+			{
+				private readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+
+				public string GetDescription()
+				{
+					return typeof (T).Name + "_" + parameter;
+				}
+			}
+
+			[Inject] private Func<object, Type, IA> createA;
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.BuildUp(this, new string[0]);
+				Assert.That(createA(new {parameter = 42}, typeof (A<int>)).GetDescription(), Is.EqualTo("Int32_42"));
+			}
+		}
+
+		public class CreateWithArgumentThatOverridesConfiguredDependency : BasicTest
+		{
+			public class ServiceWithDependency
+			{
+				public readonly string dependency;
+
+				public ServiceWithDependency(string dependency)
+				{
+					this.dependency = dependency;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(builder => builder.BindDependencies<ServiceWithDependency>(new
+				{
+					dependency = "configured"
+				}));
+
+				var service = container.Create<ServiceWithDependency>(arguments: new {dependency = "argument"});
+				Assert.That(service.dependency, Is.EqualTo("argument"));
+			}
+ 		}
 	}
 }

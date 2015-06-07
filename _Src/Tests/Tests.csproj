@@ -54,7 +54,7 @@
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />
-    <Compile Include="FactoryConfiguratorTests\CanCreateNestedImplementation.cs" />
+    <Compile Include="FactoryConfiguratorTests\CanCreateConcreteGenericImplementations.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesCreatedByFactoriesAreNotSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesUsedByServicesCreatedByFactoriesAreSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\SimpleFactoryConfiguratorTest.cs" />

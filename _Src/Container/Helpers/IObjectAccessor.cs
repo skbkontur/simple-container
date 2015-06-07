@@ -6,5 +6,6 @@ namespace SimpleContainer.Helpers
 	{
 		bool TryGet(string name, out object value);
 		IEnumerable<string> GetUnused();
+		IEnumerable<string> GetUsed();
 	}
 }

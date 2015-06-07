@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 
@@ -26,6 +27,36 @@ namespace SimpleContainer.Helpers
 		public static string NameOf<T>() where T : RequireContractAttribute, new()
 		{
 			return new T().ContractName;
+		}
+
+		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
+		{
+			var allConstructors = target.GetConstructors();
+			ConstructorInfo publicConstructor = null;
+			ConstructorInfo containerConstructor = null;
+			var hasManyPublicConstructors = false;
+			foreach (var constructor in allConstructors)
+			{
+				if (!constructor.IsPublic)
+					continue;
+				if (publicConstructor != null)
+					hasManyPublicConstructors = true;
+				else
+					publicConstructor = constructor;
+				if (constructor.IsDefined("ContainerConstructorAttribute"))
+				{
+					if (containerConstructor != null)
+						return ValueOrError.Fail<ConstructorInfo>("many ctors with [ContainerConstructor] attribute");
+					containerConstructor = constructor;
+				}
+			}
+			if (containerConstructor != null)
+				return ValueOrError.Ok(containerConstructor);
+			if (hasManyPublicConstructors)
+				return ValueOrError.Fail<ConstructorInfo>("many public ctors");
+			return publicConstructor == null
+				? ValueOrError.Fail<ConstructorInfo>("no public ctors")
+				: ValueOrError.Ok(publicConstructor);
 		}
 
 		public static readonly string[] emptyStrings = new string[0];

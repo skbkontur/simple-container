@@ -224,7 +224,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				var instance = container.Get<SomeService>().Factory(typeof (int), new {argument = 42});
+				var instance = container.Get<SomeService>().Factory(typeof(SomeService.SomeGenericService<int>), new { argument = 42 });
 				Assert.That(instance.Type, Is.EqualTo(typeof (int)));
 				Assert.That(instance.Argument, Is.EqualTo(42));
 			}
@@ -244,7 +244,7 @@ namespace SimpleContainer.Tests
 
 				public Func<Type, object, ISomeInterface> Factory { get; private set; }
 
-				private class SomeGenericService<T> : ISomeInterface
+				public class SomeGenericService<T> : ISomeInterface
 				{
 					public SomeGenericService(int argument)
 					{
