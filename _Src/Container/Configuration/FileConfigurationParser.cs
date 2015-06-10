@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using SimpleContainer.Helpers;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -31,16 +29,13 @@ namespace SimpleContainer.Configuration
 
 		private static void BindDependency(Type type, string dependencyName, string dependencyText, ParseContext parseContext)
 		{
-			var constructorsInfo = new ConstructorsInfo(type);
-			ConstructorInfo constructor;
-			if (!constructorsInfo.TryGetConstructor(out constructor))
+			var serviceConstructor = type.GetConstructor();
+			if (!serviceConstructor.isOk)
 			{
-				var messageFormat = constructorsInfo.publicConstructors.Length == 0
-					? "type [{0}] has no public ctors"
-					: "type [{0}] has many public ctors";
-				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
+				var message = string.Format("type [{0}] has ", type.FormatName());
+				throw new SimpleContainerException(message + serviceConstructor.errorMessage);
 			}
-			var formalParameter = constructor.GetParameters().SingleOrDefault(x => x.Name == dependencyName);
+			var formalParameter = serviceConstructor.value.GetParameters().SingleOrDefault(x => x.Name == dependencyName);
 			if (formalParameter == null)
 			{
 				const string message = "type [{0}] has no dependency [{1}]";

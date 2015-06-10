@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Interface
@@ -12,6 +11,11 @@ namespace SimpleContainer.Interface
 		internal ResolvedService(ResolvedService resolvedService)
 		{
 			this.resolvedService = resolvedService;
+		}
+
+		public ServiceName Name
+		{
+			get { return resolvedService.Name; }
 		}
 
 		public void Run(bool dumpConstructionLog = false)
@@ -52,6 +56,11 @@ namespace SimpleContainer.Interface
 			this.containerService = containerService;
 			this.simpleContainer = simpleContainer;
 			this.isEnumerable = isEnumerable;
+		}
+
+		public ServiceName Name
+		{
+			get { return new ServiceName(containerService.Type, containerService.UsedContracts); }
 		}
 
 		public void Run(bool dumpConstructionLog = false)

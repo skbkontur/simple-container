@@ -62,14 +62,9 @@ namespace SimpleContainer.Interface
 			{
 				var result = 0;
 				foreach (var contract in Contracts)
-					result = CombineHashCodes(result, contract.GetHashCode());
+					result = Utils.CombineHashCodes(result, contract.GetHashCode());
 				return (Type.GetHashCode()*397) ^ result;
 			}
-		}
-
-		private static int CombineHashCodes(int h1, int h2)
-		{
-			return ((h1 << 5) + h1) ^ h2;
 		}
 	}
 }

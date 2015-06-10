@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -183,6 +185,58 @@ namespace SimpleContainer.Tests
 			{
 				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
 				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [int]"));
+			}
+		}
+		
+		public class MoreThanOneConstructor : FileConfigurationTest
+		{
+			public class A
+			{
+				public readonly string value;
+
+				public A(string value)
+				{
+					this.value = value;
+				}
+				
+				public A(int value)
+				{
+					this.value = value.ToString(CultureInfo.InvariantCulture);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("type [A] has many public ctors"));
+			}
+		}
+		
+		public class MoreThanOneConstructorWithContainerConstructorAttribute : FileConfigurationTest
+		{
+			public class A
+			{
+				public readonly string value;
+
+				[ContainerConstructor]
+				public A(string value)
+				{
+					this.value = value;
+				}
+
+				[ContainerConstructor]
+				public A(int value)
+				{
+					this.value = value.ToString(CultureInfo.InvariantCulture);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("type [A] has many ctors with [ContainerConstructor] attribute"));
 			}
 		}
 

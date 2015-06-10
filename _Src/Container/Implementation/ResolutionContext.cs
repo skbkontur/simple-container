@@ -119,7 +119,7 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		private FuncResult<int> PushContracts(string[] contractNames)
+		private ValueOrError<int> PushContracts(string[] contractNames)
 		{
 			var pushedContractsCount = 0;
 			foreach (var c in contractNames)
@@ -128,12 +128,12 @@ namespace SimpleContainer.Implementation
 				if (duplicate != null)
 				{
 					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-					return FuncResult.Fail<int>(messageFormat, c, DeclaredContractsKey());
+					return ValueOrError.Fail<int>(messageFormat, c, DeclaredContractsKey());
 				}
 				Contracts.Add(c);
 				pushedContractsCount++;
 			}
-			return FuncResult.Ok(pushedContractsCount);
+			return ValueOrError.Ok(pushedContractsCount);
 		}
 	}
 }

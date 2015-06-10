@@ -40,20 +40,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
-    <Compile Include="Configuration\ConfigurationRegistryWithGenericDefinitionFallback.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
-    <Compile Include="Factories\LazyPlugin.cs" />
+    <Compile Include="Factories\LazyCreator.cs" />
+    <Compile Include="Factories\NestedFactoryCreator.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
-    <Compile Include="Implementation\ConstructorsInfo.cs" />
     <Compile Include="Implementation\ContainerServiceId.cs" />
-    <Compile Include="Implementation\FuncResult.cs" />
+    <Compile Include="Implementation\ValueOrError.cs" />
     <Compile Include="Implementation\InstanceWrap.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\NamedInstance.cs" />
@@ -73,9 +72,7 @@
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
-    <Compile Include="Factories\DelegateCaster.cs" />
-    <Compile Include="Factories\IFactoryPlugin.cs" />
-    <Compile Include="Factories\FactoryPlugin.cs" />
+    <Compile Include="Factories\FactoryCreator.cs" />
     <Compile Include="Generics\GenericComponent.cs" />
     <Compile Include="Generics\GenericDependency.cs" />
     <Compile Include="Generics\GenericOverrideInfo.cs" />
@@ -83,7 +80,7 @@
     <Compile Include="Generics\TypeHelpers.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
-    <Compile Include="Configuration\FileBasedConfigurator.cs" />
+    <Compile Include="Configuration\FileConfigurationParser.cs" />
     <Compile Include="Implementation\MemberSetter.cs" />
     <Compile Include="Implementation\MemberInjectionsProvider.cs" />
     <Compile Include="Interface\IParametersSource.cs" />
@@ -110,6 +107,7 @@
     <Compile Include="Helpers\ObjectAccessor.cs" />
     <Compile Include="Interface\LogError.cs" />
     <Compile Include="Interface\LogInfo.cs" />
+    <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\AttributesCache.cs" />
     <Compile Include="Helpers\ReflectionEmit\BoxingCaster.cs" />

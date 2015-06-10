@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Tests.Helpers
 {
@@ -26,9 +28,11 @@ namespace SimpleContainer.Tests.Helpers
 			return result.ToArray();
 		}
 
-		public static string JoinStrings(this IEnumerable<string> source, string separator)
+		public static Type[] GetNestedTypesRecursive(this Type type, BindingFlags bindingFlags)
 		{
-			return string.Join(separator, source.ToArray());
+			return type.GetNestedTypes(bindingFlags)
+				.SelectMany(t => t.GetNestedTypesRecursive(bindingFlags).Prepend(t))
+				.ToArray();
 		}
 	}
 }

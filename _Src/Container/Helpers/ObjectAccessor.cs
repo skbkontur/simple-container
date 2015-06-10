@@ -26,7 +26,7 @@ namespace SimpleContainer.Helpers
 		{
 			private readonly TypeAccessor typeAccessor;
 			private readonly object obj;
-			private readonly List<string> used = new List<string>();
+			private readonly HashSet<string> used = new HashSet<string>();
 
 			public ObjectAccessorImpl(TypeAccessor typeAccessor, object obj)
 			{
@@ -40,6 +40,11 @@ namespace SimpleContainer.Helpers
 				if (result)
 					used.Add(name);
 				return result;
+			}
+
+			public IEnumerable<string> GetUsed()
+			{
+				return used;
 			}
 
 			public IEnumerable<string> GetUnused()
