@@ -16,7 +16,7 @@ namespace SimpleContainer.Implementation
 	internal class SimpleContainer : IContainer
 	{
 		private readonly Func<ServiceName, ContainerServiceId> createWrap;
-		};
+		
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
 

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using SimpleContainer.Configuration;
-using SimpleContainer.Helpers;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Tests.Helpers
 {
@@ -32,9 +30,9 @@ namespace SimpleContainer.Tests.Helpers
 		protected ContainerFactory Factory()
 		{
 			var targetTypes = GetType().GetNestedTypesRecursive(BindingFlags.NonPublic | BindingFlags.Public);
-			var factory = new ContainerFactory()
+			return new ContainerFactory()
 				.WithAssembliesFilter(x => x.Name.StartsWith("SimpleContainer"))
-				.WithTypes(GetType().GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public));
+				.WithTypes(targetTypes);
 		}
 
 		protected IContainer Container(Action<ContainerConfigurationBuilder> configure = null)
