@@ -185,7 +185,8 @@ namespace SimpleContainer.Tests
 				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
 				{
 					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
-					Assert.That(error.InnerException.InnerException.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
+					Assert.That(error.InnerException.InnerException.Message,
+						Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
 				}
 			}
 
@@ -334,7 +335,7 @@ namespace SimpleContainer.Tests
 					Assert.That(container.Get<SomeService>().Value, Is.EqualTo(87));
 			}
 		}
-		
+
 		public class ContainerConfiguratorWithSettingsWithKey : ContainerConfigurationTest
 		{
 			public class MySettings
@@ -608,7 +609,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
-					builder.Dependencies(new { parametersIsNull = context.Parameters == null });
+					builder.Dependencies(new {parametersIsNull = context.Parameters == null});
 				}
 			}
 
@@ -645,7 +646,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				const string expectedMessage = "can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]\r\n\r\n!A\r\n\t!dependency <---------------";
+				const string expectedMessage =
+					"can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]\r\n\r\n!A\r\n\t!dependency <---------------";
 				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -707,7 +709,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
-					builder.Dependencies(new { parameter = 43 });
+					builder.Dependencies(new {parameter = 43});
 				}
 			}
 

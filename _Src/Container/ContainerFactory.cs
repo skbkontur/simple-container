@@ -15,7 +15,7 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private Type profile;
-		private Func<AssemblyName, bool> assembliesFilter;
+		private Func<AssemblyName, bool> assembliesFilter = n => n.Name == "SimpleContainer";
 		private Func<Type, string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
@@ -45,7 +45,7 @@ namespace SimpleContainer
 			configure = newConfigure;
 			return this;
 		}
-		
+
 		public ContainerFactory WithParameters(IParametersSource newParameters)
 		{
 			parameters = newParameters;
@@ -54,7 +54,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
-			assembliesFilter = name => newAssembliesFilter(name) || name.Name == "SimpleContainer";
+			assembliesFilter = n => newAssembliesFilter(n) || n.Name == "SimpleContainer";
 			return this;
 		}
 

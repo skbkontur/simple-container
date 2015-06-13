@@ -43,6 +43,7 @@
     <Compile Include="BasicTest.cs" />
     <Compile Include="ConfigurationBuilderValidationsTest.cs" />
     <Compile Include="ConstructionLogTest.cs" />
+    <Compile Include="ContainerFactoryTest.cs" />
     <Compile Include="Contracts\ContractsBasicTest.cs" />
     <Compile Include="Contracts\ContractsConstructionLogTest.cs" />
     <Compile Include="Contracts\ContractsNestingTest.cs" />
