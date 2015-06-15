@@ -8,5 +8,6 @@ namespace SimpleContainer.Configuration
 		Type[] GetGenericMappingsOrNull(Type type);
 		ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts);
 		List<string> GetContractsUnionOrNull(string contract);
+		ImplementationFilter[] GetImplementationFilters();
 	}
 }

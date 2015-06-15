@@ -47,6 +47,11 @@ namespace SimpleContainer.Configuration
 			return parent.GetContractsUnionOrNull(contract);
 		}
 
+		public ImplementationFilter[] GetImplementationFilters()
+		{
+			return parent.GetImplementationFilters();
+		}
+
 		//todo get rid of this shit
 		private struct ServiceNameForListContracts : IEquatable<ServiceNameForListContracts>
 		{

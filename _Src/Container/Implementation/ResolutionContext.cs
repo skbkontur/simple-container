@@ -46,7 +46,8 @@ namespace SimpleContainer.Implementation
 				foreach (var c in expandResult.CartesianProduct())
 				{
 					var childService = ResolveInternal(builder.Type, c, builder.Container);
-					if (!builder.LinkTo(childService))
+					builder.LinkTo(childService);
+					if (builder.Status.IsBad())
 						break;
 				}
 				Contracts.AddRange(poppedContracts);

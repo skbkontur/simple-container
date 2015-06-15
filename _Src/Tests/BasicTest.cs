@@ -1602,7 +1602,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoredImplementation]
+			[DontUse]
 			public class C
 			{
 			}
@@ -1651,6 +1651,71 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
 					Is.EqualTo("A\r\n\tIInterface\r\n\t\t!B1 - invalid test condition\r\n\t\tB2"));
+			}
+		}
+
+		public class CanExplicitlyInjectIgnoredImplementation : BasicTest
+		{
+			[IgnoredImplementation]
+			public class A
+			{
+			}
+
+			public class AWrap
+			{
+				public readonly A a;
+
+				public AWrap(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(() => container.Get<AWrap>(), Throws.Nothing);
+			}
+		}
+		
+		public class CanIgnoreImplementationFromBuilder : BasicTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A : IA
+			{
+			}
+
+			public class AWrap
+			{
+				public readonly A a;
+				public readonly IA aIntf;
+
+				public AWrap(A a, IA aIntf = null)
+				{
+					this.a = a;
+					this.aIntf = aIntf;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.IgnoreImplementation();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var aWrap = container.Get<AWrap>();
+				Assert.That(aWrap.a, Is.Not.Null);
+				Assert.That(aWrap.aIntf, Is.Null);
 			}
 		}
 

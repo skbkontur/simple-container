@@ -16,7 +16,7 @@ namespace SimpleContainer.Implementation
 	internal class SimpleContainer : IContainer
 	{
 		private readonly Func<ServiceName, ContainerServiceId> createWrap;
-		
+
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
 
@@ -26,13 +26,14 @@ namespace SimpleContainer.Implementation
 		protected readonly IInheritanceHierarchy inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
-
+		private readonly ImplementationFilter[] implementationFilters;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
 			LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = configurationRegistry;
+			implementationFilters = configurationRegistry.GetImplementationFilters();
 			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
@@ -58,7 +59,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			context = context ?? new ResolutionContext(InternalHelpers.ToInternalContracts(contracts, type));
-			var resultBuilder = new ContainerService.Builder(type, this, context).ForFactory(ObjectAccessor.Get(arguments), true);
+			var resultBuilder = new ContainerService.Builder(type, this, context).NeedNewInstance(ObjectAccessor.Get(arguments), true);
 			context.Instantiate(resultBuilder, this);
 			var result = resultBuilder.Build();
 			if (result.Status == ServiceStatus.Ok && resultBuilder.Arguments != null)
@@ -238,25 +239,37 @@ namespace SimpleContainer.Implementation
 		{
 			var implementationTypes = GetInterfaceImplementationTypes(builder).Distinct().ToArray();
 			if (implementationTypes.Length == 0)
-			{
 				builder.SetComment("has no implementations");
-				return;
-			}
-			foreach (var implementationType in implementationTypes)
-			{
-				ContainerService childService;
-				if (builder.CreateNew)
+			else
+				foreach (var implementationType in implementationTypes)
 				{
-					var childServiceBuilder = new ContainerService.Builder(implementationType, this, builder.Context)
-						.ForFactory(builder.Arguments, false);
-					builder.Context.Instantiate(childServiceBuilder, null);
-					childService = childServiceBuilder.Build();
+					var implementationBuilder = new ContainerService.Builder(implementationType, this, builder.Context);
+					InstantiateInterfaceImplementation(builder, implementationBuilder);
+					builder.LinkTo(implementationBuilder.Build());
+					if (builder.Status.IsBad())
+						return;
 				}
-				else
-					childService = builder.Context.Resolve(implementationType, null, this);
-				if (!builder.LinkTo(childService))
-					return;
+		}
+
+		private void InstantiateInterfaceImplementation(ContainerService.Builder interfaceBuilder,
+			ContainerService.Builder implementationBuilder)
+		{
+			if (interfaceBuilder.HasNoConfiguration() && implementationFilters.Length > 0)
+				foreach (var f in implementationFilters)
+					if (!f.Filter(interfaceBuilder.Type, implementationBuilder.Type))
+					{
+						implementationBuilder.SetComment(f.Name);
+						return;
+					}
+			if (implementationBuilder.IgnoredImplementation())
+				implementationBuilder.SetComment("IgnoredImplementation");
+			else if (interfaceBuilder.CreateNew)
+			{
+				implementationBuilder = implementationBuilder.NeedNewInstance(interfaceBuilder.Arguments, false);
+				interfaceBuilder.Context.Instantiate(implementationBuilder, null);
 			}
+			else
+				implementationBuilder.Reuse(interfaceBuilder.Context.Resolve(implementationBuilder.Type, null, this));
 		}
 
 		private IEnumerable<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
@@ -304,19 +317,6 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private void InstantiateImplementation(ContainerService.Builder builder)
-		{
-			var result = FactoryCreator.TryCreate(builder) ?? LazyCreator.TryCreate(builder);
-			if (result != null)
-				builder.AddInstance(result, true);
-			else if (builder.Type.IsDefined("IgnoredImplementationAttribute"))
-				builder.SetComment("IgnoredImplementation");
-			else if (builder.Configuration.DontUseIt)
-				builder.SetComment("DontUse");
-			else if (!NestedFactoryCreator.TryCreate(builder))
-				DefaultInstantiateImplementation(builder);
-		}
-
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			EnsureNotDisposed();
@@ -353,8 +353,21 @@ namespace SimpleContainer.Implementation
 			return true;
 		}
 
-		private void DefaultInstantiateImplementation(ContainerService.Builder builder)
+		private void InstantiateImplementation(ContainerService.Builder builder)
 		{
+			if (builder.DontUse())
+			{
+				builder.SetComment("DontUse");
+				return;
+			}
+			var result = FactoryCreator.TryCreate(builder) ?? LazyCreator.TryCreate(builder);
+			if (result != null)
+			{
+				builder.AddInstance(result, true);
+				return;
+			}
+			if (NestedFactoryCreator.TryCreate(builder))
+				return;
 			var constructor = builder.Type.GetConstructor();
 			if (!constructor.isOk)
 			{

@@ -231,6 +231,11 @@ namespace SimpleContainer.Implementation
 				}
 			}
 
+			public bool HasNoConfiguration()
+			{
+				return Configuration == ServiceConfiguration.empty;
+			}
+
 			public Type Type
 			{
 				get { return target.Type; }
@@ -266,23 +271,21 @@ namespace SimpleContainer.Implementation
 				target.comment = value;
 			}
 
-			public Builder ForFactory(IObjectAccessor arguments, bool createNew)
+			public Builder NeedNewInstance(IObjectAccessor arguments, bool createNew)
 			{
 				Arguments = arguments;
 				CreateNew = createNew;
 				return this;
 			}
 
-			public bool LinkTo(ContainerService childService)
+			public void LinkTo(ContainerService childService)
 			{
 				AddDependency(childService.GetLinkedDependency(), true);
 				UnionUsedContracts(childService);
-				if (target.Status.IsBad())
-					return false;
-				foreach (var instance in childService.instances)
-					if (!instances.Contains(instance))
-						instances.Add(instance);
-				return true;
+				if (target.Status.IsGood())
+					foreach (var instance in childService.instances)
+						if (!instances.Contains(instance))
+							instances.Add(instance);
 			}
 
 			public int FilterInstances(Func<object, bool> filter)
@@ -365,6 +368,16 @@ namespace SimpleContainer.Implementation
 				if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
 					return ServiceStatus.Ok;
 				return dependencyStatus;
+			}
+
+			public bool IgnoredImplementation()
+			{
+				return Configuration.IgnoredImplementation || Type.IsDefined("IgnoredImplementationAttribute");
+			}
+			
+			public bool DontUse()
+			{
+				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
 			}
 
 			public void CreateInstanceBy(Func<object> creator, bool owned)

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Configuration
 {
@@ -27,6 +29,11 @@ namespace SimpleContainer.Configuration
 		public List<string> GetContractsUnionOrNull(string contract)
 		{
 			return child.GetContractsUnionOrNull(contract) ?? parent.GetContractsUnionOrNull(contract);
+		}
+
+		public ImplementationFilter[] GetImplementationFilters()
+		{
+			return child.GetImplementationFilters().Concat(parent.GetImplementationFilters()).ToArray();
 		}
 	}
 }

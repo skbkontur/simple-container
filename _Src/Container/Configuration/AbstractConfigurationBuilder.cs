@@ -159,15 +159,27 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
-		public TSelf DontUse(Type pluggableType)
+		public TSelf DontUse(Type t)
 		{
-			GetServiceBuilder(pluggableType).DontUse();
+			GetServiceBuilder(t).DontUse();
 			return Self;
 		}
 
 		public TSelf DontUse<T>()
 		{
 			GetServiceBuilder(typeof (T)).DontUse();
+			return Self;
+		}
+
+		public TSelf IgnoreImplementation(Type t)
+		{
+			GetServiceBuilder(t).IgnoreImplementation();
+			return Self;
+		}
+
+		public TSelf IgnoreImplementation<T>()
+		{
+			GetServiceBuilder(typeof (T)).IgnoreImplementation();
 			return Self;
 		}
 

@@ -92,6 +92,12 @@ namespace SimpleContainer.Configuration
 			GetServiceBuilder().DontUse();
 			return Self;
 		}
+		
+		public TSelf IgnoreImplementation()
+		{
+			GetServiceBuilder().IgnoreImplementation();
+			return Self;
+		}
 
 		private ServiceConfiguration.Builder GetServiceBuilder()
 		{

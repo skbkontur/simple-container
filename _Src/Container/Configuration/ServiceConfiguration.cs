@@ -24,6 +24,7 @@ namespace SimpleContainer.Configuration
 		public bool UseAutosearch { get; private set; }
 		public bool ContainerOwnsInstance { get; private set; }
 		public bool DontUseIt { get; private set; }
+		public bool IgnoredImplementation { get; private set; }
 		public Func<object, bool> InstanceFilter { get; private set; }
 		public IParametersSource ParametersSource { get; private set; }
 
@@ -140,6 +141,11 @@ namespace SimpleContainer.Configuration
 			public void DontUse()
 			{
 				target.DontUseIt = true;
+			}
+			
+			public void IgnoreImplementation()
+			{
+				target.IgnoredImplementation = true;
 			}
 
 			public void UseAutosearch(bool useAutosearch)

@@ -722,6 +722,103 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class ImplementationFilters : ContainerConfigurationTest
+		{
+			public interface IA
+			{
+			}
+
+			public class DefaultA : IA
+			{
+			}
+
+			public class InMemoryA : IA
+			{
+			}
+
+			public class LiteProfile : IProfile
+			{
+			}
+
+			public class InMemoryProfile : IProfile
+			{
+			}
+
+			public class InMemoryConventionConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					if (context.ProfileIs<InMemoryProfile>())
+						builder.RegisterImplementationFilter("in-memory", GetFilter(true));
+					else
+						builder.RegisterImplementationFilter("not-in-memory", GetFilter(false));
+				}
+
+				private static Func<Type, Type, bool> GetFilter(bool inMemory)
+				{
+					return (t1, t2) => !t1.IsInterface ||
+					                   t2.Name.StartsWith("InMemory", StringComparison.OrdinalIgnoreCase) == inMemory;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				using (var c = Factory().WithProfile(typeof (InMemoryProfile)).Build())
+				{
+					var resolved = c.Resolve<IA>();
+					Assert.That(resolved.Single(), Is.InstanceOf<InMemoryA>());
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\t!DefaultA - in-memory\r\n\tInMemoryA"));
+				}
+				using (var c = Factory().WithProfile(typeof (LiteProfile)).Build())
+				{
+					var resolved = c.Resolve<IA>();
+					Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tDefaultA\r\n\t!InMemoryA - not-in-memory"));
+				}
+			}
+		}
+		
+		public class ImplementationFiltersCanBeOverriden : ContainerConfigurationTest
+		{
+			public interface IA
+			{
+			}
+
+			public class DefaultA : IA
+			{
+			}
+
+			public class InMemoryA : IA
+			{
+			}
+
+			public class InMemoryConventionConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					builder.RegisterImplementationFilter("test-convention", (_, t) => t == typeof (InMemoryA));
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<IA>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IA> builder)
+				{
+					builder.Bind<DefaultA>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var resolved = container.Resolve<IA>();
+				Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tDefaultA"));
+			}
+		}
+
 		public class Profiles : ContainerConfigurationTest
 		{
 			public class InMemoryProfile : IProfile

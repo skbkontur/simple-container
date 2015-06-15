@@ -234,7 +234,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoredImplementation]
+			[DontUseAttribute]
 			public class B
 			{
 			}
@@ -245,7 +245,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - IgnoredImplementation = <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse = <null>"));
 			}
 		}
 
