@@ -67,7 +67,7 @@ namespace SimpleContainer.Helpers
 
 		public static bool IsDefined(this ICustomAttributeProvider customAttributeProvider, string attributeName)
 		{
-			return customAttributeProvider.GetCustomAttributes(true).Any(a => a.GetType().Name == attributeName);
+			return customAttributeProvider.GetCustomAttributes(false).Any(a => a.GetType().Name == attributeName);
 		}
 
 		public static bool IsNullableOf(this Type type1, Type type2)

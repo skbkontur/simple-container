@@ -33,6 +33,11 @@ namespace SimpleContainer.Interface
 			return (T) resolvedService.Single();
 		}
 
+		public T SingleOrDefault(T defaultValue = default(T))
+		{
+			return (T) resolvedService.SingleODefault(defaultValue);
+		}
+
 		public IEnumerable<T> All()
 		{
 			return resolvedService.All().Cast<T>();
@@ -75,10 +80,15 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue();
+			return isEnumerable ? All() : containerService.GetSingleValue(false, null);
 		}
 
-		public bool HasInstances()
+		public object SingleODefault(object defaultValue)
+		{
+			return isEnumerable ? All() : containerService.GetSingleValue(true, defaultValue);
+		}
+
+		public bool IsOk()
 		{
 			return containerService.Status == ServiceStatus.Ok;
 		}

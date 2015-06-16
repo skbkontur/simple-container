@@ -27,15 +27,24 @@ namespace SimpleContainer.Implementation
 		{
 		}
 
-		public object GetSingleValue()
+		public object GetSingleValue(bool hasDefaultValue, object defaultValue)
 		{
-			CheckOk();
+			CheckStatusIsGood();
 			if (instances.Length == 1)
 				return instances[0].Instance;
-			var m = instances.Length == 0
-				? string.Format("no implementations for [{0}]", Type.FormatName())
-				: FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
+			if (instances.Length == 0 && hasDefaultValue)
+				return defaultValue;
+			string message;
+			if (instances.Length == 0)
+			{
+				message = string.Format("no instances for [{0}]", Type.FormatName());
+				var notResolvedRoot = SearchForNotResolvedRoot();
+				if (notResolvedRoot != this)
+					message += string.Format(" because [{0}] has no instances", notResolvedRoot.Type.FormatName());
+			}
+			else
+				message = FormatManyImplementationsMessage();
+			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", message, GetConstructionLog()));
 		}
 
 		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
@@ -51,7 +60,7 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetAllValues()
 		{
-			CheckOk();
+			CheckStatusIsGood();
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
@@ -139,7 +148,7 @@ namespace SimpleContainer.Implementation
 				}
 		}
 
-		private void CheckOk()
+		private void CheckStatusIsGood()
 		{
 			if (Status.IsGood())
 				return;
@@ -179,6 +188,19 @@ namespace SimpleContainer.Implementation
 			return null;
 		}
 
+		private ContainerService SearchForNotResolvedRoot()
+		{
+			var current = this;
+			while (current.dependencies != null)
+			{
+				var notResolvedDependencies = current.dependencies.Where(x => x.Status == ServiceStatus.NotResolved).ToArray();
+				if (notResolvedDependencies.Length != 1)
+					break;
+				current = notResolvedDependencies[0].ContainerService;
+			}
+			return current;
+		}
+
 		private ServiceDependency GetLinkedDependency()
 		{
 			if (Status == ServiceStatus.Ok)
@@ -190,7 +212,7 @@ namespace SimpleContainer.Implementation
 
 		private string FormatManyImplementationsMessage()
 		{
-			return string.Format("many implementations for [{0}]\r\n{1}", Type.FormatName(),
+			return string.Format("many instances for [{0}]\r\n{1}", Type.FormatName(),
 				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
@@ -374,7 +396,7 @@ namespace SimpleContainer.Implementation
 			{
 				return Configuration.IgnoredImplementation || Type.IsDefined("IgnoredImplementationAttribute");
 			}
-			
+
 			public bool DontUse()
 			{
 				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");

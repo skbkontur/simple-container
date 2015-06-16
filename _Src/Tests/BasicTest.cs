@@ -741,7 +741,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"many implementations for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>"));
+						"many instances for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>"));
 			}
 
 			public interface IInterface
@@ -762,7 +762,7 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetAll<IInterface>().Count(), Is.EqualTo(2));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.EqualTo("many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nIInterface++\r\n\tImpl1\r\n\tImpl2"));
+					Is.EqualTo("many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nIInterface++\r\n\tImpl1\r\n\tImpl2"));
 			}
 
 			public interface IInterface
@@ -797,43 +797,6 @@ namespace SimpleContainer.Tests
 				}
 
 				public int Argument { get; private set; }
-			}
-		}
-
-		public class GracefullErrorMessageWhenNoImplementationFound : BasicTest
-		{
-			[Test]
-			public void Test()
-			{
-				const string message =
-					"no implementations for [OuterOuterService]\r\n\r\n!OuterOuterService\r\n\t!OuterService\r\n\t\t!IInterface - has no implementations";
-				var container = Container();
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
-				Assert.That(error.Message, Is.EqualTo(message));
-			}
-
-			public interface IInterface
-			{
-			}
-
-			public class OuterOuterService
-			{
-				public OuterOuterService(OuterService outerService)
-				{
-					OuterService = outerService;
-				}
-
-				public OuterService OuterService { get; private set; }
-			}
-
-			public class OuterService
-			{
-				public OuterService(IInterface @interface)
-				{
-					Interface = @interface;
-				}
-
-				public IInterface Interface { get; private set; }
 			}
 		}
 
@@ -968,7 +931,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string message =
-					"many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\n!Wrap\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
+					"many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\n!Wrap\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
 
@@ -1390,7 +1353,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				const string message2 = "no implementations for [Child2]\r\n\r\n!Child2\r\n\t!IOtherService - has no implementations";
+				const string message2 = "no instances for [Child2] because [IOtherService] has no instances\r\n\r\n!Child2\r\n\t!IOtherService - has no implementations";
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<Child2>());
 				Assert.That(error.Message, Is.EqualTo(message2));
 			}
@@ -1573,6 +1536,35 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Resolve<WrapWithOptionalDependency>().GetConstructionLog(),
 					Is.EqualTo("WrapWithOptionalDependency\r\n\tA - DontUse = <null>"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
+			}
+		}
+
+		public class DontUseAttributeIsNotAppliedToInheritors : BasicTest
+		{
+			[DontUse]
+			public class A
+			{
+			}
+
+			public class B : A
+			{
+			}
+
+			public class C
+			{
+				public readonly B b;
+
+				public C(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(() => container.Get<C>(), Throws.Nothing);
 			}
 		}
 
@@ -1770,6 +1762,21 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message, Is.EqualTo("parameter [parameters] of service [A] is not configured\r\n\r\n!A\r\n\t!parameters <---------------"));
+			}
+		}
+
+		public class SingleOrDefault : BasicTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				Assert.That(Container(b => b.DontUse<A>()).Resolve<A>().SingleOrDefault(), Is.Null);
+				var instance = new A();
+				Assert.That(Container().Resolve<A>().SingleOrDefault(instance), Is.Not.SameAs(instance));
 			}
 		}
 

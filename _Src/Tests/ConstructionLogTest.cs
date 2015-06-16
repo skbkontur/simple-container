@@ -311,7 +311,7 @@ namespace SimpleContainer.Tests
 				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
 				const string expectedMessage =
-					"many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\n!C\r\n\t!A\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
+					"many instances for [IB]\r\n\tB1\r\n\tB2\r\n\r\n!C\r\n\t!A\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}

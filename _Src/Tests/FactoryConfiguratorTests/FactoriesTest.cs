@@ -250,7 +250,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var a = container.Get<A>();
 				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
-				Assert.That(error.Message, Is.EqualTo("many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\nIB++\r\n\tB1\r\n\tB2"));
+				Assert.That(error.Message, Is.EqualTo("many instances for [IB]\r\n\tB1\r\n\tB2\r\n\r\nIB++\r\n\tB1\r\n\tB2"));
 			}
 		}
 
@@ -370,7 +370,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var container = Container();
 				var creator = container.Get<Func<object, IA>>();
 				var exception = Assert.Throws<SimpleContainerException>(() => creator(new {parameter = 56}));
-				Assert.That(exception.Message, Is.EqualTo("no implementations for [IA]\r\n\r\n!IA - has no implementations"));
+				Assert.That(exception.Message, Is.EqualTo("no instances for [IA]\r\n\r\n!IA - has no implementations"));
 			}
 		}
 

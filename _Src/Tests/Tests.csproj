@@ -50,6 +50,7 @@
     <Compile Include="Contracts\ContractsReuseTest.cs" />
     <Compile Include="Contracts\ContractsUnionTest.cs" />
     <Compile Include="Contracts\ContractsWithFactoriesTest.cs" />
+    <Compile Include="ExceptionHandlingTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
     <Compile Include="FileConfigurationTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
