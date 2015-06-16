@@ -271,10 +271,10 @@ namespace SimpleContainer.Implementation
 				target.comment = value;
 			}
 
-			public Builder NeedNewInstance(IObjectAccessor arguments, bool createNew)
+			public Builder NeedNewInstance(IObjectAccessor arguments)
 			{
 				Arguments = arguments;
-				CreateNew = createNew;
+				CreateNew = true;
 				return this;
 			}
 

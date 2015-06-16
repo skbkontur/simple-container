@@ -58,7 +58,7 @@
     <Compile Include="FactoryConfiguratorTests\CanCreateConcreteGenericImplementations.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesCreatedByFactoriesAreNotSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesUsedByServicesCreatedByFactoriesAreSingletons.cs" />
-    <Compile Include="FactoryConfiguratorTests\SimpleFactoryConfiguratorTest.cs" />
+    <Compile Include="FactoryConfiguratorTests\FactoriesTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanConfigureInnerGenericsTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanConnectGenericComponents.cs" />
     <Compile Include="GenericsConfiguratorTests\CanDeduceGenericParameterFromGenericType.cs" />

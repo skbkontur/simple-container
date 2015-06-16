@@ -7,9 +7,43 @@ using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests.FactoryConfiguratorTests
 {
-	public abstract class SimpleFactoryConfiguratorTest : SimpleContainerTestBase
+	public abstract class FactoriesTest : SimpleContainerTestBase
 	{
-		public class Simple : SimpleFactoryConfiguratorTest
+		public class NewInstanceOfServiceWithUnusedContract : FactoriesTest
+		{
+			[TestContract("a")]
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<A>()));
+			}
+		}
+
+		public class NewInstanceOfServiceWithUnusedContractViaInterface : FactoriesTest
+		{
+			public class A : IA
+			{
+			}
+
+			[TestContract("a")]
+			public interface IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<IA>()));
+			}
+		}
+
+		public class Simple : FactoriesTest
 		{
 			public class ServiceA
 			{
@@ -46,7 +80,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CanCreateInterfaceImplementation : SimpleFactoryConfiguratorTest
+		public class CanCreateInterfaceImplementation : FactoriesTest
 		{
 			public interface IInterface
 			{
@@ -82,7 +116,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class UnusedArguments : SimpleFactoryConfiguratorTest
+		public class UnusedArguments : FactoriesTest
 		{
 			public class Wrap
 			{
@@ -108,7 +142,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CloseOverResolutionContextWhenInvokeFromConstructor : SimpleFactoryConfiguratorTest
+		public class CloseOverResolutionContextWhenInvokeFromConstructor : FactoriesTest
 		{
 			public class A
 			{
@@ -148,7 +182,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class DoNotCloseOverContextIfFactoryIsInvokedNotFromConstructor : SimpleFactoryConfiguratorTest
+		public class DoNotCloseOverContextIfFactoryIsInvokedNotFromConstructor : FactoriesTest
 		{
 			public class A
 			{
@@ -186,7 +220,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 		}
 
 		public class FailedResolutionsCommunicatedAsSimpleContainerExceptionOutsideOfConstructor :
-			SimpleFactoryConfiguratorTest
+			FactoriesTest
 		{
 			public class A
 			{
@@ -220,7 +254,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class DoNotShowCommentForFactoryErrors : SimpleFactoryConfiguratorTest
+		public class DoNotShowCommentForFactoryErrors : FactoriesTest
 		{
 			[Test]
 			public void Test()
@@ -254,7 +288,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class ArgumentsAreNotUsedForDependencies : SimpleFactoryConfiguratorTest
+		public class ArgumentsAreNotUsedForDependencies : FactoriesTest
 		{
 			public class Wrap
 			{
@@ -298,7 +332,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CanInjectFuncWithArgumentsUsingBuildUp : SimpleFactoryConfiguratorTest
+		public class CanInjectFuncWithArgumentsUsingBuildUp : FactoriesTest
 		{
 			public class A
 			{
@@ -314,7 +348,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CorrectExceptionForUnresolvedService : SimpleFactoryConfiguratorTest
+		public class CorrectExceptionForUnresolvedService : FactoriesTest
 		{
 			public interface IA
 			{
@@ -340,7 +374,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CanUseAutoclosingFactoriesInBuildUp : SimpleFactoryConfiguratorTest
+		public class CanUseAutoclosingFactoriesInBuildUp : FactoriesTest
 		{
 			public interface IA
 			{
@@ -379,7 +413,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
-		public class CanInjectFuncWithTypeWithArgumentsUsingBuildUp : SimpleFactoryConfiguratorTest
+		public class CanInjectFuncWithTypeWithArgumentsUsingBuildUp : FactoriesTest
 		{
 			public interface IA
 			{
@@ -435,6 +469,6 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				var service = container.Create<ServiceWithDependency>(arguments: new {dependency = "argument"});
 				Assert.That(service.dependency, Is.EqualTo("argument"));
 			}
- 		}
+		}
 	}
 }

@@ -59,7 +59,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			context = context ?? new ResolutionContext(InternalHelpers.ToInternalContracts(contracts, type));
-			var resultBuilder = new ContainerService.Builder(type, this, context).NeedNewInstance(ObjectAccessor.Get(arguments), true);
+			var resultBuilder = new ContainerService.Builder(type, this, context).NeedNewInstance(ObjectAccessor.Get(arguments));
 			context.Instantiate(resultBuilder, this);
 			var result = resultBuilder.Build();
 			if (result.Status == ServiceStatus.Ok && resultBuilder.Arguments != null)
@@ -265,7 +265,7 @@ namespace SimpleContainer.Implementation
 				implementationBuilder.SetComment("IgnoredImplementation");
 			else if (interfaceBuilder.CreateNew)
 			{
-				implementationBuilder = implementationBuilder.NeedNewInstance(interfaceBuilder.Arguments, false);
+				implementationBuilder = implementationBuilder.NeedNewInstance(interfaceBuilder.Arguments);
 				interfaceBuilder.Context.Instantiate(implementationBuilder, null);
 			}
 			else
@@ -399,7 +399,7 @@ namespace SimpleContainer.Implementation
 				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));
 				return;
 			}
-			if (builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
+			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
 				return;
