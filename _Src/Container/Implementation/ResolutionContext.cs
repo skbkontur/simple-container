@@ -28,18 +28,18 @@ namespace SimpleContainer.Implementation
 			return InternalHelpers.FormatContractsKey(Contracts);
 		}
 
-		public ContainerService Instantiate(Type type, IObjectAccessor arguments)
+		public ContainerService Instantiate(Type type, bool crearteNew, IObjectAccessor arguments)
 		{
-			var builder = new ContainerService.Builder(type, this);
-			if (arguments != null)
-				builder.NeedNewInstance(arguments);
+			var builder = new ContainerService.Builder(type, this, crearteNew, arguments);
+			if (builder.Status != ServiceStatus.Ok)
+				return builder.Build();
 			var declaredName = builder.GetDeclaredName();
 			if (!constructingServices.Add(declaredName))
 			{
 				var previous = GetTopService();
 				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
 					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-				var cycleBuilder = new ContainerService.Builder(type, this);
+				var cycleBuilder = new ContainerService.Builder(type, this, false, null);
 				cycleBuilder.SetError(message);
 				return cycleBuilder.Build();
 			}
@@ -61,12 +61,6 @@ namespace SimpleContainer.Implementation
 				Container.Instantiate(builder);
 			stack.RemoveLast();
 			constructingServices.Remove(declaredName);
-			if (builder.Status == ServiceStatus.Ok && arguments != null)
-			{
-				var unused = arguments.GetUnused().ToArray();
-				if (unused.Any())
-					builder.SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
-			}
 			return builder.Build();
 		}
 
@@ -120,7 +114,7 @@ namespace SimpleContainer.Implementation
 			var pushContractsResult = PushContracts(contractNames);
 			if (!pushContractsResult.isOk)
 			{
-				var resultBuilder = new ContainerService.Builder(type, this);
+				var resultBuilder = new ContainerService.Builder(type, this, false, null);
 				if (resultBuilder.Status == ServiceStatus.Ok)
 					resultBuilder.SetError(pushContractsResult.errorMessage);
 				result = resultBuilder.Build();

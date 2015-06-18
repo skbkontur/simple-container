@@ -234,8 +234,10 @@ namespace SimpleContainer.Implementation
 			private bool reused;
 			public ResolutionContext Context { get; private set; }
 
-			public Builder(Type type, ResolutionContext context)
+			public Builder(Type type, ResolutionContext context, bool createNew, IObjectAccessor arguments)
 			{
+				Arguments = arguments;
+				CreateNew = createNew;
 				target = new ContainerService {Type = type};
 				Context = context;
 				DeclaredContracts = context.Contracts.ToArray();
@@ -283,7 +285,7 @@ namespace SimpleContainer.Implementation
 			{
 				return new ServiceName(Type, FinalUsedContracts);
 			}
-			
+
 			public ServiceName GetDeclaredName()
 			{
 				return new ServiceName(Type, DeclaredContracts);
@@ -305,13 +307,6 @@ namespace SimpleContainer.Implementation
 			public void SetComment(string value)
 			{
 				target.comment = value;
-			}
-
-			public Builder NeedNewInstance(IObjectAccessor arguments)
-			{
-				Arguments = arguments;
-				CreateNew = true;
-				return this;
 			}
 
 			public void LinkTo(ContainerService childService, string comment)
@@ -393,6 +388,12 @@ namespace SimpleContainer.Implementation
 				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
 					target.Status = ServiceStatus.NotResolved;
+				if (Status == ServiceStatus.Ok && Arguments != null)
+				{
+					var unused = Arguments.GetUnused().ToArray();
+					if (unused.Any())
+						SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
+				}
 				target.instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();

@@ -59,7 +59,7 @@ namespace SimpleContainer.Implementation
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
 			context = context ?? new ResolutionContext(this, InternalHelpers.ToInternalContracts(contracts, type));
-			return context.Instantiate(type, ObjectAccessor.Get(arguments));
+			return context.Instantiate(type, true, ObjectAccessor.Get(arguments));
 		}
 
 		private static string[] CheckContracts(IEnumerable<string> contracts)
@@ -175,7 +175,7 @@ namespace SimpleContainer.Implementation
 			ContainerService result;
 			if (!id.AcquireInstantiateLock(out result))
 				return result;
-			result = context.Instantiate(type, null);
+			result = context.Instantiate(type, false, null);
 			id.ReleaseInstantiateLock(result);
 			return result;
 		}
@@ -242,7 +242,7 @@ namespace SimpleContainer.Implementation
 				if (configuration.IgnoredImplementation || implementationType.IsDefined("IgnoredImplementationAttribute"))
 					comment = "IgnoredImplementation";
 				else if (builder.CreateNew)
-					implementationService = builder.Context.Instantiate(implementationType, builder.Arguments);
+					implementationService = builder.Context.Instantiate(implementationType, true, builder.Arguments);
 				else
 				{
 					ImplementationSelectorDecision? decision = null;
@@ -464,7 +464,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				var dependencyService = new ContainerService.Builder(dependencyType, builder.Context);
+				var dependencyService = new ContainerService.Builder(dependencyType, builder.Context, false, null);
 				dependencyService.SetError(e);
 				return ServiceDependency.ServiceError(dependencyService.Build());
 			}
