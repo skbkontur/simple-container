@@ -40,8 +40,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
-    <Compile Include="Configuration\ImplementationFilter.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
+    <Compile Include="Configuration\ImplementationSelector.cs" />
+    <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
     <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
@@ -59,6 +60,8 @@
     <Compile Include="Implementation\NamedInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
     <Compile Include="Infection\DontUseAttribute.cs" />
+    <Compile Include="Infection\Lifestyle.cs" />
+    <Compile Include="Infection\LifestyleAttribute.cs" />
     <Compile Include="Interface\BuiltUpService.cs" />
     <Compile Include="Configuration\AbstractServiceConfigurationBuilder.cs" />
     <Compile Include="Configuration\ConfigurationContext.cs" />

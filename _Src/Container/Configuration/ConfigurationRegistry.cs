@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -11,17 +10,17 @@ namespace SimpleContainer.Configuration
 		private readonly IDictionary<Type, IServiceConfigurationSet> configurations;
 		private readonly IDictionary<string, List<string>> contractUnions;
 		private readonly IDictionary<Type, Type[]> genericMappings;
-		private readonly ImplementationFilter[] implementationFilters;
+		private readonly ImplementationSelector[] implementationSelectors;
 
 		private ConfigurationRegistry(IDictionary<Type, IServiceConfigurationSet> configurations,
 			IDictionary<string, List<string>> contractUnions,
 			IDictionary<Type, Type[]> genericMappings,
-			ImplementationFilter[] implementationFilters)
+			ImplementationSelector[] implementationSelectors)
 		{
 			this.configurations = configurations;
 			this.contractUnions = contractUnions;
 			this.genericMappings = genericMappings;
-			this.implementationFilters = implementationFilters;
+			this.implementationSelectors = implementationSelectors;
 		}
 
 		public Type[] GetGenericMappingsOrNull(Type type)
@@ -40,9 +39,9 @@ namespace SimpleContainer.Configuration
 			return contractUnions.GetOrDefault(contract);
 		}
 
-		public ImplementationFilter[] GetImplementationFilters()
+		public ImplementationSelector[] GetImplementationSelectors()
 		{
-			return implementationFilters;
+			return implementationSelectors;
 		}
 
 		internal class Builder
@@ -53,8 +52,8 @@ namespace SimpleContainer.Configuration
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
 			private readonly IDictionary<Type, List<Type>> genericMappings = new Dictionary<Type, List<Type>>();
 
-			private readonly IDictionary<string, ImplementationFilter> implementationFilters =
-				new Dictionary<string, ImplementationFilter>();
+			private readonly List<ImplementationSelector> implementationSelectors =
+				new List<ImplementationSelector>();
 
 			public ServiceConfigurationSet GetConfigurationSet(Type type)
 			{
@@ -82,12 +81,9 @@ namespace SimpleContainer.Configuration
 				mappings.Add(to);
 			}
 
-			public void RegisterImplementationFilter(string name, Func<Type, Type, bool> f)
+			public void RegisterImplementationSelector(ImplementationSelector s)
 			{
-				if (implementationFilters.ContainsKey(name))
-					throw new SimpleContainerException(string.Format("impementation filter [{0}] already registered", name));
-				var result = new ImplementationFilter(name, f);
-				implementationFilters.Add(name, result);
+				implementationSelectors.Add(s);
 			}
 
 			public ConfigurationRegistry Build()
@@ -95,7 +91,7 @@ namespace SimpleContainer.Configuration
 				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
 				var builtMappings = genericMappings.ToDictionary(x => x.Key, x => x.Value.ToArray());
 				return new ConfigurationRegistry(builtConfigurations, contractUnions,
-					builtMappings, implementationFilters.Values.ToArray());
+					builtMappings, implementationSelectors.ToArray());
 			}
 		}
 	}

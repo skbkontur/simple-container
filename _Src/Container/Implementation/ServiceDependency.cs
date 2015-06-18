@@ -10,6 +10,7 @@ namespace SimpleContainer.Implementation
 		public object Value { get; private set; }
 		public string Name { get; private set; }
 		public string ErrorMessage { get; private set; }
+		public string Comment { get; set; }
 		public ServiceStatus Status { get; private set; }
 
 		private ServiceDependency()
@@ -103,6 +104,11 @@ namespace SimpleContainer.Implementation
 			if (Status != ServiceStatus.Ok)
 				context.Writer.WriteMeta("!");
 			context.Writer.WriteName(Name);
+			if (Comment != null)
+			{
+				context.Writer.WriteMeta(" - ");
+				context.Writer.WriteMeta(Comment);
+			}
 			if (Status == ServiceStatus.Ok && isConstant)
 			{
 				if (Value == null || Value.GetType().IsSimpleType())

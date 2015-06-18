@@ -13,7 +13,7 @@ namespace SimpleContainer.Factories
 			var method = factoryType.GetMethod("Create", Type.EmptyTypes);
 			if (method == null)
 				return false;
-			var factory = builder.Container.ResolveSingleton(method.DeclaringType, builder.Context);
+			var factory = builder.Context.Container.ResolveSingleton(method.DeclaringType, builder.Context);
 			var dependency = factory.AsSingleInstanceDependency(null);
 			builder.AddDependency(dependency, false);
 			if (dependency.Status == ServiceStatus.Ok)

@@ -130,10 +130,16 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta("++");
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
-			else if (comment != null)
+			else
 			{
-				context.Writer.WriteMeta(" - ");
-				context.Writer.WriteMeta(comment);
+				var logComment = comment;
+				if (logComment == null && context.UsedFromDependency != null)
+					logComment = context.UsedFromDependency.Comment;
+				if (logComment != null)
+				{
+					context.Writer.WriteMeta(" - ");
+					context.Writer.WriteMeta(logComment);
+				}
 			}
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
 			    context.UsedFromDependency.Value == null)
@@ -227,17 +233,15 @@ namespace SimpleContainer.Implementation
 			private ContainerService target;
 			private bool reused;
 			public ResolutionContext Context { get; private set; }
-			public SimpleContainer Container { get; private set; }
 
-			public Builder(Type type, SimpleContainer container, ResolutionContext context)
+			public Builder(Type type, ResolutionContext context)
 			{
 				target = new ContainerService {Type = type};
 				Context = context;
-				Container = container;
 				DeclaredContracts = context.Contracts.ToArray();
 				try
 				{
-					Configuration = container.GetConfiguration(Type, context);
+					Configuration = context.Container.GetConfiguration(Type, context);
 				}
 				catch (Exception e)
 				{
@@ -275,6 +279,16 @@ namespace SimpleContainer.Implementation
 				get { return target.UsedContracts; }
 			}
 
+			public ServiceName GetName()
+			{
+				return new ServiceName(Type, FinalUsedContracts);
+			}
+			
+			public ServiceName GetDeclaredName()
+			{
+				return new ServiceName(Type, DeclaredContracts);
+			}
+
 			public void AddInstance(object instance, bool owned)
 			{
 				instances.Add(new InstanceWrap(instance, owned));
@@ -300,9 +314,11 @@ namespace SimpleContainer.Implementation
 				return this;
 			}
 
-			public void LinkTo(ContainerService childService)
+			public void LinkTo(ContainerService childService, string comment)
 			{
-				AddDependency(childService.GetLinkedDependency(), true);
+				var dependency = childService.GetLinkedDependency();
+				dependency.Comment = comment;
+				AddDependency(dependency, true);
 				UnionUsedContracts(childService);
 				if (target.Status.IsGood())
 					foreach (var instance in childService.instances)

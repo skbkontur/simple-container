@@ -23,6 +23,11 @@ namespace SimpleContainer.Interface
 			resolvedService.Run(dumpConstructionLog);
 		}
 
+		public bool IsOk()
+		{
+			return resolvedService.IsOk();
+		}
+
 		public void CheckSingleInstance()
 		{
 			resolvedService.CheckSingleInstance();

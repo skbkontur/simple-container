@@ -31,9 +31,9 @@ namespace SimpleContainer.Configuration
 			return child.GetContractsUnionOrNull(contract) ?? parent.GetContractsUnionOrNull(contract);
 		}
 
-		public ImplementationFilter[] GetImplementationFilters()
+		public ImplementationSelector[] GetImplementationSelectors()
 		{
-			return child.GetImplementationFilters().Concat(parent.GetImplementationFilters()).ToArray();
+			return child.GetImplementationSelectors().Concat(parent.GetImplementationSelectors()).ToArray();
 		}
 	}
 }

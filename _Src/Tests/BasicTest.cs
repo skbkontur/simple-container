@@ -832,6 +832,33 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class IgnoreImplementationAffectsOnlyInterfaces : BasicTest
+		{
+			public interface IA
+			{
+			}
+
+			[IgnoredImplementation]
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<IA>(), Is.InstanceOf<A2>());
+				var resolvedA1 = container.Resolve<A1>();
+				Assert.That(resolvedA1.IsOk());
+				Assert.That(resolvedA1.Single(), Is.Not.Null);
+				Assert.That(resolvedA1.GetConstructionLog(), Is.EqualTo("A1"));
+			}
+		}
+
 		public class ImplementationWithDependencyConfiguredByType : BasicTest
 		{
 			[Test]
@@ -1777,6 +1804,42 @@ namespace SimpleContainer.Tests
 				Assert.That(Container(b => b.DontUse<A>()).Resolve<A>().SingleOrDefault(), Is.Null);
 				var instance = new A();
 				Assert.That(Container().Resolve<A>().SingleOrDefault(instance), Is.Not.SameAs(instance));
+			}
+		}
+
+		public class PerRequestServicesCannotBeInjected : BasicTest
+		{
+			[Lifestyle(Lifestyle.PerRequest)]
+			public class SomeReader
+			{
+			}
+
+			public class Client1
+			{
+				public readonly SomeReader someReader;
+
+				public Client1(SomeReader someReader)
+				{
+					this.someReader = someReader;
+				}
+			}
+			
+			public class Client2
+			{
+				public readonly Func<SomeReader> createSomeReader;
+
+				public Client2(Func<SomeReader> createSomeReader)
+				{
+					this.createSomeReader = createSomeReader;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Client1>());
+				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be injected into [Client1], use Func<SomeReader> instead\r\n\r\n!Client1\r\n\t!someReader <---------------"));
 			}
 		}
 

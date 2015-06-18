@@ -10,9 +10,9 @@ namespace SimpleContainer.Configuration
 		{
 		}
 
-		public ContainerConfigurationBuilder RegisterImplementationFilter(string name, Func<Type, Type, bool> f)
+		public ContainerConfigurationBuilder RegisterImplementationSelector(ImplementationSelector s)
 		{
-			RegistryBuilder.RegisterImplementationFilter(name, f);
+			RegistryBuilder.RegisterImplementationSelector(s);
 			return this;
 		}
 	}

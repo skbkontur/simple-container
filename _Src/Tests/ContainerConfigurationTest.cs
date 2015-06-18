@@ -722,6 +722,44 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanUseIncludeDecisionsInImplementationSelectors : ContainerConfigurationTest
+		{
+			public interface IA
+			{
+			}
+
+			public class AConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					builder.RegisterImplementationSelector(
+						delegate(Type type, Type[] types, List<ImplementationSelectorDecision> decisions)
+						{
+							if (type == typeof (IA))
+								decisions.Add(new ImplementationSelectorDecision
+								{
+									target = typeof (MyPrivateImpl),
+									action = ImplementationSelectorDecision.Action.Include,
+									comment = "private-impl"
+								});
+						});
+				}
+
+				private class MyPrivateImpl : IA
+				{
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var resolved = container.Resolve<IA>();
+				Assert.That(resolved.Single().GetType().Name, Is.EqualTo("MyPrivateImpl"));
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tMyPrivateImpl - private-impl"));
+			}
+		}
+
 		public class ImplementationFilters : ContainerConfigurationTest
 		{
 			public interface IA
@@ -748,16 +786,24 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					if (context.ProfileIs<InMemoryProfile>())
-						builder.RegisterImplementationFilter("in-memory", GetFilter(true));
-					else
-						builder.RegisterImplementationFilter("not-in-memory", GetFilter(false));
+					var selector = context.ProfileIs<InMemoryProfile>() ? GetSelector(true) : GetSelector(false);
+					builder.RegisterImplementationSelector(selector);
 				}
 
-				private static Func<Type, Type, bool> GetFilter(bool inMemory)
+				private static ImplementationSelector GetSelector(bool inMemory)
 				{
-					return (t1, t2) => !t1.IsInterface ||
-					                   t2.Name.StartsWith("InMemory", StringComparison.OrdinalIgnoreCase) == inMemory;
+					return delegate(Type interfaceType, Type[] implementationTypes, List<ImplementationSelectorDecision> decisions)
+					{
+						if (interfaceType.IsInterface)
+							foreach (var implementationType in implementationTypes)
+								if (implementationType.Name.StartsWith("InMemory", StringComparison.OrdinalIgnoreCase) != inMemory)
+									decisions.Add(new ImplementationSelectorDecision
+									{
+										action = ImplementationSelectorDecision.Action.Exclude,
+										target = implementationType,
+										comment = inMemory ? "in-memory" : "not-in-memory"
+									});
+					};
 				}
 			}
 
@@ -778,7 +824,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 		}
-		
+
 		public class ImplementationFiltersCanBeOverriden : ContainerConfigurationTest
 		{
 			public interface IA
@@ -797,7 +843,12 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.RegisterImplementationFilter("test-convention", (_, t) => t == typeof (InMemoryA));
+					builder.RegisterImplementationSelector(
+						(interfaceType, implementationTypes, decisions) => decisions.Add(new ImplementationSelectorDecision
+						{
+							action = ImplementationSelectorDecision.Action.Exclude,
+							target = typeof (DefaultA)
+						}));
 				}
 			}
 

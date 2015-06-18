@@ -26,14 +26,14 @@ namespace SimpleContainer.Implementation
 		protected readonly IInheritanceHierarchy inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
-		private readonly ImplementationFilter[] implementationFilters;
+		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
 			LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = configurationRegistry;
-			implementationFilters = configurationRegistry.GetImplementationFilters();
+			implementationSelectors = configurationRegistry.GetImplementationSelectors();
 			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
@@ -52,23 +52,14 @@ namespace SimpleContainer.Implementation
 			var wrap = instanceCache.GetOrAdd(cacheKey, createWrap);
 			ContainerService result;
 			if (!wrap.TryGet(out result))
-				result = ResolveSingleton(cacheKey.Type, new ResolutionContext(cacheKey.Contracts));
+				result = ResolveSingleton(cacheKey.Type, new ResolutionContext(this, cacheKey.Contracts));
 			return new ResolvedService(result, this, typeToResolve != type);
 		}
 
 		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
 		{
-			context = context ?? new ResolutionContext(InternalHelpers.ToInternalContracts(contracts, type));
-			var resultBuilder = new ContainerService.Builder(type, this, context).NeedNewInstance(ObjectAccessor.Get(arguments));
-			context.Instantiate(resultBuilder, this);
-			var result = resultBuilder.Build();
-			if (result.Status == ServiceStatus.Ok && resultBuilder.Arguments != null)
-			{
-				var unused = resultBuilder.Arguments.GetUnused().ToArray();
-				if (unused.Any())
-					resultBuilder.SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
-			}
-			return result;
+			context = context ?? new ResolutionContext(this, InternalHelpers.ToInternalContracts(contracts, type));
+			return context.Instantiate(type, ObjectAccessor.Get(arguments));
 		}
 
 		private static string[] CheckContracts(IEnumerable<string> contracts)
@@ -181,22 +172,10 @@ namespace SimpleContainer.Implementation
 		{
 			var cacheKey = new ServiceName(type, context.Contracts.ToArray());
 			var id = instanceCache.GetOrAdd(cacheKey, createWrap);
-			var cycle = context.BuilderByToken(id);
-			if (cycle != null)
-			{
-				var previous = context.GetTopService();
-				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
-					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
-				var cycleBuilder = new ContainerService.Builder(type, this, context);
-				cycleBuilder.SetError(message);
-				return cycleBuilder.Build();
-			}
 			ContainerService result;
 			if (!id.AcquireInstantiateLock(out result))
 				return result;
-			var resultBuilder = new ContainerService.Builder(type, this, context);
-			context.Instantiate(resultBuilder, id);
-			result = resultBuilder.Build();
+			result = context.Instantiate(type, null);
 			id.ReleaseInstantiateLock(result);
 			return result;
 		}
@@ -237,39 +216,59 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateInterface(ContainerService.Builder builder)
 		{
-			var implementationTypes = GetInterfaceImplementationTypes(builder).Distinct().ToArray();
-			if (implementationTypes.Length == 0)
-				builder.SetComment("has no implementations");
-			else
-				foreach (var implementationType in implementationTypes)
-				{
-					var implementationBuilder = new ContainerService.Builder(implementationType, this, builder.Context);
-					InstantiateInterfaceImplementation(builder, implementationBuilder);
-					builder.LinkTo(implementationBuilder.Build());
-					if (builder.Status.IsBad())
-						return;
-				}
-		}
-
-		private void InstantiateInterfaceImplementation(ContainerService.Builder interfaceBuilder,
-			ContainerService.Builder implementationBuilder)
-		{
-			if (interfaceBuilder.HasNoConfiguration() && implementationFilters.Length > 0)
-				foreach (var f in implementationFilters)
-					if (!f.Filter(interfaceBuilder.Type, implementationBuilder.Type))
-					{
-						implementationBuilder.SetComment(f.Name);
-						return;
-					}
-			if (implementationBuilder.IgnoredImplementation())
-				implementationBuilder.SetComment("IgnoredImplementation");
-			else if (interfaceBuilder.CreateNew)
+			var implementationTypes = GetInterfaceImplementationTypes(builder).Distinct().ToList();
+			List<ImplementationSelectorDecision> selectorDecisions = null;
+			if (builder.HasNoConfiguration() && implementationSelectors.Length > 0)
 			{
-				implementationBuilder = implementationBuilder.NeedNewInstance(interfaceBuilder.Arguments);
-				interfaceBuilder.Context.Instantiate(implementationBuilder, null);
+				selectorDecisions = new List<ImplementationSelectorDecision>();
+				var typesArray = implementationTypes.ToArray();
+				foreach (var s in implementationSelectors)
+					s(builder.Type, typesArray, selectorDecisions);
+				foreach (var decision in selectorDecisions)
+					if (decision.action == ImplementationSelectorDecision.Action.Include)
+						implementationTypes.Add(decision.target);
 			}
-			else
-				implementationBuilder.Reuse(interfaceBuilder.Context.Resolve(implementationBuilder.Type, null, this));
+			if (implementationTypes.Count == 0)
+			{
+				builder.SetComment("has no implementations");
+				return;
+			}
+			foreach (var implementationType in implementationTypes)
+			{
+				ContainerService implementationService = null;
+				string comment = null;
+
+				var configuration = GetConfiguration(implementationType, builder.Context);
+				if (configuration.IgnoredImplementation || implementationType.IsDefined("IgnoredImplementationAttribute"))
+					comment = "IgnoredImplementation";
+				else if (builder.CreateNew)
+					implementationService = builder.Context.Instantiate(implementationType, builder.Arguments);
+				else
+				{
+					ImplementationSelectorDecision? decision = null;
+					if (selectorDecisions != null)
+						foreach (var d in selectorDecisions)
+							if (d.target == implementationType)
+							{
+								decision = d;
+								break;
+							}
+					if (decision.HasValue)
+						comment = decision.Value.comment;
+					if (!decision.HasValue || decision.Value.action == ImplementationSelectorDecision.Action.Include)
+						implementationService = builder.Context.Resolve(implementationType, null);
+				}
+				if (implementationService != null)
+					builder.LinkTo(implementationService, comment);
+				else
+				{
+					var dependency = ServiceDependency.NotResolved(null, implementationType.FormatName());
+					dependency.Comment = comment;
+					builder.AddDependency(dependency, true);
+				}
+				if (builder.Status.IsBad())
+					return;
+			}
 		}
 
 		private IEnumerable<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
@@ -376,9 +375,15 @@ namespace SimpleContainer.Implementation
 			}
 			var formalParameters = constructor.value.GetParameters();
 			var actualArguments = new object[formalParameters.Length];
+			var serviceNameParameterIndex = -1;
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
+				if (formalParameter.ParameterType == typeof (ServiceName))
+				{
+					serviceNameParameterIndex = i;
+					continue;
+				}
 				var dependency = InstantiateDependency(formalParameter, builder).CastTo(formalParameter.ParameterType);
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -399,13 +404,14 @@ namespace SimpleContainer.Implementation
 				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));
 				return;
 			}
+			if (serviceNameParameterIndex >= 0)
+				actualArguments[serviceNameParameterIndex] = builder.GetName();
 			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
 				return;
 			}
-			var usedContactsCacheKey = new ServiceName(builder.Type, builder.FinalUsedContracts);
-			var serviceForUsedContractsId = instanceCache.GetOrAdd(usedContactsCacheKey, createWrap);
+			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetName(), createWrap);
 			ContainerService serviceForUsedContracts;
 			if (serviceForUsedContractsId.AcquireInstantiateLock(out serviceForUsedContracts))
 			{
@@ -458,7 +464,7 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				var dependencyService = new ContainerService.Builder(dependencyType, this, builder.Context);
+				var dependencyService = new ContainerService.Builder(dependencyType, builder.Context);
 				dependencyService.SetError(e);
 				return ServiceDependency.ServiceError(dependencyService.Build());
 			}
@@ -476,7 +482,15 @@ namespace SimpleContainer.Implementation
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
-			var resultService = builder.Context.Resolve(dependencyType, contracts, this);
+			LifestyleAttribute lifestyle;
+			if (dependencyType.TryGetCustomAttribute(out lifestyle) && lifestyle.Lifestyle == Lifestyle.PerRequest)
+			{
+				const string messageFormat = "service [{0}] with PerRequest lifestyle can't be injected " +
+				                             "into [{1}], use Func<{0}> instead";
+				return ServiceDependency.Error(null, formalParameter.Name, messageFormat,
+					dependencyType.FormatName(), builder.Type.FormatName());
+			}
+			var resultService = builder.Context.Resolve(dependencyType, contracts);
 			if (resultService.Status.IsBad())
 				return ServiceDependency.ServiceError(resultService);
 			if (isEnumerable)

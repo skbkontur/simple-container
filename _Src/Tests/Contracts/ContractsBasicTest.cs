@@ -443,7 +443,7 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(instance.s1, Is.InstanceOf<Impl1>());
 				Assert.That(instance.s2, Is.InstanceOf<Impl2>());
 
-				var impl = (Impl1)instance.s1;
+				var impl = (Impl1) instance.s1;
 				Assert.That(impl.s1, Is.InstanceOf<Impl3>());
 				Assert.That(impl.s2, Is.InstanceOf<Impl4>());
 			}
@@ -711,8 +711,40 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("x").BindDependency<A>("parameter", 42));
-				var a = (A)container.Get<IA>();
+				var a = (A) container.Get<IA>();
 				Assert.That(a.parameter, Is.EqualTo(42));
+			}
+		}
+
+		public class CanInjectServiceName : ContractsBasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("my-test-contract")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+				public readonly ServiceName myName;
+
+				public B(int parameter, ServiceName myName)
+				{
+					this.parameter = parameter;
+					this.myName = myName;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("my-test-contract").BindDependencies<B>(new {parameter = 78}));
+				Assert.That(container.Get<A>().b.myName.ToString(), Is.EqualTo("B[my-test-contract]"));
 			}
 		}
 

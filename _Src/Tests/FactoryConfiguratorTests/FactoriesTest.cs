@@ -470,5 +470,70 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				Assert.That(service.dependency, Is.EqualTo("argument"));
 			}
 		}
+
+		public class FuncFromFunc : BasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly C c;
+
+				public B(Func<C> createC)
+				{
+					c = createC();
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(() => container.Get<A>(), Throws.Nothing);
+			}
+		}
+
+		public class FuncFromFuncWithCycle : BasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly A a;
+
+				public B(Func<A> createA)
+				{
+					a = createA();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("cyclic dependency A ...-> B -> A\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A <---------------"));
+			}
+		}
 	}
 }

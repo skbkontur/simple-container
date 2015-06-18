@@ -61,11 +61,11 @@ namespace SimpleContainer.Factories
 			{
 				if (hostService == null || hostService != builder.Context.GetTopService())
 				{
-					var resolvedService = builder.Container.Create(type, declaredContractNames, arguments);
+					var resolvedService = builder.Context.Container.Create(type, declaredContractNames, arguments);
 					resolvedService.Run();
 					return resolvedService.Single();
 				}
-				var result = builder.Container.Create(type, declaredContractNames, arguments, builder.Context);
+				var result = builder.Context.Container.Create(type, declaredContractNames, arguments, builder.Context);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 				hostService.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)
