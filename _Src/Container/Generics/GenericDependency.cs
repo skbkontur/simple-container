@@ -9,7 +9,7 @@ namespace SimpleContainer.Generics
 		public Type Type { get; set; }
 		public GenericComponent Owner { get; set; }
 
-		public void Close(Type type, ConfigurationRegistry.Builder builder, ICollection<Type> closedImplementations)
+		public void Close(Type type, GenericMappingsBuilder builder, ICollection<Type> closedImplementations)
 		{
 			var closingTypes = Owner.Type.MatchOrNull(Type, type);
 			if (closingTypes != null)

@@ -40,6 +40,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
+    <Compile Include="Configuration\EmptyConfigurationRegistry.cs" />
+    <Compile Include="Configuration\GenericMappingsBuilder.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\ImplementationSelector.cs" />
     <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
@@ -66,7 +68,6 @@
     <Compile Include="Configuration\AbstractServiceConfigurationBuilder.cs" />
     <Compile Include="Configuration\ConfigurationContext.cs" />
     <Compile Include="Configuration\ContractConfigurationBuilder.cs" />
-    <Compile Include="Configuration\FilteredContainerConfiguration.cs" />
     <Compile Include="Configuration\IContainerConfigurator.cs" />
     <Compile Include="Configuration\IProfile.cs" />
     <Compile Include="Configuration\ServiceContractConfigurationBuilder.cs" />

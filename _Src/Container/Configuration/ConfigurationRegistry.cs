@@ -9,23 +9,15 @@ namespace SimpleContainer.Configuration
 	{
 		private readonly IDictionary<Type, IServiceConfigurationSet> configurations;
 		private readonly IDictionary<string, List<string>> contractUnions;
-		private readonly IDictionary<Type, Type[]> genericMappings;
 		private readonly ImplementationSelector[] implementationSelectors;
 
 		private ConfigurationRegistry(IDictionary<Type, IServiceConfigurationSet> configurations,
 			IDictionary<string, List<string>> contractUnions,
-			IDictionary<Type, Type[]> genericMappings,
 			ImplementationSelector[] implementationSelectors)
 		{
 			this.configurations = configurations;
 			this.contractUnions = contractUnions;
-			this.genericMappings = genericMappings;
 			this.implementationSelectors = implementationSelectors;
-		}
-
-		public Type[] GetGenericMappingsOrNull(Type type)
-		{
-			return genericMappings.GetOrDefault(type);
 		}
 
 		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
@@ -50,7 +42,7 @@ namespace SimpleContainer.Configuration
 				new Dictionary<Type, ServiceConfigurationSet>();
 
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
-			private readonly IDictionary<Type, List<Type>> genericMappings = new Dictionary<Type, List<Type>>();
+
 
 			private readonly List<ImplementationSelector> implementationSelectors =
 				new List<ImplementationSelector>();
@@ -73,14 +65,6 @@ namespace SimpleContainer.Configuration
 				union.AddRange(contractNames);
 			}
 
-			public void DefinedGenericMapping(Type from, Type to)
-			{
-				List<Type> mappings;
-				if (!genericMappings.TryGetValue(from, out mappings))
-					genericMappings.Add(from, mappings = new List<Type>());
-				mappings.Add(to);
-			}
-
 			public void RegisterImplementationSelector(ImplementationSelector s)
 			{
 				implementationSelectors.Add(s);
@@ -89,9 +73,7 @@ namespace SimpleContainer.Configuration
 			public ConfigurationRegistry Build()
 			{
 				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
-				var builtMappings = genericMappings.ToDictionary(x => x.Key, x => x.Value.ToArray());
-				return new ConfigurationRegistry(builtConfigurations, contractUnions,
-					builtMappings, implementationSelectors.ToArray());
+				return new ConfigurationRegistry(builtConfigurations, contractUnions, implementationSelectors.ToArray());
 			}
 		}
 	}

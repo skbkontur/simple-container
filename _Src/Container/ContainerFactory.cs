@@ -143,8 +143,8 @@ namespace SimpleContainer
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
 			var builder = new ContainerConfigurationBuilder();
 			var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
-			var configuration = CreateDefaultConfiguration(hostingTypes);
-			using (var container = new Implementation.SimpleContainer(configuration, inheritors, errorLogger, infoLogger))
+			var genericMappings = BuildGenericMappings(hostingTypes);
+			using (var container = CreateContainer(genericMappings, inheritors, EmptyConfigurationRegistry.Instance))
 			{
 				var runner = container.Get<ConfiguratorRunner>();
 				runner.Run(builder, configurationContext, priorities);
@@ -154,8 +154,13 @@ namespace SimpleContainer
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			if (fileConfigurator != null)
 				fileConfigurator(_ => true, builder);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.RegistryBuilder.Build());
-			return new Implementation.SimpleContainer(containerConfiguration, inheritors, errorLogger, infoLogger);
+			return CreateContainer(genericMappings, inheritors, builder.RegistryBuilder.Build());
+		}
+
+		private IContainer CreateContainer(IDictionary<Type, Type[]> genericMappings, IInheritanceHierarchy inheritors,
+			IConfigurationRegistry configuration)
+		{
+			return new Implementation.SimpleContainer(genericMappings, configuration, inheritors, errorLogger, infoLogger);
 		}
 
 		private static string GetBinDirectory()
@@ -165,11 +170,10 @@ namespace SimpleContainer
 				: AppDomain.CurrentDomain.RelativeSearchPath;
 		}
 
-		private IConfigurationRegistry CreateDefaultConfiguration(Type[] targetTypes)
+		private IDictionary<Type, Type[]> BuildGenericMappings(Type[] targetTypes)
 		{
 			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
-			var builder = new ConfigurationRegistry.Builder();
-
+			var builder = new GenericMappingsBuilder();
 			foreach (var type in targetTypes)
 				if (!type.Assembly.FullName.Contains("FunctionalTests"))
 					genericsProcessor.FirstRun(type);

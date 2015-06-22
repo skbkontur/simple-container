@@ -16,11 +16,6 @@ namespace SimpleContainer.Configuration
 			this.child = child;
 		}
 
-		public Type[] GetGenericMappingsOrNull(Type type)
-		{
-			return child.GetGenericMappingsOrNull(type) ?? parent.GetGenericMappingsOrNull(type);
-		}
-
 		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
 			return child.GetConfigurationOrNull(type, contracts) ?? parent.GetConfigurationOrNull(type, contracts);

@@ -23,17 +23,19 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 
+		private readonly IDictionary<Type, Type[]> genericMappings;
 		protected readonly IInheritanceHierarchy inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
 		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
-		public SimpleContainer(IConfigurationRegistry configurationRegistry, IInheritanceHierarchy inheritors,
-			LogError errorLogger, LogInfo infoLogger)
+		public SimpleContainer(IDictionary<Type, Type[]> genericMappings, IConfigurationRegistry configurationRegistry,
+			IInheritanceHierarchy inheritors,LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = configurationRegistry;
 			implementationSelectors = configurationRegistry.GetImplementationSelectors();
+			this.genericMappings = genericMappings;
 			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
@@ -156,7 +158,7 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(CloneConfiguration(configure), inheritors, null, infoLogger);
+			return new SimpleContainer(genericMappings, CloneConfiguration(configure), inheritors, null, infoLogger);
 		}
 
 		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
@@ -285,7 +287,7 @@ namespace SimpleContainer.Implementation
 				candidates.AddRange(builder.Configuration.ImplementationTypes);
 			else
 			{
-				var mapped = Configuration.GetGenericMappingsOrNull(builder.Type);
+				var mapped = genericMappings.GetOrDefault(builder.Type);
 				if (mapped != null)
 					candidates.AddRange(mapped);
 			}

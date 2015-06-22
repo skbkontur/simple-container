@@ -40,7 +40,7 @@ namespace SimpleContainer.Generics
 					DependenciesToClose.Add(new GenericDependency {Type = dependency, Owner = consumer});
 		}
 
-		public void Close(Type[] by, ConfigurationRegistry.Builder builder, ICollection<Type> closedImplementations)
+		public void Close(Type[] by, GenericMappingsBuilder builder, ICollection<Type> closedImplementations)
 		{
 			if (by.Length == 1 && Overrides.Any(x => x.TypeArgument == by[0]))
 				return;
