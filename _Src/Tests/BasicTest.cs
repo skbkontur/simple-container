@@ -1839,7 +1839,32 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Client1>());
-				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be injected into [Client1], use Func<SomeReader> instead\r\n\r\n!Client1\r\n\t!someReader <---------------"));
+				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeReader> instead\r\n\r\n!Client1\r\n\t!SomeReader <---------------"));
+			}
+		}
+
+		public class PerRequestServicesCannotBeResolved : BasicTest
+		{
+			public class A
+			{
+				public A(IContainer container)
+				{
+					container.Get<B>();
+				}
+			}
+
+			[Lifestyle(Lifestyle.PerRequest)]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.InnerException.Message,
+					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead\r\n\r\n!B <---------------"));
 			}
 		}
 

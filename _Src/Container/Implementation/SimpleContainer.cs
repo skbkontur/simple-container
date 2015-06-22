@@ -182,6 +182,7 @@ namespace SimpleContainer.Implementation
 
 		internal void Instantiate(ContainerService.Builder builder)
 		{
+			LifestyleAttribute lifestyle;
 			if (builder.Type.IsSimpleType())
 				builder.SetError("can't create simple type");
 			else if (builder.Type == typeof (IContainer))
@@ -201,6 +202,12 @@ namespace SimpleContainer.Implementation
 				builder.SetError("can't create value type");
 			else if (builder.Type.IsGenericType && builder.Type.ContainsGenericParameters)
 				builder.SetError("can't create open generic");
+			else if (!builder.CreateNew && builder.Type.TryGetCustomAttribute(out lifestyle) &&
+			         lifestyle.Lifestyle == Lifestyle.PerRequest)
+			{
+				const string messageFormat = "service [{0}] with PerRequest lifestyle can't be resolved, use Func<{0}> instead";
+				builder.SetError(string.Format(messageFormat, builder.Type.FormatName()));
+			}
 			else if (builder.Type.IsAbstract)
 				InstantiateInterface(builder);
 			else
@@ -481,14 +488,6 @@ namespace SimpleContainer.Implementation
 						"parameter [{0}] of service [{1}] is not configured",
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
-			}
-			LifestyleAttribute lifestyle;
-			if (dependencyType.TryGetCustomAttribute(out lifestyle) && lifestyle.Lifestyle == Lifestyle.PerRequest)
-			{
-				const string messageFormat = "service [{0}] with PerRequest lifestyle can't be injected " +
-				                             "into [{1}], use Func<{0}> instead";
-				return ServiceDependency.Error(null, formalParameter.Name, messageFormat,
-					dependencyType.FormatName(), builder.Type.FormatName());
 			}
 			var resultService = builder.Context.Resolve(dependencyType, contracts);
 			if (resultService.Status.IsBad())
