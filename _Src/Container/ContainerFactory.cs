@@ -141,10 +141,10 @@ namespace SimpleContainer
 			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
 			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
+			var genericsAutoCloser = new GenericsAutoCloser(inheritors, assembliesFilter);
 			var builder = new ContainerConfigurationBuilder();
 			var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
-			var genericMappings = BuildGenericMappings(hostingTypes);
-			using (var container = CreateContainer(genericMappings, inheritors, EmptyConfigurationRegistry.Instance))
+			using (var container = CreateContainer(inheritors, genericsAutoCloser, EmptyConfigurationRegistry.Instance))
 			{
 				var runner = container.Get<ConfiguratorRunner>();
 				runner.Run(builder, configurationContext, priorities);
@@ -154,13 +154,13 @@ namespace SimpleContainer
 			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
 			if (fileConfigurator != null)
 				fileConfigurator(_ => true, builder);
-			return CreateContainer(genericMappings, inheritors, builder.RegistryBuilder.Build());
+			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build());
 		}
 
-		private IContainer CreateContainer(IDictionary<Type, Type[]> genericMappings, IInheritanceHierarchy inheritors,
+		private IContainer CreateContainer(IInheritanceHierarchy inheritors, GenericsAutoCloser genericsAutoCloser,
 			IConfigurationRegistry configuration)
 		{
-			return new Implementation.SimpleContainer(genericMappings, configuration, inheritors, errorLogger, infoLogger);
+			return new Implementation.SimpleContainer(genericsAutoCloser, configuration, inheritors, errorLogger, infoLogger);
 		}
 
 		private static string GetBinDirectory()
@@ -168,19 +168,6 @@ namespace SimpleContainer
 			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
 				? AppDomain.CurrentDomain.BaseDirectory
 				: AppDomain.CurrentDomain.RelativeSearchPath;
-		}
-
-		private IDictionary<Type, Type[]> BuildGenericMappings(Type[] targetTypes)
-		{
-			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
-			var builder = new GenericMappingsBuilder();
-			foreach (var type in targetTypes)
-				if (!type.Assembly.FullName.Contains("FunctionalTests"))
-					genericsProcessor.FirstRun(type);
-			foreach (var type in targetTypes)
-				if (!type.Assembly.FullName.Contains("FunctionalTests"))
-					genericsProcessor.SecondRun(builder, type);
-			return builder.Build();
 		}
 
 		private ContainerFactory WithTypesFromAssemblies(ParallelQuery<Assembly> assemblies)

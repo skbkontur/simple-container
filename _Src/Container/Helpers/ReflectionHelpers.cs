@@ -90,6 +90,26 @@ namespace SimpleContainer.Helpers
 			return type.Parents().Prepend(type);
 		}
 
+		public static Type ImplementationOf(this Type implementation, Type interfaceDefinition)
+		{
+			if (interfaceDefinition.IsInterface)
+			{
+				var interfaces = implementation.GetInterfaces();
+				foreach (var definitionInterface in interfaces)
+					if (definitionInterface.IsGenericType && definitionInterface.GetGenericTypeDefinition() == interfaceDefinition)
+						return definitionInterface;
+				throw new InvalidOperationException();
+			}
+			var result = implementation;
+			while (result != null)
+			{
+				if (result.IsGenericType && result.GetGenericTypeDefinition() == interfaceDefinition)
+					return result;
+				result = result.BaseType;
+			}
+			throw new InvalidOperationException();
+		}
+
 		public static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
 		{
 			var dynamicMethod = new DynamicMethod("",

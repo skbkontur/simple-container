@@ -51,6 +51,7 @@
     <Compile Include="Configuration\ServiceConfiguration.cs" />
     <Compile Include="Factories\LazyCreator.cs" />
     <Compile Include="Factories\NestedFactoryCreator.cs" />
+    <Compile Include="Generics\GenericsAutoCloser.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\Helpers.cs" />
@@ -79,10 +80,6 @@
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
     <Compile Include="Factories\FactoryCreator.cs" />
-    <Compile Include="Generics\GenericComponent.cs" />
-    <Compile Include="Generics\GenericDependency.cs" />
-    <Compile Include="Generics\GenericOverrideInfo.cs" />
-    <Compile Include="Generics\GenericsConfigurationProcessor.cs" />
     <Compile Include="Generics\TypeHelpers.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />

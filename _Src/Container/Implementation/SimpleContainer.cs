@@ -23,19 +23,19 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 
-		private readonly IDictionary<Type, Type[]> genericMappings;
+		private readonly GenericsAutoCloser genericsAutoCloser;
 		protected readonly IInheritanceHierarchy inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
 		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
-		public SimpleContainer(IDictionary<Type, Type[]> genericMappings, IConfigurationRegistry configurationRegistry,
+		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
 			IInheritanceHierarchy inheritors,LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = configurationRegistry;
 			implementationSelectors = configurationRegistry.GetImplementationSelectors();
-			this.genericMappings = genericMappings;
+			this.genericsAutoCloser = genericsAutoCloser;
 			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
 			createWrap = k => new ContainerServiceId();
@@ -158,7 +158,7 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(genericMappings, CloneConfiguration(configure), inheritors, null, infoLogger);
+			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), inheritors, null, infoLogger);
 		}
 
 		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
@@ -285,12 +285,6 @@ namespace SimpleContainer.Implementation
 			var candidates = new List<Type>();
 			if (builder.Configuration.ImplementationTypes != null)
 				candidates.AddRange(builder.Configuration.ImplementationTypes);
-			else
-			{
-				var mapped = genericMappings.GetOrDefault(builder.Type);
-				if (mapped != null)
-					candidates.AddRange(mapped);
-			}
 			if (builder.Configuration.ImplementationTypes == null || builder.Configuration.UseAutosearch)
 				candidates.AddRange(inheritors.GetOrNull(builder.Type.GetDefinition()).EmptyIfNull());
 			foreach (var implType in candidates)
@@ -304,8 +298,13 @@ namespace SimpleContainer.Implementation
 					yield return implType;
 				else
 				{
-					foreach (var type in implType.CloseBy(builder.Type, implType))
-						yield return type;
+					var mapped = genericsAutoCloser.AutoCloseDefinition(implType);
+					foreach (var type in mapped)
+						if (builder.Type.IsAssignableFrom(type))
+							yield return type;
+					if (builder.Type.IsGenericType)
+						foreach (var type in implType.CloseBy(builder.Type, implType))
+							yield return type;
 					if (builder.Arguments == null)
 						continue;
 					var serviceConstructor = implType.GetConstructor();
