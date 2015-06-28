@@ -442,7 +442,7 @@ namespace SimpleContainer.Implementation
 
 			public void CreateInstance(MethodBase method, object self, object[] actualArguments)
 			{
-				CreateInstanceBy(() => MethodInvoker.Invoke(method, self, actualArguments), true);
+				CreateInstanceBy(() => method.InvokeViaReflectionEmit(self, actualArguments), true);
 			}
 		}
 	}

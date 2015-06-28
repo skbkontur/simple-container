@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
 using SimpleContainer.Helpers;
-using SimpleContainer.Implementation;
 
-namespace SimpleContainer.Factories
+namespace SimpleContainer.Implementation
 {
 	internal static class LazyCreator
 	{
@@ -16,7 +15,7 @@ namespace SimpleContainer.Factories
 			var type = builder.Type.GetGenericArguments()[0];
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(type).GetConstructors().Single();
 			var lazyFactory =
-				(ILazyFactory) MethodInvoker.Invoke(lazyFactoryCtor, null, new object[] {builder.Context.Container});
+				(ILazyFactory) lazyFactoryCtor.InvokeViaReflectionEmit(null, new object[] {builder.Context.Container});
 			return lazyFactory.CreateLazy();
 		}
 

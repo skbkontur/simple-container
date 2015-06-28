@@ -2,12 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
-using SimpleContainer.Annotations;
 using SimpleContainer.Helpers;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
+using SimpleContainer.Properties;
 
-namespace SimpleContainer.Factories
+namespace SimpleContainer.Implementation
 {
 	internal static class FactoryCreator
 	{

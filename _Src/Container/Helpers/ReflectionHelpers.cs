@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,67 @@ namespace SimpleContainer.Helpers
 {
 	internal static class ReflectionHelpers
 	{
+		public static bool HasEquivalentParameters(Type dependency, Type definition)
+		{
+			return SelectGenericParameters(dependency).Distinct().IsEquivalentTo(definition.GetGenericArguments());
+		}
+
+		private static IEnumerable<Type> SelectGenericParameters(Type type)
+		{
+			if (type.IsGenericParameter)
+				yield return type;
+			else if (type.IsGenericType)
+				foreach (var t in type.GetGenericArguments().SelectMany(SelectGenericParameters))
+					yield return t;
+		}
+
+		public static Type TryCloseByPattern(this Type definition, Type pattern, Type value)
+		{
+			var argumentsCount = definition.GetGenericArguments().Length;
+			var arguments = new Type[argumentsCount];
+			if (!pattern.TryMatchWith(value, arguments))
+				return null;
+			foreach (var argument in arguments)
+				if (argument == null)
+					return null;
+			return definition.MakeGenericType(arguments);
+		}
+
+		private static bool TryMatchWith(this Type pattern, Type value, Type[] matched)
+		{
+			if (pattern.IsGenericParameter)
+			{
+				if (value.IsGenericParameter)
+					return true;
+				foreach (var constraint in pattern.GetGenericParameterConstraints())
+					if (!constraint.IsAssignableFrom(value))
+						return false;
+				if (pattern.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+					if (value.GetConstructor(Type.EmptyTypes) == null)
+						return false;
+				if (matched != null)
+				{
+					var position = pattern.GenericParameterPosition;
+					if (matched[position] != null && matched[position] != value)
+						return false;
+					matched[position] = value;
+				}
+				return true;
+			}
+			if (pattern.IsGenericType ^ value.IsGenericType)
+				return false;
+			if (!pattern.IsGenericType)
+				return pattern == value;
+			if (pattern.GetGenericTypeDefinition() != value.GetGenericTypeDefinition())
+				return false;
+			var patternArguments = pattern.GetGenericArguments();
+			var valueArguments = value.GetGenericArguments();
+			for (var i = 0; i < patternArguments.Length; i++)
+				if (!patternArguments[i].TryMatchWith(valueArguments[i], matched))
+					return false;
+			return true;
+		}
+
 		public static Type UnwrapEnumerable(this Type type)
 		{
 			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
@@ -116,7 +178,19 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
+		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
+			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
+
+		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
+			EmitCallOf;
+
+		public static object InvokeViaReflectionEmit(this MethodBase method, object self, object[] actualArguments)
+		{
+			var factoryMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
+			return factoryMethod(self, actualArguments);
+		}
+
+		private static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
 		{
 			var dynamicMethod = new DynamicMethod("",
 				typeof (object),
@@ -127,15 +201,18 @@ namespace SimpleContainer.Helpers
 			if (!targetMethod.IsStatic && !targetMethod.IsConstructor)
 			{
 				il.Emit(OpCodes.Ldarg_0);
-				if (targetMethod.DeclaringType.IsValueType)
+				var declaringType = targetMethod.DeclaringType;
+				if (declaringType == null)
+					throw new InvalidOperationException(string.Format("DeclaringType is null for [{0}]", targetMethod));
+				if (declaringType.IsValueType)
 				{
-					il.Emit(OpCodes.Unbox_Any, targetMethod.DeclaringType);
-					il.DeclareLocal(targetMethod.DeclaringType);
+					il.Emit(OpCodes.Unbox_Any, declaringType);
+					il.DeclareLocal(declaringType);
 					il.Emit(OpCodes.Stloc_0);
 					il.Emit(OpCodes.Ldloca_S, 0);
 				}
 				else
-					il.Emit(OpCodes.Castclass, targetMethod.DeclaringType);
+					il.Emit(OpCodes.Castclass, declaringType);
 			}
 			var parameters = targetMethod.GetParameters();
 			for (var i = 0; i < parameters.Length; i++)

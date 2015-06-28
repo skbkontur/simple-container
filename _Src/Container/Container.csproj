@@ -41,7 +41,6 @@
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
     <Compile Include="Configuration\EmptyConfigurationRegistry.cs" />
-    <Compile Include="Configuration\GenericMappingsBuilder.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\ImplementationSelector.cs" />
     <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
@@ -49,12 +48,10 @@
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
-    <Compile Include="Factories\LazyCreator.cs" />
-    <Compile Include="Factories\NestedFactoryCreator.cs" />
-    <Compile Include="Generics\GenericsAutoCloser.cs" />
+    <Compile Include="Implementation\LazyCreator.cs" />
+    <Compile Include="Implementation\NestedFactoryCreator.cs" />
+    <Compile Include="Implementation\GenericsAutoCloser.cs" />
     <Compile Include="Helpers\AssemblyHelpers.cs" />
-    <Compile Include="Helpers\MethodInvoker.cs" />
-    <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
     <Compile Include="Implementation\ContainerServiceId.cs" />
     <Compile Include="Implementation\ValueOrError.cs" />
@@ -79,8 +76,7 @@
     <Compile Include="Implementation\ContainerService.cs" />
     <Compile Include="Implementation\DefaultInheritanceHierarchy.cs" />
     <Compile Include="Implementation\DependenciesInjector.cs" />
-    <Compile Include="Factories\FactoryCreator.cs" />
-    <Compile Include="Generics\TypeHelpers.cs" />
+    <Compile Include="Implementation\FactoryCreator.cs" />
     <Compile Include="Helpers\EnumerableHelpers.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Configuration\FileConfigurationParser.cs" />
@@ -97,7 +93,6 @@
     <Compile Include="Implementation\IInheritanceHierarchy.cs" />
     <Compile Include="Configuration\ImplentationDependencyConfiguration.cs" />
     <Compile Include="Infection\ContainerConstructorAttribute.cs" />
-    <Compile Include="Infection\StaticAttribute.cs" />
     <Compile Include="Infection\FrameworkBoundaryAttribute.cs" />
     <Compile Include="Infection\FromResourceAttribute.cs" />
     <Compile Include="Infection\IgnoredImplementationAttribute.cs" />

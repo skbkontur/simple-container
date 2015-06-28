@@ -1,7 +1,6 @@
 using System;
-using SimpleContainer.Implementation;
 
-namespace SimpleContainer.Factories
+namespace SimpleContainer.Implementation
 {
 	internal static class NestedFactoryCreator
 	{

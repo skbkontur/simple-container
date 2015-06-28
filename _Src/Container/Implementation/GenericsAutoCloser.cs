@@ -4,9 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
-using SimpleContainer.Implementation;
 
-namespace SimpleContainer.Generics
+namespace SimpleContainer.Implementation
 {
 	internal class GenericsAutoCloser
 	{
@@ -63,7 +62,7 @@ namespace SimpleContainer.Generics
 						}
 						else
 						{
-							var closedReferer = referer.definition.type.CloseByPattern(referer.pattern, closure);
+							var closedReferer = referer.definition.type.TryCloseByPattern(referer.pattern, closure);
 							if (closedReferer != null)
 								anyRefererClosed |= referer.definition.closures.Add(closedReferer);
 						}
@@ -113,7 +112,7 @@ namespace SimpleContainer.Generics
 					continue;
 				if (!parameterType.ContainsGenericParameters)
 					continue;
-				if (!TypeHelpers.HasEquivalentParameters(parameterType, definition.type))
+				if (!ReflectionHelpers.HasEquivalentParameters(parameterType, definition.type))
 					continue;
 				hasAnyGenericDependencies = true;
 				Mark(parameterType.GetGenericTypeDefinition(), context).referers.Add(new GenericReferer
@@ -148,7 +147,7 @@ namespace SimpleContainer.Generics
 				else
 					foreach (var interfaceImpl in interfaceImpls)
 					{
-						var closure = definition.type.CloseByPattern(definition.type, interfaceImpl);
+						var closure = definition.type.TryCloseByPattern(definition.type, interfaceImpl);
 						if (closure != null)
 							definition.closures.Add(closure);
 					}

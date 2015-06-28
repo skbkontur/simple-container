@@ -5,8 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Factories;
-using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
@@ -303,8 +301,15 @@ namespace SimpleContainer.Implementation
 						if (builder.Type.IsAssignableFrom(type))
 							yield return type;
 					if (builder.Type.IsGenericType)
-						foreach (var type in implType.CloseBy(builder.Type, implType))
-							yield return type;
+					{
+						var implInterfaces = implType.ImplementationsOf(builder.Type.GetGenericTypeDefinition());
+						foreach (var implInterface in implInterfaces)
+						{
+							var closed = implType.TryCloseByPattern(implInterface, builder.Type);
+							if (closed != null)
+								yield return closed;
+						}
+					}
 					if (builder.Arguments == null)
 						continue;
 					var serviceConstructor = implType.GetConstructor();
@@ -315,10 +320,17 @@ namespace SimpleContainer.Implementation
 						if (!formalParameter.ParameterType.ContainsGenericParameters)
 							continue;
 						object parameterValue;
-						if (!builder.Arguments.TryGet(formalParameter.Name, out parameterValue))
+						if (!builder.Arguments.TryGet(formalParameter.Name, out parameterValue) || parameterValue == null)
 							continue;
-						foreach (var type in implType.CloseBy(formalParameter.ParameterType, parameterValue.GetType()))
-							yield return type;
+						var implInterfaces = formalParameter.ParameterType.IsGenericParameter
+							? new List<Type>(1) {parameterValue.GetType()}
+							: parameterValue.GetType().ImplementationsOf(formalParameter.ParameterType.GetGenericTypeDefinition());
+						foreach (var implInterface in implInterfaces)
+						{
+							var closedItem = implType.TryCloseByPattern(formalParameter.ParameterType, implInterface);
+							if (closedItem != null)
+								yield return closedItem;
+						}
 					}
 				}
 			}

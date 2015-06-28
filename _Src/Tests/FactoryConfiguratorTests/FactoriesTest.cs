@@ -374,6 +374,36 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			}
 		}
 
+		public class NullValueForFactoryAutoclosingParameter : FactoriesTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A<T> : IA
+			{
+				public readonly T value;
+
+				public A(T value)
+				{
+					this.value = value;
+				}
+			}
+
+			public class X
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var creator = container.Get<Func<object, IA>>();
+				var exception = Assert.Throws<SimpleContainerException>(() => creator(new {value = (X) null}));
+				Assert.That(exception.Message, Is.EqualTo("no instances for [IA]\r\n\r\n!IA - has no implementations"));
+			}
+		}
+
 		public class CanUseAutoclosingFactoriesInBuildUp : FactoriesTest
 		{
 			public interface IA
@@ -408,7 +438,7 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			public void Test()
 			{
 				var container = Container();
-				container.BuildUp(this, new String[0]);
+				container.BuildUp(this, new string[0]);
 				Assert.That(createA(new {s = new S1<int>()}).GetType().FormatName(), Is.EqualTo("A<W<int>>"));
 			}
 		}
@@ -448,11 +478,11 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 
 		public class CreateWithArgumentThatOverridesConfiguredDependency : BasicTest
 		{
-			public class ServiceWithDependency
+			public class A
 			{
 				public readonly string dependency;
 
-				public ServiceWithDependency(string dependency)
+				public A(string dependency)
 				{
 					this.dependency = dependency;
 				}
@@ -461,12 +491,11 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 			[Test]
 			public void Test()
 			{
-				var container = Container(builder => builder.BindDependencies<ServiceWithDependency>(new
+				var container = Container(builder => builder.BindDependencies<A>(new
 				{
 					dependency = "configured"
 				}));
-
-				var service = container.Create<ServiceWithDependency>(arguments: new {dependency = "argument"});
+				var service = container.Create<A>(arguments: new {dependency = "argument"});
 				Assert.That(service.dependency, Is.EqualTo("argument"));
 			}
 		}
@@ -504,6 +533,37 @@ namespace SimpleContainer.Tests.FactoryConfiguratorTests
 				Assert.That(() => container.Get<A>(), Throws.Nothing);
 			}
 		}
+
+		//public class CanUseCtorDelegate : BasicTest
+		//{
+		//	public class A
+		//	{
+		//		public readonly B b;
+		//		public readonly int someParameter;
+
+		//		private A(B b, int someParameter)
+		//		{
+		//			this.b = b;
+		//			this.someParameter = someParameter;
+		//		}
+
+		//		public delegate A Ctor(int someParameter);
+		//	}
+
+		//	public class B
+		//	{
+		//	}
+
+		//	[Test]
+		//	public void Test()
+		//	{
+		//		var container = Container();
+		//		var aCtor = container.Get<A.Ctor>();
+		//		var instance = aCtor(43);
+		//		Assert.That(instance.b, Is.Not.Null);
+		//		Assert.That(instance.someParameter, Is.EqualTo(43));
+		//	}
+		//}
 
 		public class FuncFromFuncWithCycle : BasicTest
 		{

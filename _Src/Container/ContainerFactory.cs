@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
