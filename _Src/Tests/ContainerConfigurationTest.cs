@@ -909,5 +909,48 @@ namespace SimpleContainer.Tests
 					Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
 			}
 		}
+
+		public class CanGiveConfiguratorTypeLowerThanDefaultPriority : SimpleContainerTestBase
+		{
+			public interface IService
+			{
+			}
+
+			public class ImplOne : IService
+			{
+			}
+
+			private class ImplTwo : IService
+			{
+			}
+
+			public interface ILowPriorityConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
+			public class LowPriorityConfigurator : ILowPriorityConfigurator<IService>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IService> builder)
+				{
+					builder.Bind<ImplOne>();
+				}
+			}
+
+			public class DefaultConfigurator : IServiceConfigurator<IService>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IService> builder)
+				{
+					builder.Bind<ImplTwo>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container =
+					Factory().WithPriorities(typeof (ILowPriorityConfigurator<>), typeof (IServiceConfigurator<>)).Build();
+				Assert.That(container.GetImplementationsOf<IService>(), Is.EqualTo(new[] {typeof (ImplTwo)}));
+			}
+		}
 	}
 }
