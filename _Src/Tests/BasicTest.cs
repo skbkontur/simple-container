@@ -1912,5 +1912,32 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<Wrap>().listOfA.Single().b.parameter, Is.EqualTo(54));
 			}
 		}
+		public class CreateWithArgumentThatOverridesConfiguredDependency : BasicTest
+		{
+			public class ServiceWithDependency
+			{
+				public readonly string Dependency;
+
+				public ServiceWithDependency(string dependency)
+				{
+					Dependency = dependency;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(builder => builder.BindDependencies<ServiceWithDependency>(new
+				{
+					dependency = "configured"
+				}));
+
+				ServiceWithDependency service = null;
+
+				var resolvedService = container.Create(typeof(ServiceWithDependency), arguments: new { dependency = "argument" });
+				Assert.That(() => service = (ServiceWithDependency)resolvedService.Single(), Throws.Nothing);
+				Assert.That(service.Dependency, Is.EqualTo("argument"));
+			}
+		}
 	}
 }
