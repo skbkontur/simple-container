@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -185,6 +187,58 @@ namespace SimpleContainer.Tests
 				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [int]"));
 			}
 		}
+		
+		public class MoreThanOneConstructor : FileConfigurationTest
+		{
+			public class A
+			{
+				public readonly string value;
+
+				public A(string value)
+				{
+					this.value = value;
+				}
+				
+				public A(int value)
+				{
+					this.value = value.ToString(CultureInfo.InvariantCulture);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("type [A] has many public ctors"));
+			}
+		}
+		
+		public class MoreThanOneConstructorWithContainerConstructorAttribute : FileConfigurationTest
+		{
+			public class A
+			{
+				public readonly string value;
+
+				[ContainerConstructor]
+				public A(string value)
+				{
+					this.value = value;
+				}
+
+				[ContainerConstructor]
+				public A(int value)
+				{
+					this.value = value.ToString(CultureInfo.InvariantCulture);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var e = Assert.Throws<SimpleContainerException>(() => Container("A.value -> qq"));
+				Assert.That(e.Message, Is.EqualTo("type [A] has many ctors with [ContainerConstructor] attribute"));
+			}
+		}
 
 		public class DependencyNotFound : FileConfigurationTest
 		{
@@ -231,12 +285,10 @@ namespace SimpleContainer.Tests
 				File.WriteAllText(configFileName, "A.parameter->11");
 				var factory = new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
-					.WithConfigFile(configFileName);
-				using (var staticContainer = factory.FromAssemblies(new[] {assembly}))
-				{
-					var e = Assert.Throws<SimpleContainerException>(() => staticContainer.CreateLocalContainer(null, assembly, null, null));
-					Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
-				}
+					.WithConfigFile(configFileName)
+					.WithTypesFromAssemblies(new[] { assembly });
+				var e = Assert.Throws<SimpleContainerException>(() => factory.Build());
+				Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
 			}
 		}
 
@@ -260,9 +312,7 @@ namespace SimpleContainer.Tests
 		protected IContainer Container(string configText)
 		{
 			File.WriteAllText(configFileName, configText);
-			var staticContainer = CreateStaticContainer(f => f.WithConfigFile(configFileName));
-			disposables.Add(staticContainer);
-			var result = LocalContainer(staticContainer);
+			var result = Factory().WithConfigFile(configFileName).Build();
 			disposables.Add(result);
 			return result;
 		}

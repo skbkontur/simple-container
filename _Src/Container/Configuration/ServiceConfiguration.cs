@@ -24,6 +24,7 @@ namespace SimpleContainer.Configuration
 		public bool UseAutosearch { get; private set; }
 		public bool ContainerOwnsInstance { get; private set; }
 		public bool DontUseIt { get; private set; }
+		public bool IgnoredImplementation { get; private set; }
 		public Func<object, bool> InstanceFilter { get; private set; }
 		public IParametersSource ParametersSource { get; private set; }
 
@@ -64,10 +65,9 @@ namespace SimpleContainer.Configuration
 			return result;
 		}
 
-		public string[] GetUnusedDependencyConfigurationKeys(IObjectAccessor arguments)
+		public IEnumerable<string> GetUnusedDependencyConfigurationKeys()
 		{
-			var dependenciesResolvedByArguments = arguments == null ? InternalHelpers.emptyStrings : arguments.GetUsed().Select(InternalHelpers.ByNameDependencyKey);
-			return dependencies.Where(x => !x.Used).Select(x => x.Key).Except(dependenciesResolvedByArguments).ToArray();
+			return dependencies.Where(x => !x.Used).Select(x => x.Key);
 		}
 
 		internal class Builder
@@ -141,6 +141,11 @@ namespace SimpleContainer.Configuration
 			public void DontUse()
 			{
 				target.DontUseIt = true;
+			}
+			
+			public void IgnoreImplementation()
+			{
+				target.IgnoredImplementation = true;
 			}
 
 			public void UseAutosearch(bool useAutosearch)

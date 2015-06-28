@@ -82,15 +82,16 @@ namespace SimpleContainer.Generics
 				: (interfaceType.IsAbstract ? implType.ParentsOrSelf() : Enumerable.Repeat(implType, 1));
 			foreach (var implInterfaceType in implInterfaceTypes)
 			{
-				var arguments = definition.MatchOrNull(implInterfaceType, interfaceType);
-				if (arguments != null)
-					yield return definition.MakeGenericType(arguments);
+				var closed = definition.CloseByPattern(implInterfaceType, interfaceType);
+				if (closed != null)
+					yield return closed;
 			}
 		}
 
-		public static Type[] GetGenericInterfaces(this Type type)
+		public static Type CloseByPattern(this Type definition, Type pattern, Type value)
 		{
-			return type.GetInterfaces().Concat(type).Where(x => x.IsGenericType).ToArray();
+			var arguments = definition.MatchOrNull(pattern, value);
+			return arguments == null ? null : definition.MakeGenericType(arguments);
 		}
 	}
 }

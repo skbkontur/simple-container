@@ -43,21 +43,23 @@
     <Compile Include="BasicTest.cs" />
     <Compile Include="ConfigurationBuilderValidationsTest.cs" />
     <Compile Include="ConstructionLogTest.cs" />
+    <Compile Include="ContainerFactoryTest.cs" />
     <Compile Include="Contracts\ContractsBasicTest.cs" />
     <Compile Include="Contracts\ContractsConstructionLogTest.cs" />
     <Compile Include="Contracts\ContractsNestingTest.cs" />
     <Compile Include="Contracts\ContractsReuseTest.cs" />
     <Compile Include="Contracts\ContractsUnionTest.cs" />
     <Compile Include="Contracts\ContractsWithFactoriesTest.cs" />
+    <Compile Include="ExceptionHandlingTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
     <Compile Include="FileConfigurationTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />
-    <Compile Include="FactoryConfiguratorTests\CanCreateNestedImplementation.cs" />
+    <Compile Include="FactoryConfiguratorTests\CanCreateConcreteGenericImplementations.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesCreatedByFactoriesAreNotSingletons.cs" />
     <Compile Include="FactoryConfiguratorTests\ServicesUsedByServicesCreatedByFactoriesAreSingletons.cs" />
-    <Compile Include="FactoryConfiguratorTests\SimpleFactoryConfiguratorTest.cs" />
+    <Compile Include="FactoryConfiguratorTests\FactoriesTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanConfigureInnerGenericsTest.cs" />
     <Compile Include="GenericsConfiguratorTests\CanConnectGenericComponents.cs" />
     <Compile Include="GenericsConfiguratorTests\CanDeduceGenericParameterFromGenericType.cs" />
@@ -83,13 +85,11 @@
     <Compile Include="RunComponentsTest.cs" />
     <Compile Include="DisposeTest.cs" />
     <Compile Include="CloneContainerTest.cs" />
-    <Compile Include="HostingAssembliesTest.cs" />
     <Compile Include="ContainerConfigurationTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="LongRunning\SimpleContainerConcurrentTest.cs" />
     <Compile Include="GetDependenciesTest.cs" />
     <Compile Include="Helpers\SimpleContainerTestBase.cs" />
-    <Compile Include="StaticContainerTest.cs" />
     <Compile Include="Helpers\UnitTestBase.cs" />
   </ItemGroup>
   <ItemGroup>

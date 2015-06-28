@@ -26,7 +26,7 @@ namespace SimpleContainer.Helpers
 		{
 			private readonly TypeAccessor typeAccessor;
 			private readonly object obj;
-			private readonly List<string> used = new List<string>();
+			private readonly HashSet<string> used = new HashSet<string>();
 
 			public ObjectAccessorImpl(TypeAccessor typeAccessor, object obj)
 			{

@@ -7,13 +7,11 @@ namespace SimpleContainer.Implementation
 	{
 		private bool runCalled;
 		public object Instance { get; private set; }
-		public CacheLevel CacheLevel { get; private set; }
 		public bool Owned { get; set; }
 
-		public InstanceWrap(object instance, CacheLevel cacheLevel, bool owned)
+		public InstanceWrap(object instance, bool owned)
 		{
 			Instance = instance;
-			CacheLevel = cacheLevel;
 			Owned = owned;
 		}
 
@@ -22,7 +20,7 @@ namespace SimpleContainer.Implementation
 			if (ReferenceEquals(null, obj)) return false;
 			if (ReferenceEquals(this, obj)) return true;
 			if (obj.GetType() != GetType()) return false;
-			return ReferenceEquals(Instance, ((InstanceWrap)obj).Instance);
+			return ReferenceEquals(Instance, ((InstanceWrap) obj).Instance);
 		}
 
 		public void EnsureRunCalled(ContainerService service, LogInfo infoLogger)

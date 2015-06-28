@@ -17,7 +17,6 @@ namespace SimpleContainer.Implementation
 
 		private object[] typedArray;
 		private volatile bool runCalled;
-		private CacheLevel cacheLevel;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
@@ -28,15 +27,24 @@ namespace SimpleContainer.Implementation
 		{
 		}
 
-		public object GetSingleValue()
+		public object GetSingleValue(bool hasDefaultValue, object defaultValue)
 		{
-			CheckOk();
+			CheckStatusIsGood();
 			if (instances.Length == 1)
 				return instances[0].Instance;
-			var m = instances.Length == 0
-				? string.Format("no implementations for [{0}]", Type.FormatName())
-				: FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", m, GetConstructionLog()));
+			if (instances.Length == 0 && hasDefaultValue)
+				return defaultValue;
+			string message;
+			if (instances.Length == 0)
+			{
+				message = string.Format("no instances for [{0}]", Type.FormatName());
+				var notResolvedRoot = SearchForNotResolvedRoot();
+				if (notResolvedRoot != this)
+					message += string.Format(" because [{0}] has no instances", notResolvedRoot.Type.FormatName());
+			}
+			else
+				message = FormatManyImplementationsMessage();
+			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", message, GetConstructionLog()));
 		}
 
 		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
@@ -52,7 +60,7 @@ namespace SimpleContainer.Implementation
 
 		public IEnumerable<object> GetAllValues()
 		{
-			CheckOk();
+			CheckStatusIsGood();
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
@@ -74,22 +82,18 @@ namespace SimpleContainer.Implementation
 					}
 		}
 
-		public void CollectInstances(Type interfaceType, CacheLevel targetCacheLevel,
-			ISet<object> seen, List<NamedInstance> target)
+		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
 		{
 			if (Status.IsBad())
-				return;
-			if (cacheLevel != targetCacheLevel)
 				return;
 			if (dependencies != null)
 				foreach (var dependency in dependencies)
 					if (dependency.ContainerService != null)
-						dependency.ContainerService.CollectInstances(interfaceType, targetCacheLevel, seen, target);
+						dependency.ContainerService.CollectInstances(interfaceType, seen, target);
 			foreach (var instance in instances)
 			{
 				var obj = instance.Instance;
 				var acceptInstance = instance.Owned &&
-				                     instance.CacheLevel == targetCacheLevel &&
 				                     interfaceType.IsInstanceOfType(obj) &&
 				                     seen.Add(obj);
 				if (acceptInstance)
@@ -119,17 +123,23 @@ namespace SimpleContainer.Implementation
 			if (attentionRequired)
 				context.Writer.WriteMeta("!");
 			var formattedName = context.UsedFromDependency == null ? Type.FormatName() : context.UsedFromDependency.Name;
-			context.Writer.WriteName(cacheLevel == CacheLevel.Static ? "(s)" + formattedName : formattedName);
+			context.Writer.WriteName(formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 			if (instances.Length > 1)
 				context.Writer.WriteMeta("++");
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
-			else if (comment != null)
+			else
 			{
-				context.Writer.WriteMeta(" - ");
-				context.Writer.WriteMeta(comment);
+				var logComment = comment;
+				if (logComment == null && context.UsedFromDependency != null)
+					logComment = context.UsedFromDependency.Comment;
+				if (logComment != null)
+				{
+					context.Writer.WriteMeta(" - ");
+					context.Writer.WriteMeta(logComment);
+				}
 			}
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
 			    context.UsedFromDependency.Value == null)
@@ -144,7 +154,7 @@ namespace SimpleContainer.Implementation
 				}
 		}
 
-		private void CheckOk()
+		private void CheckStatusIsGood()
 		{
 			if (Status.IsGood())
 				return;
@@ -184,6 +194,19 @@ namespace SimpleContainer.Implementation
 			return null;
 		}
 
+		private ContainerService SearchForNotResolvedRoot()
+		{
+			var current = this;
+			while (current.dependencies != null)
+			{
+				var notResolvedDependencies = current.dependencies.Where(x => x.Status == ServiceStatus.NotResolved).ToArray();
+				if (notResolvedDependencies.Length != 1)
+					break;
+				current = notResolvedDependencies[0].ContainerService;
+			}
+			return current;
+		}
+
 		private ServiceDependency GetLinkedDependency()
 		{
 			if (Status == ServiceStatus.Ok)
@@ -195,7 +218,7 @@ namespace SimpleContainer.Implementation
 
 		private string FormatManyImplementationsMessage()
 		{
-			return string.Format("many implementations for [{0}]\r\n{1}", Type.FormatName(),
+			return string.Format("many instances for [{0}]\r\n{1}", Type.FormatName(),
 				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
@@ -210,21 +233,17 @@ namespace SimpleContainer.Implementation
 			private ContainerService target;
 			private bool reused;
 			public ResolutionContext Context { get; private set; }
-			public SimpleContainer Container { get; private set; }
 
-			public Builder(Type type, SimpleContainer container, ResolutionContext context)
+			public Builder(Type type, ResolutionContext context, bool createNew, IObjectAccessor arguments)
 			{
-				target = new ContainerService
-				{
-					Type = type,
-					cacheLevel = container.CacheLevel
-				};
+				Arguments = arguments;
+				CreateNew = createNew;
+				target = new ContainerService {Type = type};
 				Context = context;
-				Container = container;
 				DeclaredContracts = context.Contracts.ToArray();
 				try
 				{
-					Configuration = container.GetConfiguration(Type, context);
+					Configuration = context.Container.GetConfiguration(Type, context);
 				}
 				catch (Exception e)
 				{
@@ -238,6 +257,11 @@ namespace SimpleContainer.Implementation
 					if (!usedContractNames.Contains(contract, StringComparer.OrdinalIgnoreCase))
 						usedContractNames.Add(contract);
 				}
+			}
+
+			public bool HasNoConfiguration()
+			{
+				return Configuration == ServiceConfiguration.empty;
 			}
 
 			public Type Type
@@ -257,9 +281,19 @@ namespace SimpleContainer.Implementation
 				get { return target.UsedContracts; }
 			}
 
+			public ServiceName GetName()
+			{
+				return new ServiceName(Type, FinalUsedContracts);
+			}
+
+			public ServiceName GetDeclaredName()
+			{
+				return new ServiceName(Type, DeclaredContracts);
+			}
+
 			public void AddInstance(object instance, bool owned)
 			{
-				instances.Add(new InstanceWrap(instance, target.cacheLevel, owned));
+				instances.Add(new InstanceWrap(instance, owned));
 			}
 
 			public void AddDependency(ServiceDependency dependency, bool isUnion)
@@ -275,23 +309,16 @@ namespace SimpleContainer.Implementation
 				target.comment = value;
 			}
 
-			public Builder ForFactory(IObjectAccessor arguments, bool createNew)
+			public void LinkTo(ContainerService childService, string comment)
 			{
-				Arguments = arguments;
-				CreateNew = createNew;
-				return this;
-			}
-
-			public bool LinkTo(ContainerService childService)
-			{
-				AddDependency(childService.GetLinkedDependency(), true);
+				var dependency = childService.GetLinkedDependency();
+				dependency.Comment = comment;
+				AddDependency(dependency, true);
 				UnionUsedContracts(childService);
-				if (target.Status.IsBad())
-					return false;
-				foreach (var instance in childService.instances)
-					if (!instances.Contains(instance))
-						instances.Add(instance);
-				return true;
+				if (target.Status.IsGood())
+					foreach (var instance in childService.instances)
+						if (!instances.Contains(instance))
+							instances.Add(instance);
 			}
 
 			public int FilterInstances(Func<object, bool> filter)
@@ -361,6 +388,12 @@ namespace SimpleContainer.Implementation
 				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
 					target.Status = ServiceStatus.NotResolved;
+				if (Status == ServiceStatus.Ok && Arguments != null)
+				{
+					var unused = Arguments.GetUnused().ToArray();
+					if (unused.Any())
+						SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
+				}
 				target.instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
@@ -374,6 +407,16 @@ namespace SimpleContainer.Implementation
 				if (dependencyStatus == ServiceStatus.NotResolved && isUnion)
 					return ServiceStatus.Ok;
 				return dependencyStatus;
+			}
+
+			public bool IgnoredImplementation()
+			{
+				return Configuration.IgnoredImplementation || Type.IsDefined("IgnoredImplementationAttribute");
+			}
+
+			public bool DontUse()
+			{
+				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
 			}
 
 			public void CreateInstanceBy(Func<object> creator, bool owned)

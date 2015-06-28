@@ -224,7 +224,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				var instance = container.Get<SomeService>().Factory(typeof (int), new {argument = 42});
+				var instance = container.Get<SomeService>().Factory(typeof(SomeService.SomeGenericService<int>), new { argument = 42 });
 				Assert.That(instance.Type, Is.EqualTo(typeof (int)));
 				Assert.That(instance.Argument, Is.EqualTo(42));
 			}
@@ -244,7 +244,7 @@ namespace SimpleContainer.Tests
 
 				public Func<Type, object, ISomeInterface> Factory { get; private set; }
 
-				private class SomeGenericService<T> : ISomeInterface
+				public class SomeGenericService<T> : ISomeInterface
 				{
 					public SomeGenericService(int argument)
 					{
@@ -741,7 +741,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"many implementations for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>"));
+						"many instances for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>"));
 			}
 
 			public interface IInterface
@@ -762,7 +762,7 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetAll<IInterface>().Count(), Is.EqualTo(2));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.EqualTo("many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nIInterface++\r\n\tImpl1\r\n\tImpl2"));
+					Is.EqualTo("many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nIInterface++\r\n\tImpl1\r\n\tImpl2"));
 			}
 
 			public interface IInterface
@@ -800,43 +800,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class GracefullErrorMessageWhenNoImplementationFound : BasicTest
-		{
-			[Test]
-			public void Test()
-			{
-				const string message =
-					"no implementations for [OuterOuterService]\r\n\r\n!OuterOuterService\r\n\t!OuterService\r\n\t\t!IInterface - has no implementations";
-				var container = Container();
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
-				Assert.That(error.Message, Is.EqualTo(message));
-			}
-
-			public interface IInterface
-			{
-			}
-
-			public class OuterOuterService
-			{
-				public OuterOuterService(OuterService outerService)
-				{
-					OuterService = outerService;
-				}
-
-				public OuterService OuterService { get; private set; }
-			}
-
-			public class OuterService
-			{
-				public OuterService(IInterface @interface)
-				{
-					Interface = @interface;
-				}
-
-				public IInterface Interface { get; private set; }
-			}
-		}
-
 		public class IgnoreImplementation : BasicTest
 		{
 			[Test]
@@ -866,6 +829,33 @@ namespace SimpleContainer.Tests
 			[IgnoredImplementation]
 			public class Impl3 : IInterface
 			{
+			}
+		}
+
+		public class IgnoreImplementationAffectsOnlyInterfaces : BasicTest
+		{
+			public interface IA
+			{
+			}
+
+			[IgnoredImplementation]
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<IA>(), Is.InstanceOf<A2>());
+				var resolvedA1 = container.Resolve<A1>();
+				Assert.That(resolvedA1.IsOk());
+				Assert.That(resolvedA1.Single(), Is.Not.Null);
+				Assert.That(resolvedA1.GetConstructionLog(), Is.EqualTo("A1"));
 			}
 		}
 
@@ -968,7 +958,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string message =
-					"many implementations for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\n!Wrap\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
+					"many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\n!Wrap\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
 
@@ -1390,7 +1380,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				const string message2 = "no implementations for [Child2]\r\n\r\n!Child2\r\n\t!IOtherService - has no implementations";
+				const string message2 = "no instances for [Child2] because [IOtherService] has no instances\r\n\r\n!Child2\r\n\t!IOtherService - has no implementations";
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<Child2>());
 				Assert.That(error.Message, Is.EqualTo(message2));
 			}
@@ -1576,6 +1566,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DontUseAttributeIsNotAppliedToInheritors : BasicTest
+		{
+			[DontUse]
+			public class A
+			{
+			}
+
+			public class B : A
+			{
+			}
+
+			public class C
+			{
+				public readonly B b;
+
+				public C(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(() => container.Get<C>(), Throws.Nothing);
+			}
+		}
+
 		public class AnyCanBeNullAttributeIsEquivalentToOptional : BasicTest
 		{
 			public sealed class CanBeNullAttribute : Attribute
@@ -1602,7 +1621,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoredImplementation]
+			[DontUse]
 			public class C
 			{
 			}
@@ -1651,6 +1670,71 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
 					Is.EqualTo("A\r\n\tIInterface\r\n\t\t!B1 - invalid test condition\r\n\t\tB2"));
+			}
+		}
+
+		public class CanExplicitlyInjectIgnoredImplementation : BasicTest
+		{
+			[IgnoredImplementation]
+			public class A
+			{
+			}
+
+			public class AWrap
+			{
+				public readonly A a;
+
+				public AWrap(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(() => container.Get<AWrap>(), Throws.Nothing);
+			}
+		}
+		
+		public class CanIgnoreImplementationFromBuilder : BasicTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A : IA
+			{
+			}
+
+			public class AWrap
+			{
+				public readonly A a;
+				public readonly IA aIntf;
+
+				public AWrap(A a, IA aIntf = null)
+				{
+					this.a = a;
+					this.aIntf = aIntf;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.IgnoreImplementation();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var aWrap = container.Get<AWrap>();
+				Assert.That(aWrap.a, Is.Not.Null);
+				Assert.That(aWrap.aIntf, Is.Null);
 			}
 		}
 
@@ -1705,6 +1789,82 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message, Is.EqualTo("parameter [parameters] of service [A] is not configured\r\n\r\n!A\r\n\t!parameters <---------------"));
+			}
+		}
+
+		public class SingleOrDefault : BasicTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				Assert.That(Container(b => b.DontUse<A>()).Resolve<A>().SingleOrDefault(), Is.Null);
+				var instance = new A();
+				Assert.That(Container().Resolve<A>().SingleOrDefault(instance), Is.Not.SameAs(instance));
+			}
+		}
+
+		public class PerRequestServicesCannotBeInjected : BasicTest
+		{
+			[Lifestyle(Lifestyle.PerRequest)]
+			public class SomeReader
+			{
+			}
+
+			public class Client1
+			{
+				public readonly SomeReader someReader;
+
+				public Client1(SomeReader someReader)
+				{
+					this.someReader = someReader;
+				}
+			}
+			
+			public class Client2
+			{
+				public readonly Func<SomeReader> createSomeReader;
+
+				public Client2(Func<SomeReader> createSomeReader)
+				{
+					this.createSomeReader = createSomeReader;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Client1>());
+				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeReader> instead\r\n\r\n!Client1\r\n\t!SomeReader <---------------"));
+			}
+		}
+
+		public class PerRequestServicesCannotBeResolved : BasicTest
+		{
+			public class A
+			{
+				public A(IContainer container)
+				{
+					container.Get<B>();
+				}
+			}
+
+			[Lifestyle(Lifestyle.PerRequest)]
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.InnerException.Message,
+					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead\r\n\r\n!B <---------------"));
 			}
 		}
 

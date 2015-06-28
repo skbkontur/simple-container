@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Interface;
+using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Tests.Helpers
 {

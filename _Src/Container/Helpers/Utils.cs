@@ -20,12 +20,12 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static bool StartsWith<T>(this T[] source, T[] other, IEqualityComparer<T> comparer)
+		public static bool SameAs(this Type[] a, Type[] b, int countOfItemsToCompare)
 		{
-			if (other.Length > source.Length)
+			if (a.Length != b.Length)
 				return false;
-			for (var i = 0; i < other.Length; i++)
-				if (!comparer.Equals(source[i], other[i]))
+			for (var i = 0; i < countOfItemsToCompare; i++)
+				if (a[i] != b[i])
 					return false;
 			return true;
 		}
@@ -102,6 +102,11 @@ namespace SimpleContainer.Helpers
 				foreach (var child in children(item, content))
 					stack.Push(child);
 			}
+		}
+
+		public static int CombineHashCodes(int h1, int h2)
+		{
+			return ((h1 << 5) + h1) ^ h2;
 		}
 	}
 }

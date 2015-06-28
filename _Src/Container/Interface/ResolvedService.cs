@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Interface
@@ -14,9 +13,19 @@ namespace SimpleContainer.Interface
 			this.resolvedService = resolvedService;
 		}
 
+		public ServiceName Name
+		{
+			get { return resolvedService.Name; }
+		}
+
 		public void Run(bool dumpConstructionLog = false)
 		{
 			resolvedService.Run(dumpConstructionLog);
+		}
+
+		public bool IsOk()
+		{
+			return resolvedService.IsOk();
 		}
 
 		public void CheckSingleInstance()
@@ -27,6 +36,11 @@ namespace SimpleContainer.Interface
 		public T Single()
 		{
 			return (T) resolvedService.Single();
+		}
+
+		public T SingleOrDefault(T defaultValue = default(T))
+		{
+			return (T) resolvedService.SingleODefault(defaultValue);
 		}
 
 		public IEnumerable<T> All()
@@ -54,6 +68,11 @@ namespace SimpleContainer.Interface
 			this.isEnumerable = isEnumerable;
 		}
 
+		public ServiceName Name
+		{
+			get { return new ServiceName(containerService.Type, containerService.UsedContracts); }
+		}
+
 		public void Run(bool dumpConstructionLog = false)
 		{
 			simpleContainer.Run(containerService, dumpConstructionLog ? GetConstructionLog() : null);
@@ -66,10 +85,15 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue();
+			return isEnumerable ? All() : containerService.GetSingleValue(false, null);
 		}
 
-		public bool HasInstances()
+		public object SingleODefault(object defaultValue)
+		{
+			return isEnumerable ? All() : containerService.GetSingleValue(true, defaultValue);
+		}
+
+		public bool IsOk()
 		{
 			return containerService.Status == ServiceStatus.Ok;
 		}

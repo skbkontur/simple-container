@@ -1,60 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 
 namespace SimpleContainer.Implementation
 {
-	internal class ConfiguratorRunner : IDisposable
+	internal class ConfiguratorRunner
 	{
-		private static readonly Assembly containerAssembly = typeof (ConfiguratorRunner).Assembly;
-		private readonly ConfigurationContext context;
-		private readonly IContainer container;
-		private readonly Type[] priorities;
+		private readonly IEnumerable<IServiceConfiguratorInvoker> invokers;
 
-		private ConfiguratorRunner(ConfigurationContext context, IContainer container, Type[] priorities)
+		public ConfiguratorRunner(IEnumerable<IServiceConfiguratorInvoker> invokers)
 		{
-			this.context = context;
-			this.container = container;
-			this.priorities = priorities;
+			this.invokers = invokers;
 		}
 
-		public static ConfiguratorRunner Create(bool isStatic, IConfigurationRegistry configuration,
-			IInheritanceHierarchy hierarchy, ConfigurationContext context, Type[] priorities)
+		public void Run(ContainerConfigurationBuilder builder, ConfigurationContext context, Type[] priorities)
 		{
-			Func<Type, bool> filter = x => x.Assembly == containerAssembly || x.IsDefined<StaticAttribute>() == isStatic;
-			var filteredHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
-			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
-				new FilteredContainerConfiguration(configuration, filter), filteredHierarchy);
-			return new ConfiguratorRunner(context, container, priorities);
-		}
-
-		public void Run(ContainerConfigurationBuilder builder)
-		{
-			foreach (var invoker in container.GetAll<IServiceConfiguratorInvoker>())
+			foreach (var invoker in invokers)
 				invoker.Configure(context, builder, priorities);
-		}
-
-		public void Dispose()
-		{
-			container.Dispose();
-		}
-
-		private class ConfigurationContainer : SimpleContainer
-		{
-			public ConfigurationContainer(CacheLevel cacheLevel, IConfigurationRegistry configurationRegistry,
-				IInheritanceHierarchy inheritors)
-				: base(configurationRegistry, inheritors, null, cacheLevel, new HashSet<Type>(), null, null)
-			{
-			}
-
-			internal override CacheLevel GetCacheLevel(Type type)
-			{
-				return CacheLevel;
-			}
 		}
 
 		internal interface IServiceConfiguratorInvoker
@@ -76,7 +40,7 @@ namespace SimpleContainer.Implementation
 				var configurationSet = builder.RegistryBuilder.GetConfigurationSet(typeof (T));
 				Action action = delegate
 				{
-					var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(configurationSet, builder.StaticServices);
+					var serviceConfigurationBuilder = new ServiceConfigurationBuilder<T>(configurationSet);
 					var targetConfigurators = configurators
 						.GroupBy(configurator => priorities == null
 							? 0
@@ -100,10 +64,7 @@ namespace SimpleContainer.Implementation
 						}
 					}
 				};
-				if (context.IsLocal)
-					configurationSet.RegisterLazyConfigurator(action);
-				else
-					action();
+				configurationSet.RegisterLazyConfigurator(action);
 			}
 		}
 

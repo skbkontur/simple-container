@@ -5,20 +5,19 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Factories
 {
-	internal class LazyPlugin : IFactoryPlugin
+	internal static class LazyCreator
 	{
-		public bool TryInstantiate(ContainerService.Builder builder)
+		public static object TryCreate(ContainerService.Builder builder)
 		{
 			if (!builder.Type.IsGenericType)
-				return false;
+				return null;
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
-				return false;
+				return null;
 			var type = builder.Type.GetGenericArguments()[0];
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(type).GetConstructors().Single();
 			var lazyFactory =
-				(ILazyFactory) MethodInvoker.Invoke(lazyFactoryCtor, null, new object[] {builder.Container});
-			builder.AddInstance(lazyFactory.CreateLazy(), true);
-			return true;
+				(ILazyFactory) MethodInvoker.Invoke(lazyFactoryCtor, null, new object[] {builder.Context.Container});
+			return lazyFactory.CreateLazy();
 		}
 
 		private interface ILazyFactory

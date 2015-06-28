@@ -3,20 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
 	internal class ResolutionContext
 	{
 		private readonly List<ContainerService.Builder> stack = new List<ContainerService.Builder>();
-
-		private readonly IDictionary<object, ContainerService.Builder> builderById =
-			new Dictionary<object, ContainerService.Builder>();
+		private readonly HashSet<ServiceName> constructingServices = new HashSet<ServiceName>();
 
 		public List<string> Contracts { get; private set; }
+		public SimpleContainer Container { get; private set; }
 
-		public ResolutionContext(string[] contracts)
+		public ResolutionContext(SimpleContainer container, string[] contracts)
 		{
+			Container = container;
 			Contracts = new List<string>();
 			if (contracts.Length > 0)
 				PushContracts(contracts);
@@ -27,35 +28,40 @@ namespace SimpleContainer.Implementation
 			return InternalHelpers.FormatContractsKey(Contracts);
 		}
 
-		public ContainerService.Builder BuilderByToken(object token)
+		public ContainerService Instantiate(Type type, bool crearteNew, IObjectAccessor arguments)
 		{
-			return builderById.GetOrDefault(token);
-		}
-
-		public void Instantiate(ContainerService.Builder builder, object id)
-		{
+			var builder = new ContainerService.Builder(type, this, crearteNew, arguments);
 			if (builder.Status != ServiceStatus.Ok)
-				return;
+				return builder.Build();
+			var declaredName = builder.GetDeclaredName();
+			if (!constructingServices.Add(declaredName))
+			{
+				var previous = GetTopService();
+				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
+					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
+				var cycleBuilder = new ContainerService.Builder(type, this, false, null);
+				cycleBuilder.SetError(message);
+				return cycleBuilder.Build();
+			}
 			stack.Add(builder);
-			if (id != null)
-				builderById.Add(id, builder);
-			var expandResult = TryExpandUnions(builder.Container.Configuration);
+			var expandResult = TryExpandUnions(Container.Configuration);
 			if (expandResult != null)
 			{
 				var poppedContracts = Contracts.PopMany(expandResult.Length);
 				foreach (var c in expandResult.CartesianProduct())
 				{
-					var childService = ResolveInternal(builder.Type, c, builder.Container);
-					if (!builder.LinkTo(childService))
+					var childService = ResolveInternal(builder.Type, c);
+					builder.LinkTo(childService, null);
+					if (builder.Status.IsBad())
 						break;
 				}
 				Contracts.AddRange(poppedContracts);
 			}
 			else
-				builder.Container.Instantiate(builder);
+				Container.Instantiate(builder);
 			stack.RemoveLast();
-			if (id != null)
-				builderById.Remove(id);
+			constructingServices.Remove(declaredName);
+			return builder.Build();
 		}
 
 		private string[][] TryExpandUnions(IConfigurationRegistry configuration)
@@ -94,32 +100,32 @@ namespace SimpleContainer.Implementation
 			return stack.Count <= 1 ? null : stack[stack.Count - 2];
 		}
 
-		public ContainerService Resolve(Type type, IEnumerable<string> contractNames, SimpleContainer container)
+		public ContainerService Resolve(Type type, IEnumerable<string> contractNames)
 		{
 			var internalContracts = InternalHelpers.ToInternalContracts(contractNames, type);
 			return internalContracts.Length == 0
-				? container.ResolveSingleton(type, this)
-				: ResolveInternal(type, internalContracts, container);
+				? Container.ResolveSingleton(type, this)
+				: ResolveInternal(type, internalContracts);
 		}
 
-		private ContainerService ResolveInternal(Type type, string[] contractNames, SimpleContainer container)
+		private ContainerService ResolveInternal(Type type, string[] contractNames)
 		{
 			ContainerService result;
 			var pushContractsResult = PushContracts(contractNames);
 			if (!pushContractsResult.isOk)
 			{
-				var resultBuilder = new ContainerService.Builder(type, container, this);
+				var resultBuilder = new ContainerService.Builder(type, this, false, null);
 				if (resultBuilder.Status == ServiceStatus.Ok)
 					resultBuilder.SetError(pushContractsResult.errorMessage);
 				result = resultBuilder.Build();
 			}
 			else
-				result = container.ResolveSingleton(type, this);
+				result = Container.ResolveSingleton(type, this);
 			Contracts.RemoveLast(pushContractsResult.value);
 			return result;
 		}
 
-		private FuncResult<int> PushContracts(string[] contractNames)
+		private ValueOrError<int> PushContracts(string[] contractNames)
 		{
 			var pushedContractsCount = 0;
 			foreach (var c in contractNames)
@@ -128,12 +134,12 @@ namespace SimpleContainer.Implementation
 				if (duplicate != null)
 				{
 					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-					return FuncResult.Fail<int>(messageFormat, c, DeclaredContractsKey());
+					return ValueOrError.Fail<int>(messageFormat, c, DeclaredContractsKey());
 				}
 				Contracts.Add(c);
 				pushedContractsCount++;
 			}
-			return FuncResult.Ok(pushedContractsCount);
+			return ValueOrError.Ok(pushedContractsCount);
 		}
 	}
 }

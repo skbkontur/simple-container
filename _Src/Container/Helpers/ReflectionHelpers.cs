@@ -67,7 +67,7 @@ namespace SimpleContainer.Helpers
 
 		public static bool IsDefined(this ICustomAttributeProvider customAttributeProvider, string attributeName)
 		{
-			return customAttributeProvider.GetCustomAttributes(true).Any(a => a.GetType().Name == attributeName);
+			return customAttributeProvider.GetCustomAttributes(false).Any(a => a.GetType().Name == attributeName);
 		}
 
 		public static bool IsNullableOf(this Type type1, Type type2)
@@ -88,6 +88,26 @@ namespace SimpleContainer.Helpers
 		public static IEnumerable<Type> ParentsOrSelf(this Type type)
 		{
 			return type.Parents().Prepend(type);
+		}
+
+		public static Type ImplementationOf(this Type implementation, Type interfaceDefinition)
+		{
+			if (interfaceDefinition.IsInterface)
+			{
+				var interfaces = implementation.GetInterfaces();
+				foreach (var definitionInterface in interfaces)
+					if (definitionInterface.IsGenericType && definitionInterface.GetGenericTypeDefinition() == interfaceDefinition)
+						return definitionInterface;
+				throw new InvalidOperationException();
+			}
+			var result = implementation;
+			while (result != null)
+			{
+				if (result.IsGenericType && result.GetGenericTypeDefinition() == interfaceDefinition)
+					return result;
+				result = result.BaseType;
+			}
+			throw new InvalidOperationException();
 		}
 
 		public static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)

@@ -5,17 +5,14 @@ namespace SimpleContainer.Configuration
 {
 	public class ContainerConfigurationBuilder : AbstractConfigurationBuilder<ContainerConfigurationBuilder>
 	{
-		public StaticServicesConfigurator StaticServices { get; private set; }
-
-		public ContainerConfigurationBuilder(bool isStatic)
+		public ContainerConfigurationBuilder()
 			: base(new ConfigurationRegistry.Builder(), new List<string>())
 		{
-			StaticServices = new StaticServicesConfigurator(isStatic);
 		}
 
-		public ContainerConfigurationBuilder MakeStatic(Type type)
+		public ContainerConfigurationBuilder RegisterImplementationSelector(ImplementationSelector s)
 		{
-			StaticServices.MakeStatic(type);
+			RegistryBuilder.RegisterImplementationSelector(s);
 			return this;
 		}
 	}

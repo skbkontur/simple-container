@@ -592,19 +592,18 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				Action<ContainerFactory> configureFactory = f => f
-					.WithInfoLogger(delegate(ServiceName name, string message)
-					{
-						log.Append(name.ToString());
-						log.Append(" - ");
-						log.Append(message);
-					});
-				Action<ContainerConfigurationBuilder> configure = b => b.Contract("my-contract")
-					.BindDependency<ComponentB>("parameter", 42);
-				using (var staticContainer = CreateStaticContainer(configureFactory))
-				using (var localContainer = LocalContainer(staticContainer, null, configure))
+				LogInfo logInfo = delegate(ServiceName name, string message)
 				{
-					localContainer.Get<ComponentA>("my-contract");
+					log.Append(name);
+					log.Append(" - ");
+					log.Append(message);
+				};
+				Action<ContainerConfigurationBuilder> configure = b => b
+					.Contract("my-contract")
+					.BindDependency<ComponentB>("parameter", 42);
+				using (var container = Factory().WithInfoLogger(logInfo).WithConfigurator(configure).Build())
+				{
+					container.Get<ComponentA>("my-contract");
 					const string componentALog =
 						"ComponentA[my-contract] - run started ComponentA.Run\r\nComponentA[my-contract] - run finished";
 					const string componentBLog =
