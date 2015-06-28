@@ -44,9 +44,7 @@ namespace SimpleContainer.Implementation
 					var targetConfigurators = configurators
 						.GroupBy(configurator => priorities == null
 							? 0
-							: configurator.GetType()
-								.GetInterfaces()
-								.Max(x => Array.IndexOf(priorities, x.GetDefinition())))
+							: GetLeafInterfaces(configurator).Max(x => Array.IndexOf(priorities, x.GetDefinition())))
 						.OrderByDescending(x => x.Key)
 						.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
 						.First();
@@ -65,6 +63,13 @@ namespace SimpleContainer.Implementation
 					}
 				};
 				configurationSet.RegisterLazyConfigurator(action);
+			}
+
+			private static Type[] GetLeafInterfaces(IServiceConfigurator<T> configurator)
+			{
+				var interfaces = configurator.GetType().GetInterfaces();
+				var parents = interfaces.SelectMany(i => i.GetInterfaces());
+				return interfaces.Except(parents).ToArray();
 			}
 		}
 
