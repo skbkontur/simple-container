@@ -90,24 +90,30 @@ namespace SimpleContainer.Helpers
 			return type.Parents().Prepend(type);
 		}
 
-		public static Type ImplementationOf(this Type implementation, Type interfaceDefinition)
+		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
 		{
+			var result = new List<Type>();
 			if (interfaceDefinition.IsInterface)
 			{
 				var interfaces = implementation.GetInterfaces();
-				foreach (var definitionInterface in interfaces)
-					if (definitionInterface.IsGenericType && definitionInterface.GetGenericTypeDefinition() == interfaceDefinition)
-						return definitionInterface;
-				throw new InvalidOperationException();
+				foreach (var interfaceImpl in interfaces)
+					if (interfaceImpl.IsGenericType && interfaceImpl.GetGenericTypeDefinition() == interfaceDefinition)
+						result.Add(interfaceImpl);
 			}
-			var result = implementation;
-			while (result != null)
+			else
 			{
-				if (result.IsGenericType && result.GetGenericTypeDefinition() == interfaceDefinition)
-					return result;
-				result = result.BaseType;
+				var current = implementation;
+				while (current != null)
+				{
+					if (current.IsGenericType && current.GetGenericTypeDefinition() == interfaceDefinition)
+					{
+						result.Add(current);
+						break;
+					}
+					current = current.BaseType;
+				}
 			}
-			throw new InvalidOperationException();
+			return result;
 		}
 
 		public static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)

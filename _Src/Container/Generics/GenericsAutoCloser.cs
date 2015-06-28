@@ -52,16 +52,23 @@ namespace SimpleContainer.Generics
 				var target = targets.Dequeue();
 				foreach (var referer in target.referers)
 				{
-					var refererClosed = false;
+					var anyRefererClosed = false;
 					foreach (var closure in target.closures)
 					{
-						var closedReferer = referer.isInterface
-							? closure.ImplementationOf(referer.definition.type)
-							: referer.definition.type.CloseByPattern(referer.pattern, closure);
-						if (closedReferer != null)
-							refererClosed |= referer.definition.closures.Add(closedReferer);
+						if (referer.isInterface)
+						{
+							var closedReferers = closure.ImplementationsOf(referer.definition.type);
+							foreach (var closedReferer in closedReferers)
+								anyRefererClosed |= referer.definition.closures.Add(closedReferer);
+						}
+						else
+						{
+							var closedReferer = referer.definition.type.CloseByPattern(referer.pattern, closure);
+							if (closedReferer != null)
+								anyRefererClosed |= referer.definition.closures.Add(closedReferer);
+						}
 					}
-					if (refererClosed)
+					if (anyRefererClosed)
 						targets.Enqueue(referer.definition);
 				}
 			}
@@ -126,20 +133,25 @@ namespace SimpleContainer.Generics
 				return;
 			foreach (var implType in implementationTypes)
 			{
-				var implementedInterface = implType.ImplementationOf(definition.type);
+				var interfaceImpls = implType.ImplementationsOf(definition.type);
 				if (implType.IsGenericType)
-					Mark(implType, context).referers.Add(new GenericReferer
-					{
-						definition = definition,
-						pattern = implementedInterface,
-						isInterface = true
-					});
-				else
 				{
-					var closure = definition.type.CloseByPattern(definition.type, implementedInterface);
-					if (closure != null)
-						definition.closures.Add(closure);
+					var markedImpl = Mark(implType, context);
+					foreach (var interfaceImpl in interfaceImpls)
+						markedImpl.referers.Add(new GenericReferer
+						{
+							definition = definition,
+							pattern = interfaceImpl,
+							isInterface = true
+						});
 				}
+				else
+					foreach (var interfaceImpl in interfaceImpls)
+					{
+						var closure = definition.type.CloseByPattern(definition.type, interfaceImpl);
+						if (closure != null)
+							definition.closures.Add(closure);
+					}
 			}
 		}
 

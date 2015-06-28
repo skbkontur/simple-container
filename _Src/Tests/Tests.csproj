@@ -53,6 +53,8 @@
     <Compile Include="ExceptionHandlingTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
     <Compile Include="FileConfigurationTest.cs" />
+    <Compile Include="GenericsConfiguratorTests\GenericClassImplementingGenericIntefaceWithDifferentArguments.cs" />
+    <Compile Include="GenericsConfiguratorTests\CanCloseSingleGenericInterfaceWithMultipleParameters.cs" />
     <Compile Include="GenericsConfiguratorTests\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericArgumentType.cs" />
     <Compile Include="FactoryConfiguratorTests\CanAutodetectGenericBySimpleGenericParameter.cs" />
