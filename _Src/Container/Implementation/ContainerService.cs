@@ -142,8 +142,9 @@ namespace SimpleContainer.Implementation
 				}
 			}
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
-			    context.UsedFromDependency.Value == null)
-				context.Writer.WriteMeta(" = <null>");
+			    (context.UsedFromDependency.Value == null || context.UsedFromDependency.Value.GetType().IsSimpleType()))
+				context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(context.UsedFromDependency.Value));
+
 			context.Writer.WriteNewLine();
 			if (context.Seen.Add(new ServiceName(Type, usedContracts)) && dependencies != null)
 				foreach (var d in dependencies)

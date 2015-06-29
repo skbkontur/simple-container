@@ -60,6 +60,7 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static readonly string[] emptyStrings = new string[0];
+		public static readonly List<Type> emptyTypesList = new List<Type>(0);
 
 		public static string[] ToInternalContracts(IEnumerable<string> contracts, Type type)
 		{
@@ -71,6 +72,14 @@ namespace SimpleContainer.Helpers
 			var result = contracts.ToList();
 			result.Add(attribute.ContractName);
 			return result.ToArray();
+		}
+
+		public static string DumpValue(object value)
+		{
+			if (value == null)
+				return "<null>";
+			var result = value.ToString();
+			return value is bool ? result.ToLower() : result;
 		}
 
 		public static string ByNameDependencyKey(string name)

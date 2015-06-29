@@ -339,6 +339,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
+		public class HandleGracefullyDependencyFactoryCrash : FactoryConfiguration
+		{
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependencyFactory<AWrap>("a",
+					_ => { throw new InvalidOperationException("my test crash"); }));
+
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
+				Assert.That(error.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!AWrap\r\n\t!a <---------------"));
+				Assert.That(error.InnerException, Is.InstanceOf<InvalidOperationException>());
+				Assert.That(error.InnerException.Message, Is.EqualTo("my test crash"));
+			}
+
+			public class AWrap
+			{
+				public readonly A a;
+
+				public AWrap(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			public class A
+			{
+			}
+		}
+		
 		public class CanRefuseToCreateServiceFromFactory : FactoryConfiguration
 		{
 			[Test]
@@ -348,7 +377,7 @@ namespace SimpleContainer.Tests
 
 				var resolvedWrap = container.Resolve<AWrap>();
 				Assert.That(resolvedWrap.Single().a, Is.Null);
-				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo("AWrap\r\n\tA - test refused = <null>"));
+				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo("AWrap\r\n\tA - test refused -> <null>"));
 			}
 
 			public class AWrap

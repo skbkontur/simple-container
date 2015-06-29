@@ -139,7 +139,7 @@ namespace SimpleContainer
 		{
 			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
 			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
-			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
+			var inheritors = InheritorsBuilder.CreateInheritorsMap(hostingTypes);
 			var genericsAutoCloser = new GenericsAutoCloser(inheritors, assembliesFilter);
 			var builder = new ContainerConfigurationBuilder();
 			var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
@@ -156,7 +156,7 @@ namespace SimpleContainer
 			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build());
 		}
 
-		private IContainer CreateContainer(IInheritanceHierarchy inheritors, GenericsAutoCloser genericsAutoCloser,
+		private IContainer CreateContainer(Dictionary<Type, List<Type>> inheritors, GenericsAutoCloser genericsAutoCloser,
 			IConfigurationRegistry configuration)
 		{
 			return new Implementation.SimpleContainer(genericsAutoCloser, configuration, inheritors, errorLogger, infoLogger);

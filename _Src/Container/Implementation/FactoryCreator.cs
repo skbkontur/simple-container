@@ -64,7 +64,7 @@ namespace SimpleContainer.Implementation
 					resolvedService.Run();
 					return resolvedService.Single();
 				}
-				var result = builder.Context.Container.Create(type, declaredContractNames, arguments, builder.Context);
+				var result = builder.Context.Create(type, arguments);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 				hostService.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)

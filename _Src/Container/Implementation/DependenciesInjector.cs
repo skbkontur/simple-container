@@ -32,10 +32,10 @@ namespace SimpleContainer.Implementation
 			return new BuiltUpService(dependencies);
 		}
 
-		public IEnumerable<Type> GetResolvedDependencies(ServiceName cacheKey)
+		public IEnumerable<Type> GetResolvedDependencies(ServiceName name)
 		{
-			return injections.ContainsKey(cacheKey)
-				? provider.GetMembers(cacheKey.Type).Select(x => x.member.MemberType())
+			return injections.ContainsKey(name)
+				? provider.GetMembers(name.Type).Select(x => x.member.MemberType())
 				: Enumerable.Empty<Type>();
 		}
 
@@ -49,17 +49,17 @@ namespace SimpleContainer.Implementation
 			return injections.GetOrAdd(name, DetectInjections);
 		}
 
-		private Injection[] DetectInjections(ServiceName cacheKey)
+		private Injection[] DetectInjections(ServiceName name)
 		{
-			var memberSetters = provider.GetMembers(cacheKey.Type);
+			var memberSetters = provider.GetMembers(name.Type);
 			var result = new Injection[memberSetters.Length];
 			for (var i = 0; i < result.Length; i++)
 			{
 				var member = memberSetters[i].member;
 				RequireContractAttribute requireContractAttribute;
 				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
-					? (IEnumerable<string>) new List<string>(cacheKey.Contracts) {requireContractAttribute.ContractName}
-					: cacheKey.Contracts;
+					? (IEnumerable<string>) new List<string>(name.Contracts) {requireContractAttribute.ContractName}
+					: name.Contracts;
 				try
 				{
 					result[i].value = container.Resolve(member.MemberType(), contracts);

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using SimpleContainer.Helpers.ReflectionEmit;
 
 namespace SimpleContainer.Helpers
@@ -137,21 +138,6 @@ namespace SimpleContainer.Helpers
 			return Nullable.GetUnderlyingType(type1) == type2;
 		}
 
-		public static IEnumerable<Type> Parents(this Type type)
-		{
-			var current = type;
-			while (current.BaseType != null)
-			{
-				yield return current.BaseType;
-				current = current.BaseType;
-			}
-		}
-
-		public static IEnumerable<Type> ParentsOrSelf(this Type type)
-		{
-			return type.Parents().Prepend(type);
-		}
-
 		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
 		{
 			var result = new List<Type>();
@@ -159,7 +145,7 @@ namespace SimpleContainer.Helpers
 			{
 				var interfaces = implementation.GetInterfaces();
 				foreach (var interfaceImpl in interfaces)
-					if (interfaceImpl.IsGenericType && interfaceImpl.GetGenericTypeDefinition() == interfaceDefinition)
+					if (interfaceImpl.GetDefinition() == interfaceDefinition)
 						result.Add(interfaceImpl);
 			}
 			else
@@ -167,7 +153,7 @@ namespace SimpleContainer.Helpers
 				var current = implementation;
 				while (current != null)
 				{
-					if (current.IsGenericType && current.GetGenericTypeDefinition() == interfaceDefinition)
+					if (current.GetDefinition() == interfaceDefinition)
 					{
 						result.Add(current);
 						break;
@@ -293,6 +279,7 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Type GetDefinition(this Type type)
 		{
 			return type.IsGenericType && !type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;

@@ -112,21 +112,13 @@ namespace SimpleContainer.Implementation
 			if (Status == ServiceStatus.Ok && isConstant)
 			{
 				if (Value == null || Value.GetType().IsSimpleType())
-					context.Writer.WriteMeta(" -> " + DumpValue(Value));
+					context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
 				else
 					context.Writer.WriteMeta(" const");
 			}
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();
-		}
-
-		private static string DumpValue(object value)
-		{
-			if (value == null)
-				return "<null>";
-			var result = value.ToString();
-			return value is bool ? result.ToLower() : result;
 		}
 
 		private ServiceDependency WithName(ParameterInfo parameter, string name)

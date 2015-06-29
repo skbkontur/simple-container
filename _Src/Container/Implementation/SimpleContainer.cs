@@ -13,7 +13,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class SimpleContainer : IContainer
 	{
-		private readonly Func<ServiceName, ContainerServiceId> createWrap;
+		private readonly Func<ServiceName, ContainerServiceId> createId = _ => new ContainerServiceId();
 
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
@@ -22,21 +22,20 @@ namespace SimpleContainer.Implementation
 		private bool disposed;
 
 		private readonly GenericsAutoCloser genericsAutoCloser;
-		protected readonly IInheritanceHierarchy inheritors;
+		protected readonly Dictionary<Type, List<Type>> inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
 		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
-			IInheritanceHierarchy inheritors,LogError errorLogger, LogInfo infoLogger)
+			Dictionary<Type, List<Type>> inheritors, LogError errorLogger, LogInfo infoLogger)
 		{
 			Configuration = configurationRegistry;
 			implementationSelectors = configurationRegistry.GetImplementationSelectors();
 			this.genericsAutoCloser = genericsAutoCloser;
 			this.inheritors = inheritors;
 			dependenciesInjector = new DependenciesInjector(this);
-			createWrap = k => new ContainerServiceId();
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
 		}
@@ -48,18 +47,12 @@ namespace SimpleContainer.Implementation
 				throw new ArgumentNullException("type");
 			var contractsArray = CheckContracts(contracts);
 			var typeToResolve = type.UnwrapEnumerable();
-			var cacheKey = new ServiceName(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
-			var wrap = instanceCache.GetOrAdd(cacheKey, createWrap);
+			var name = new ServiceName(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
+			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
-			if (!wrap.TryGet(out result))
-				result = ResolveSingleton(cacheKey.Type, new ResolutionContext(this, cacheKey.Contracts));
+			if (!id.TryGet(out result))
+				result = ResolveSingleton(name.Type, new ResolutionContext(this, name.Contracts));
 			return new ResolvedService(result, this, typeToResolve != type);
-		}
-
-		internal ContainerService Create(Type type, IEnumerable<string> contracts, object arguments, ResolutionContext context)
-		{
-			context = context ?? new ResolutionContext(this, InternalHelpers.ToInternalContracts(contracts, type));
-			return context.Instantiate(type, true, ObjectAccessor.Get(arguments));
 		}
 
 		private static string[] CheckContracts(IEnumerable<string> contracts)
@@ -82,8 +75,8 @@ namespace SimpleContainer.Implementation
 			if (type == null)
 				throw new ArgumentNullException("type");
 			var contractsArray = CheckContracts(contracts);
-
-			var result = Create(type, contractsArray, arguments, null);
+			var context = new ResolutionContext(this, InternalHelpers.ToInternalContracts(contractsArray, type));
+			var result = context.Create(type, arguments);
 			return new ResolvedService(result, this, false);
 		}
 
@@ -120,8 +113,8 @@ namespace SimpleContainer.Implementation
 			var interfaceConfiguration = GetConfigurationWithoutContracts(interfaceType);
 			if (interfaceConfiguration != null && interfaceConfiguration.ImplementationTypes != null)
 				return interfaceConfiguration.ImplementationTypes;
-			var result = inheritors.GetOrNull(interfaceType);
-			return result != null
+			List<Type> result;
+			return inheritors.TryGetValue(interfaceType, out result)
 				? result.Where(delegate(Type type)
 				{
 					var implementationConfiguration = GetConfigurationWithoutContracts(type);
@@ -170,8 +163,8 @@ namespace SimpleContainer.Implementation
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
 		{
-			var cacheKey = new ServiceName(type, context.Contracts.ToArray());
-			var id = instanceCache.GetOrAdd(cacheKey, createWrap);
+			var name = new ServiceName(type, context.Contracts.ToArray());
+			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
 			if (!id.AcquireInstantiateLock(out result))
 				return result;
@@ -223,7 +216,7 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateInterface(ContainerService.Builder builder)
 		{
-			var implementationTypes = GetInterfaceImplementationTypes(builder).Distinct().ToList();
+			var implementationTypes = GetInterfaceImplementationTypes(builder);
 			List<ImplementationSelectorDecision> selectorDecisions = null;
 			if (builder.HasNoConfiguration() && implementationSelectors.Length > 0)
 			{
@@ -278,28 +271,29 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private IEnumerable<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
+		private HashSet<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
 		{
 			var candidates = new List<Type>();
+			var result = new HashSet<Type>();
 			if (builder.Configuration.ImplementationTypes != null)
 				candidates.AddRange(builder.Configuration.ImplementationTypes);
 			if (builder.Configuration.ImplementationTypes == null || builder.Configuration.UseAutosearch)
-				candidates.AddRange(inheritors.GetOrNull(builder.Type.GetDefinition()).EmptyIfNull());
+				candidates.AddRange(inheritors.GetOrDefault(builder.Type.GetDefinition()) ?? InternalHelpers.emptyTypesList);
 			foreach (var implType in candidates)
 			{
 				if (!implType.IsGenericType)
 				{
 					if (!builder.Type.IsGenericType || builder.Type.IsAssignableFrom(implType))
-						yield return implType;
+						result.Add(implType);
 				}
 				else if (!implType.ContainsGenericParameters)
-					yield return implType;
+					result.Add(implType);
 				else
 				{
 					var mapped = genericsAutoCloser.AutoCloseDefinition(implType);
 					foreach (var type in mapped)
 						if (builder.Type.IsAssignableFrom(type))
-							yield return type;
+							result.Add(type);
 					if (builder.Type.IsGenericType)
 					{
 						var implInterfaces = implType.ImplementationsOf(builder.Type.GetGenericTypeDefinition());
@@ -307,7 +301,7 @@ namespace SimpleContainer.Implementation
 						{
 							var closed = implType.TryCloseByPattern(implInterface, builder.Type);
 							if (closed != null)
-								yield return closed;
+								result.Add(closed);
 						}
 					}
 					if (builder.Arguments == null)
@@ -329,11 +323,12 @@ namespace SimpleContainer.Implementation
 						{
 							var closedItem = implType.TryCloseByPattern(formalParameter.ParameterType, implInterface);
 							if (closedItem != null)
-								yield return closedItem;
+								result.Add(closedItem);
 						}
 					}
 				}
 			}
+			return result;
 		}
 
 		public IEnumerable<Type> GetDependencies(Type type)
@@ -431,7 +426,7 @@ namespace SimpleContainer.Implementation
 				builder.CreateInstance(constructor.value, null, actualArguments);
 				return;
 			}
-			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetName(), createWrap);
+			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetName(), createId);
 			ContainerService serviceForUsedContracts;
 			if (serviceForUsedContractsId.AcquireInstantiateLock(out serviceForUsedContracts))
 			{
@@ -458,7 +453,11 @@ namespace SimpleContainer.Implementation
 				if (dependencyConfiguration.ValueAssigned)
 					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
-					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Factory(this));
+				{
+					var dependencyBuilder = new ContainerService.Builder(formalParameter.ParameterType, builder.Context, false, null);
+					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
+					return dependencyBuilder.Build().AsSingleInstanceDependency(formalParameter.Name);
+				}
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
 			implementationType = implementationType ?? formalParameter.ParameterType;

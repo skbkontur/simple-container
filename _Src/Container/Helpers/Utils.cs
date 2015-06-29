@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SimpleContainer.Helpers
 {
@@ -109,6 +110,7 @@ namespace SimpleContainer.Helpers
 			return string.Equals(s1, s2, StringComparison.OrdinalIgnoreCase);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> source, TKey key,
 			TValue defaultValue = default(TValue))
 		{

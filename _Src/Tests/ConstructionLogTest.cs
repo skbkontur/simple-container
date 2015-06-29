@@ -218,7 +218,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<B>());
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse = <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse -> <null>"));
 			}
 		}
 
@@ -245,7 +245,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse = <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse -> <null>"));
 			}
 		}
 

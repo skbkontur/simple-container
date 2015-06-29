@@ -9,11 +9,11 @@ namespace SimpleContainer.Implementation
 {
 	internal class GenericsAutoCloser
 	{
-		private readonly IInheritanceHierarchy hierarchy;
+		private readonly Dictionary<Type, List<Type>> hierarchy;
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConcurrentDictionary<Type, Type[]> cache = new ConcurrentDictionary<Type, Type[]>();
 
-		public GenericsAutoCloser(IInheritanceHierarchy hierarchy, Func<AssemblyName, bool> assemblyFilter)
+		public GenericsAutoCloser(Dictionary<Type,List<Type>> hierarchy, Func<AssemblyName, bool> assemblyFilter)
 		{
 			this.hierarchy = hierarchy;
 			this.assemblyFilter = assemblyFilter;
@@ -127,7 +127,7 @@ namespace SimpleContainer.Implementation
 
 		private void MarkInterface(GenericDefinition definition, Dictionary<Type, GenericDefinition> context)
 		{
-			var implementationTypes = hierarchy.GetOrNull(definition.type);
+			var implementationTypes = hierarchy.GetOrDefault(definition.type);
 			if (implementationTypes == null)
 				return;
 			foreach (var implType in implementationTypes)
@@ -165,19 +165,19 @@ namespace SimpleContainer.Implementation
 			foreach (var c in constraints)
 				if (!assemblyFilter(c.Assembly.GetName()))
 					return;
-			var impls = new List<Type>(hierarchy.GetOrNull(constraints[0]) ?? Type.EmptyTypes);
+			var impls = hierarchy.GetOrDefault(constraints[0]) ?? InternalHelpers.emptyTypesList;
 			for (var i = 1; i < constraints.Length; i++)
 			{
 				if (impls.Count == 0)
 					return;
-				var current = (hierarchy.GetOrNull(constraints[i]) ?? Type.EmptyTypes).ToArray();
+				var current = hierarchy.GetOrDefault(constraints[i]) ?? InternalHelpers.emptyTypesList;
 				for (var j = impls.Count - 1; j >= 0; j--)
-					if (Array.IndexOf(current, impls[j]) < 0)
+					if (current.IndexOf(impls[j]) < 0)
 						impls.RemoveAt(j);
 			}
 			if (impls.Count == 0)
 				return;
-			var nonGenericOverrides = (hierarchy.GetOrNull(definition.type) ?? Type.EmptyTypes)
+			var nonGenericOverrides = (hierarchy.GetOrDefault(definition.type) ?? InternalHelpers.emptyTypesList)
 				.Where(x => !x.IsGenericType)
 				.ToArray();
 			foreach (var impl in impls)

@@ -23,9 +23,9 @@ namespace SimpleContainer.Implementation
 				PushContracts(contracts);
 		}
 
-		public string DeclaredContractsKey()
+		internal ContainerService Create(Type type, object arguments)
 		{
-			return InternalHelpers.FormatContractsKey(Contracts);
+			return Instantiate(type, true, ObjectAccessor.Get(arguments));
 		}
 
 		public ContainerService Instantiate(Type type, bool crearteNew, IObjectAccessor arguments)
@@ -134,7 +134,7 @@ namespace SimpleContainer.Implementation
 				if (duplicate != null)
 				{
 					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-					return ValueOrError.Fail<int>(messageFormat, c, DeclaredContractsKey());
+					return ValueOrError.Fail<int>(messageFormat, c, InternalHelpers.FormatContractsKey(Contracts));
 				}
 				Contracts.Add(c);
 				pushedContractsCount++;
