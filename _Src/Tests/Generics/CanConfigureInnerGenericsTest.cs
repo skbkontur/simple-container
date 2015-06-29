@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Tests.Helpers;
 
-namespace SimpleContainer.Tests.GenericsConfiguratorTests
+namespace SimpleContainer.Tests.Generics
 {
 	public class CanConfigureInnerGenericsTest : SimpleContainerTestBase
 	{

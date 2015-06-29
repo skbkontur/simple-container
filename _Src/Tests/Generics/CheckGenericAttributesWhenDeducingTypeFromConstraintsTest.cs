@@ -2,9 +2,9 @@ using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Tests.Helpers;
 
-namespace SimpleContainer.Tests.GenericsConfiguratorTests
+namespace SimpleContainer.Tests.Generics
 {
-	public class CanDeduceGenericsFromConstraintsTest : SimpleContainerTestBase
+	public class CheckGenericAttributesWhenDeducingTypeFromConstraintsTest : SimpleContainerTestBase
 	{
 		public interface IMyCommand
 		{
@@ -16,6 +16,12 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 
 		public class MyCommand2 : IMyCommand
 		{
+			public int Value { get; set; }
+
+			public MyCommand2(int value)
+			{
+				Value = value;
+			}
 		}
 
 		public interface IHandler
@@ -23,7 +29,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		}
 
 		public class Handler<T> : IHandler
-			where T : IMyCommand
+			where T : IMyCommand, new()
 		{
 		}
 
@@ -31,7 +37,7 @@ namespace SimpleContainer.Tests.GenericsConfiguratorTests
 		public void Test()
 		{
 			Assert.That(Container().GetAll<IHandler>().Select(x => x.GetType()).ToArray(),
-				Is.EquivalentTo(new[] {typeof (Handler<MyCommand1>), typeof (Handler<MyCommand2>)}));
+				Is.EqualTo(new[] {typeof (Handler<MyCommand1>)}));
 		}
 	}
 }

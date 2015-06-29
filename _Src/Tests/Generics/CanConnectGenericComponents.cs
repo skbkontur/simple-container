@@ -2,7 +2,7 @@
 using NUnit.Framework;
 using SimpleContainer.Tests.Helpers;
 
-namespace SimpleContainer.Tests.GenericsConfiguratorTests
+namespace SimpleContainer.Tests.Generics
 {
 	public class CanConnectGenericComponents : SimpleContainerTestBase
 	{

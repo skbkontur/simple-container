@@ -2,11 +2,11 @@
 using NUnit.Framework;
 using SimpleContainer.Tests.Helpers;
 
-namespace SimpleContainer.Tests
+namespace SimpleContainer.Tests.Generics
 {
-	public abstract class NotConfiguredGenericsTest : SimpleContainerTestBase
+	public abstract class GenericsInferringViaArgumentTypesTest : SimpleContainerTestBase
 	{
-		public class Simple : NotConfiguredGenericsTest
+		public class Simple : GenericsInferringViaArgumentTypesTest
 		{
 			public class Generic<T>
 			{
@@ -34,7 +34,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanCloseImplementationByInterface : NotConfiguredGenericsTest
+		public class CanCloseImplementationByInterface : GenericsInferringViaArgumentTypesTest
 		{
 			public interface IA<T>
 			{
@@ -64,7 +64,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanBindDefinitions : NotConfiguredGenericsTest
+		public class CanBindDefinitions : GenericsInferringViaArgumentTypesTest
 		{
 			public interface IA<T>
 			{
@@ -86,7 +86,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class FitlerImplementationsUsingGenericArgumentsMatching : NotConfiguredGenericsTest
+		public class FitlerImplementationsUsingGenericArgumentsMatching : GenericsInferringViaArgumentTypesTest
 		{
 			public interface IA<T>
 			{
@@ -122,7 +122,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CheckConstraints : NotConfiguredGenericsTest
+		public class CheckConstraints : GenericsInferringViaArgumentTypesTest
 		{
 			public interface IA<T1>
 			{
@@ -138,7 +138,7 @@ namespace SimpleContainer.Tests
 			}
 
 			public class A2<T3> : IA<T3>
-				where T3: new()
+				where T3 : new()
 			{
 			}
 
