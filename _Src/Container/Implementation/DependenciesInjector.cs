@@ -3,29 +3,26 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
 	internal class DependenciesInjector
 	{
-		private readonly IContainer container;
+		private readonly SimpleContainer container;
 
 		private readonly ConcurrentDictionary<ServiceName, Injection[]> injections =
 			new ConcurrentDictionary<ServiceName, Injection[]>();
 
 		private static readonly MemberInjectionsProvider provider = new MemberInjectionsProvider();
 
-		public DependenciesInjector(IContainer container)
+		public DependenciesInjector(SimpleContainer container)
 		{
 			this.container = container;
 		}
 
-		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
+		public BuiltUpService BuildUp(ServiceName name, object target)
 		{
-			var type = target.GetType();
-			var name = new ServiceName(type, InternalHelpers.ToInternalContracts(contracts, type));
 			var dependencies = GetInjections(name);
 			foreach (var dependency in dependencies)
 				dependency.setter(target, dependency.value.Single());
@@ -56,13 +53,10 @@ namespace SimpleContainer.Implementation
 			for (var i = 0; i < result.Length; i++)
 			{
 				var member = memberSetters[i].member;
-				RequireContractAttribute requireContractAttribute;
-				var contracts = member.TryGetCustomAttribute(out requireContractAttribute)
-					? (IEnumerable<string>) new List<string>(name.Contracts) {requireContractAttribute.ContractName}
-					: name.Contracts;
 				try
 				{
-					result[i].value = container.Resolve(member.MemberType(), contracts);
+					result[i].value = container.Resolve(member.MemberType(),
+						name.Contracts.Concat(InternalHelpers.ParseContracts(member, false)));
 					result[i].value.CheckSingleInstance();
 				}
 				catch (SimpleContainerException e)

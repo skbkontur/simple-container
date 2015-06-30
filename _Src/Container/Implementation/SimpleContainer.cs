@@ -45,28 +45,12 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (type == null)
 				throw new ArgumentNullException("type");
-			var contractsArray = CheckContracts(contracts);
-			var typeToResolve = type.UnwrapEnumerable();
-			var name = new ServiceName(typeToResolve, InternalHelpers.ToInternalContracts(contractsArray, typeToResolve));
+			var name = CreateServiceName(type.UnwrapEnumerable(), contracts);
 			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
 			if (!id.TryGet(out result))
 				result = ResolveSingleton(name.Type, new ResolutionContext(this, name.Contracts));
-			return new ResolvedService(result, this, typeToResolve != type);
-		}
-
-		private static string[] CheckContracts(IEnumerable<string> contracts)
-		{
-			if (contracts == null)
-				return null;
-			var contractsArray = contracts.ToArray();
-			foreach (var contract in contractsArray)
-				if (string.IsNullOrEmpty(contract))
-				{
-					var message = string.Format("invalid contracts [{0}]", contractsArray.Select(x => x ?? "<null>").JoinStrings(","));
-					throw new SimpleContainerException(message);
-				}
-			return contractsArray;
+			return new ResolvedService(result, this, name.Type != type);
 		}
 
 		public ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments)
@@ -74,8 +58,8 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (type == null)
 				throw new ArgumentNullException("type");
-			var contractsArray = CheckContracts(contracts);
-			var context = new ResolutionContext(this, InternalHelpers.ToInternalContracts(contractsArray, type));
+			var name = CreateServiceName(type, contracts);
+			var context = new ResolutionContext(this, name.Contracts);
 			var result = context.Create(type, arguments);
 			return new ResolvedService(result, this, false);
 		}
@@ -128,9 +112,28 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (target == null)
 				throw new ArgumentNullException("target");
-			var contractsArray = CheckContracts(contracts);
+			return dependenciesInjector.BuildUp(CreateServiceName(target.GetType(), contracts), target);
+		}
 
-			return dependenciesInjector.BuildUp(target, contractsArray);
+		private static ServiceName CreateServiceName(Type type, IEnumerable<string> contracts)
+		{
+			var contractsArray = contracts == null ? InternalHelpers.emptyStrings : contracts.ToArray();
+			for (var i = 0; i < contractsArray.Length; i++)
+			{
+				var contract = contractsArray[i];
+				if (string.IsNullOrEmpty(contract))
+				{
+					var message = string.Format("invalid contracts [{0}] - empty ones found", contractsArray.JoinStrings(","));
+					throw new SimpleContainerException(message);
+				}
+				for (var j = 0; j < i; j++)
+					if (contractsArray[j].EqualsIgnoringCase(contract))
+					{
+						var message = string.Format("invalid contracts [{0}] - duplicates found", contractsArray.JoinStrings(","));
+						throw new SimpleContainerException(message);
+					}
+			}
+			return ServiceName.Parse(type, contractsArray);
 		}
 
 		private IEnumerable<NamedInstance> GetInstanceCache(Type interfaceType)
@@ -256,7 +259,7 @@ namespace SimpleContainer.Implementation
 					if (decision.HasValue)
 						comment = decision.Value.comment;
 					if (!decision.HasValue || decision.Value.action == ImplementationSelectorDecision.Action.Include)
-						implementationService = builder.Context.Resolve(implementationType, null);
+						implementationService = builder.Context.Resolve(ServiceName.Parse(implementationType));
 				}
 				if (implementationService != null)
 					builder.LinkTo(implementationService, comment);
@@ -471,29 +474,23 @@ namespace SimpleContainer.Implementation
 						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
 			}
-			var dependencyType = implementationType.UnwrapEnumerable();
-			var isEnumerable = dependencyType != implementationType;
-			var attribute = formalParameter.GetCustomAttributeOrNull<RequireContractAttribute>();
-			var contracts = attribute == null ? null : new List<string>(1) {attribute.ContractName};
+			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(),
+				InternalHelpers.ParseContracts(formalParameter, false));
 
 			ServiceConfiguration interfaceConfiguration;
 			try
 			{
-				interfaceConfiguration = GetConfiguration(dependencyType, builder.Context);
+				interfaceConfiguration = GetConfiguration(dependencyName.Type, builder.Context);
 			}
 			catch (Exception e)
 			{
-				var dependencyService = new ContainerService.Builder(dependencyType, builder.Context, false, null);
+				var dependencyService = new ContainerService.Builder(dependencyName.Type, builder.Context, false, null);
 				dependencyService.SetError(e);
 				return ServiceDependency.ServiceError(dependencyService.Build());
 			}
 			if (interfaceConfiguration.FactoryWithTarget != null)
-			{
-				if (contracts == null)
-					contracts = new List<string>();
-				contracts.Add(builder.Type.FormatName());
-			}
-			if (dependencyType.IsSimpleType())
+				dependencyName = dependencyName.AddContracts(builder.Type.FormatName());
+			if (dependencyName.Type.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)
 					return ServiceDependency.Error(null, formalParameter.Name,
@@ -501,9 +498,10 @@ namespace SimpleContainer.Implementation
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
-			var resultService = builder.Context.Resolve(dependencyType, contracts);
+			var resultService = builder.Context.Resolve(dependencyName);
 			if (resultService.Status.IsBad())
 				return ServiceDependency.ServiceError(resultService);
+			var isEnumerable = dependencyName.Type != implementationType;
 			if (isEnumerable)
 				return ServiceDependency.Service(resultService, resultService.GetAllValues());
 			if (resultService.Status == ServiceStatus.NotResolved)

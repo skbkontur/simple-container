@@ -5,8 +5,6 @@ todo
 
 	refactor: get rid of stupid EndResolveDependencies
 
-	type, enumerable<constract> -> ContractsSet or something
-
 	speed up factories: should be no reflection at runtime
 
 	ctor delegates

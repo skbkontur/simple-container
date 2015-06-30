@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -18,9 +17,7 @@ namespace SimpleContainer.Implementation
 		public ResolutionContext(SimpleContainer container, string[] contracts)
 		{
 			Container = container;
-			Contracts = new List<string>();
-			if (contracts.Length > 0)
-				PushContracts(contracts);
+			Contracts = new List<string>(contracts);
 		}
 
 		internal ContainerService Create(Type type, object arguments)
@@ -50,7 +47,7 @@ namespace SimpleContainer.Implementation
 				var poppedContracts = Contracts.PopMany(expandResult.Length);
 				foreach (var c in expandResult.CartesianProduct())
 				{
-					var childService = ResolveInternal(builder.Type, c);
+					var childService = Resolve(new ServiceName(builder.Type, c));
 					builder.LinkTo(childService, null);
 					if (builder.Status.IsBad())
 						break;
@@ -100,46 +97,28 @@ namespace SimpleContainer.Implementation
 			return stack.Count <= 1 ? null : stack[stack.Count - 2];
 		}
 
-		public ContainerService Resolve(Type type, IEnumerable<string> contractNames)
+		public ContainerService Resolve(ServiceName name)
 		{
-			var internalContracts = InternalHelpers.ToInternalContracts(contractNames, type);
-			return internalContracts.Length == 0
-				? Container.ResolveSingleton(type, this)
-				: ResolveInternal(type, internalContracts);
-		}
-
-		private ContainerService ResolveInternal(Type type, string[] contractNames)
-		{
-			ContainerService result;
-			var pushContractsResult = PushContracts(contractNames);
-			if (!pushContractsResult.isOk)
+			if (name.Contracts.Length == 0)
+				return Container.ResolveSingleton(name.Type, this);
+			var pushedCount = 0;
+			foreach (var newContract in name.Contracts)
 			{
-				var resultBuilder = new ContainerService.Builder(type, this, false, null);
-				if (resultBuilder.Status == ServiceStatus.Ok)
-					resultBuilder.SetError(pushContractsResult.errorMessage);
-				result = resultBuilder.Build();
+				foreach (var c in Contracts)
+					if (newContract.EqualsIgnoringCase(c))
+					{
+						var resultBuilder = new ContainerService.Builder(name.Type, this, false, null);
+						const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
+						resultBuilder.SetError(string.Format(messageFormat, newContract, InternalHelpers.FormatContractsKey(Contracts)));
+						Contracts.RemoveLast(pushedCount);
+						return resultBuilder.Build();
+					}
+				Contracts.Add(newContract);
+				pushedCount++;
 			}
-			else
-				result = Container.ResolveSingleton(type, this);
-			Contracts.RemoveLast(pushContractsResult.value);
+			var result = Container.ResolveSingleton(name.Type, this);
+			Contracts.RemoveLast(name.Contracts.Length);
 			return result;
-		}
-
-		private ValueOrError<int> PushContracts(string[] contractNames)
-		{
-			var pushedContractsCount = 0;
-			foreach (var c in contractNames)
-			{
-				var duplicate = Contracts.FirstOrDefault(x => x.EqualsIgnoringCase(c));
-				if (duplicate != null)
-				{
-					const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-					return ValueOrError.Fail<int>(messageFormat, c, InternalHelpers.FormatContractsKey(Contracts));
-				}
-				Contracts.Add(c);
-				pushedContractsCount++;
-			}
-			return ValueOrError.Ok(pushedContractsCount);
 		}
 	}
 }

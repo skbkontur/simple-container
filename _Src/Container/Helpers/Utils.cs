@@ -57,6 +57,18 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		public static T[] Concat<T>(this T[] first, T[] second)
+		{
+			if (second.Length == 0)
+				return first;
+			if (first.Length == 0)
+				return second;
+			var result = new T[first.Length + second.Length];
+			Array.Copy(first, result, first.Length);
+			Array.Copy(second, 0, result, first.Length, second.Length);
+			return result;
+		}
+
 		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
 		{
 			foreach (var t in source[index])

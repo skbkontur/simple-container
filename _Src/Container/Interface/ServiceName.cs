@@ -1,5 +1,6 @@
 ﻿using System;
 using SimpleContainer.Helpers;
+using SimpleContainer.Infection;
 
 namespace SimpleContainer.Interface
 {
@@ -14,6 +15,11 @@ namespace SimpleContainer.Interface
 			this.contracts = contracts;
 		}
 
+		internal static ServiceName Parse(Type type, params string[] contracts)
+		{
+			return new ServiceName(type, contracts.Concat(InternalHelpers.ParseContracts(type, true)));
+		}
+
 		public Type Type
 		{
 			get { return type; }
@@ -22,6 +28,11 @@ namespace SimpleContainer.Interface
 		public string[] Contracts
 		{
 			get { return contracts; }
+		}
+
+		public ServiceName AddContracts(params string[] contract)
+		{
+			return new ServiceName(type, contracts.Concat(contract));
 		}
 
 		public override string ToString()

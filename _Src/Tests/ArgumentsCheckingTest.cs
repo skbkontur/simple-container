@@ -57,7 +57,22 @@ namespace SimpleContainer.Tests
 				Assert.That(exception.ParamName, Is.EqualTo("target"));
 
 				var conainerException = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new string[] {null}));
-				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [<null>]"));
+				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [] - empty ones found"));
+			}
+		}
+
+		public class InputContractsDuplications : ArgumentsCheckingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Resolve<A>("x", "y", "x"));
+				Assert.That(exception.Message, Is.EqualTo("invalid contracts [x,y,x] - duplicates found"));
 			}
 		}
 
@@ -76,7 +91,7 @@ namespace SimpleContainer.Tests
 
 				var conainerException =
 					Assert.Throws<SimpleContainerException>(() => container.Create(typeof (A), new string[] {null}, null));
-				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [<null>]"));
+				Assert.That(conainerException.Message, Is.EqualTo("invalid contracts [] - empty ones found"));
 			}
 		}
 
@@ -91,7 +106,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var containerException = Assert.Throws<SimpleContainerException>(() => container.Resolve<A>(new[] {"a", null}));
-				Assert.That(containerException.Message, Is.EqualTo("invalid contracts [a,<null>]"));
+				Assert.That(containerException.Message, Is.EqualTo("invalid contracts [a,] - empty ones found"));
 			}
 		}
 	}

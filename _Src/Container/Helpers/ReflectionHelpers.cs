@@ -100,21 +100,16 @@ namespace SimpleContainer.Helpers
 			return method != null && method.IsStatic;
 		}
 
-		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider,
+		public static TAttribute[] GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider,
 			bool inherit = true)
 		{
-			return attributeProvider.GetCustomAttributesCached(typeof (TAttribute), inherit).Cast<TAttribute>();
+			return (TAttribute[]) (object) attributeProvider.GetCustomAttributesCached(typeof (TAttribute), inherit);
 		}
 
 		public static IEnumerable<Attribute> GetCustomAttributesCached(this ICustomAttributeProvider attributeProvider,
 			Type type, bool inherit = true)
 		{
 			return (IEnumerable<Attribute>) AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
-		}
-
-		public static TAttribute GetCustomAttributeOrNull<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
-		{
-			return type.GetCustomAttributes<TAttribute>(inherit).SingleOrDefault();
 		}
 
 		public static bool TryGetCustomAttribute<TAttribute>(this ICustomAttributeProvider memberInfo, out TAttribute result)

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
@@ -27,6 +26,17 @@ namespace SimpleContainer.Helpers
 		public static string NameOf<T>() where T : RequireContractAttribute, new()
 		{
 			return new T().ContractName;
+		}
+
+		public static string[] ParseContracts(ICustomAttributeProvider provider, bool inverse)
+		{
+			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
+			if (attributes.Length == 0)
+				return emptyStrings;
+			var contractsFromAttributes = new string[attributes.Length];
+			for (var i = 0; i < attributes.Length; i++)
+				contractsFromAttributes[i] = attributes[inverse ? attributes.Length - i - 1 : i].ContractName;
+			return contractsFromAttributes;
 		}
 
 		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
@@ -61,18 +71,6 @@ namespace SimpleContainer.Helpers
 
 		public static readonly string[] emptyStrings = new string[0];
 		public static readonly List<Type> emptyTypesList = new List<Type>(0);
-
-		public static string[] ToInternalContracts(IEnumerable<string> contracts, Type type)
-		{
-			var attribute = type.GetCustomAttributeOrNull<RequireContractAttribute>();
-			if (attribute == null)
-				return contracts == null ? emptyStrings : contracts.ToArray();
-			if (contracts == null)
-				return new[] {attribute.ContractName};
-			var result = contracts.ToList();
-			result.Add(attribute.ContractName);
-			return result.ToArray();
-		}
 
 		public static string DumpValue(object value)
 		{
