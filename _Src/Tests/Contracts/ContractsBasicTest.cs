@@ -774,57 +774,5 @@ namespace SimpleContainer.Tests.Contracts
 					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\n!A\r\n\t!B <---------------"));
 			}
 		}
-
-		public class CanAttachManyContractsToClass : ContractsBasicTest
-		{
-			[TestContract("x")]
-			[TestContract("y")]
-			public class A
-			{
-				public readonly int parameter;
-
-				public A(int parameter)
-				{
-					this.parameter = parameter;
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Contract("x", "y").BindDependency<A>("parameter", 21));
-				Assert.That(container.Get<A>().parameter, Is.EqualTo(21));
-			}
-		}
-		
-		public class CanAttachManyContractsToDependencyClass : ContractsBasicTest
-		{
-			public class Host
-			{
-				public readonly A a;
-
-				public Host([TestContract("x")] [TestContract("y")] A a)
-				{
-					this.a = a;
-				}
-			}
-
-			public class A
-			{
-				public readonly int parameter;
-
-				public A(int parameter)
-				{
-					this.parameter = parameter;
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Contract("x", "y").BindDependency<A>("parameter", 21));
-				Assert.That(container.Get<Host>().a.parameter, Is.EqualTo(21));
-			}
-		}
 	}
 }

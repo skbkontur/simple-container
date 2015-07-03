@@ -14,15 +14,14 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private Type profile;
-		private Func<AssemblyName, bool> assembliesFilter = n => n.Name == "SimpleContainer";
+		private Func<AssemblyName, bool> assembliesFilter = n => true;
 		private Func<Type, string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
-		private readonly List<Assembly> pluginAssemblies = new List<Assembly>();
 		private Type[] priorities;
 		private Action<ContainerConfigurationBuilder> configure;
-		private Type[] types;
+		private Func<Type[]> types;
 		private IParametersSource parameters;
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
@@ -60,12 +59,6 @@ namespace SimpleContainer
 		public ContainerFactory WithPriorities(params Type[] newConfiguratorTypes)
 		{
 			priorities = newConfiguratorTypes;
-			return this;
-		}
-
-		public ContainerFactory WithPlugin(Assembly assembly)
-		{
-			pluginAssemblies.Add(assembly);
 			return this;
 		}
 
@@ -128,17 +121,16 @@ namespace SimpleContainer
 			return WithTypesFromAssemblies(assemblies.AsParallel());
 		}
 
-
 		public ContainerFactory WithTypes(Type[] newTypes)
 		{
-			types = newTypes;
+			types = () => newTypes;
 			return this;
 		}
 
 		public IContainer Build()
 		{
-			var defaultTypes = pluginAssemblies.Concat(Assembly.GetExecutingAssembly()).SelectMany(x => x.GetTypes());
-			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
+			var defaultTypes = Assembly.GetExecutingAssembly().GetTypes();
+			var hostingTypes = types().Concat(defaultTypes).Distinct().ToArray();
 			var inheritors = InheritorsBuilder.CreateInheritorsMap(hostingTypes);
 			var genericsAutoCloser = new GenericsAutoCloser(inheritors, assembliesFilter);
 			var builder = new ContainerConfigurationBuilder();
@@ -150,7 +142,9 @@ namespace SimpleContainer
 			}
 			if (configure != null)
 				configure(builder);
-			var fileConfigurator = File.Exists(configFileName) ? FileConfigurationParser.Parse(types, configFileName) : null;
+			var fileConfigurator = File.Exists(configFileName)
+				? FileConfigurationParser.Parse(hostingTypes, configFileName)
+				: null;
 			if (fileConfigurator != null)
 				fileConfigurator(_ => true, builder);
 			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build());
@@ -185,9 +179,9 @@ namespace SimpleContainer
 						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
 						throw new SimpleContainerException(string.Format(messageFormat, a.GetName(), loaderExceptionsText), e);
 					}
-				})
-				.ToArray();
-			return WithTypes(newTypes);
+				});
+			types = newTypes.ToArray;
+			return this;
 		}
 	}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Helpers
 {
@@ -33,10 +34,9 @@ namespace SimpleContainer.Helpers
 			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
 			if (attributes.Length == 0)
 				return emptyStrings;
-			var contractsFromAttributes = new string[attributes.Length];
-			for (var i = 0; i < attributes.Length; i++)
-				contractsFromAttributes[i] = attributes[inverse ? attributes.Length - i - 1 : i].ContractName;
-			return contractsFromAttributes;
+			if (attributes.Length > 1)
+				throw new SimpleContainerException("assertion failure");
+			return new[] {attributes[0].ContractName};
 		}
 
 		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
