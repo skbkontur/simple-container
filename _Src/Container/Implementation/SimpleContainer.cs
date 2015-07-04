@@ -316,12 +316,13 @@ namespace SimpleContainer.Implementation
 					{
 						if (!formalParameter.ParameterType.ContainsGenericParameters)
 							continue;
-						object parameterValue;
-						if (!builder.Arguments.TryGet(formalParameter.Name, out parameterValue) || parameterValue == null)
+						ValueWithType parameterValue;
+						if (!builder.Arguments.TryGet(formalParameter.Name, out parameterValue))
 							continue;
+						var parameterType = parameterValue.value == null ? parameterValue.type : parameterValue.value.GetType();
 						var implInterfaces = formalParameter.ParameterType.IsGenericParameter
-							? new List<Type>(1) {parameterValue.GetType()}
-							: parameterValue.GetType().ImplementationsOf(formalParameter.ParameterType.GetGenericTypeDefinition());
+							? new List<Type>(1) {parameterType}
+							: parameterType.ImplementationsOf(formalParameter.ParameterType.GetGenericTypeDefinition());
 						foreach (var implInterface in implInterfaces)
 						{
 							var closedItem = implType.TryCloseByPattern(formalParameter.ParameterType, implInterface);
@@ -443,12 +444,13 @@ namespace SimpleContainer.Implementation
 
 		private ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)
 		{
-			object actualArgument;
+			ValueWithType actualArgument;
 			if (builder.Arguments != null && builder.Arguments.TryGet(formalParameter.Name, out actualArgument))
-				return ServiceDependency.Constant(formalParameter, actualArgument);
+				return ServiceDependency.Constant(formalParameter, actualArgument.value);
 			var parameters = builder.Configuration.ParametersSource;
-			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualArgument))
-				return ServiceDependency.Constant(formalParameter, actualArgument);
+			object actualParameter;
+			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualParameter))
+				return ServiceDependency.Constant(formalParameter, actualParameter);
 			var dependencyConfiguration = builder.Configuration.GetOrNull(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)

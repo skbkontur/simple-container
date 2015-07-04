@@ -154,10 +154,11 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
-		public class NullValueForFactoryAutoclosingParameter : FactoriesGenericHandlingTest
+		public class UseCompileTimePropertyTypeForNullValueForFactoryAutoclosingParameter : FactoriesGenericHandlingTest
 		{
 			public interface IA
 			{
+				object Value { get; }
 			}
 
 			public class A<T> : IA
@@ -167,6 +168,11 @@ namespace SimpleContainer.Tests.Factories
 				public A(T value)
 				{
 					this.value = value;
+				}
+
+				public object Value
+				{
+					get { return value; }
 				}
 			}
 
@@ -179,8 +185,8 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var creator = container.Get<Func<object, IA>>();
-				var exception = Assert.Throws<SimpleContainerException>(() => creator(new { value = (X)null }));
-				Assert.That(exception.Message, Is.EqualTo("no instances for [IA]\r\n\r\n!IA - has no implementations"));
+				var instance = creator(new {value = (X) null});
+				Assert.That(instance.Value, Is.Null);
 			}
 		}
 

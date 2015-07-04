@@ -4,7 +4,7 @@ namespace SimpleContainer.Helpers
 {
 	internal interface IObjectAccessor
 	{
-		bool TryGet(string name, out object value);
+		bool TryGet(string name, out ValueWithType value);
 		IEnumerable<string> GetUnused();
 		IEnumerable<string> GetUsed();
 	}
