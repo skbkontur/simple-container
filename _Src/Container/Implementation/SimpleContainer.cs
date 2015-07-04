@@ -394,13 +394,13 @@ namespace SimpleContainer.Implementation
 			}
 			var formalParameters = constructor.value.GetParameters();
 			var actualArguments = new object[formalParameters.Length];
-			var serviceNameParameterIndex = -1;
+			var hasServiceNameParameters = false;
 			for (var i = 0; i < formalParameters.Length; i++)
 			{
 				var formalParameter = formalParameters[i];
 				if (formalParameter.ParameterType == typeof (ServiceName))
 				{
-					serviceNameParameterIndex = i;
+					hasServiceNameParameters = true;
 					continue;
 				}
 				var dependency = InstantiateDependency(formalParameter, builder).CastTo(formalParameter.ParameterType);
@@ -423,8 +423,10 @@ namespace SimpleContainer.Implementation
 				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));
 				return;
 			}
-			if (serviceNameParameterIndex >= 0)
-				actualArguments[serviceNameParameterIndex] = builder.GetName();
+			if (hasServiceNameParameters)
+				for (var i = 0; i < formalParameters.Length; i++)
+					if (formalParameters[i].ParameterType == typeof (ServiceName))
+						actualArguments[i] = builder.GetName();
 			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);

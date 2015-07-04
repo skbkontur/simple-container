@@ -731,12 +731,14 @@ namespace SimpleContainer.Tests.Contracts
 			public class B
 			{
 				public readonly int parameter;
-				public readonly ServiceName myName;
+				public readonly ServiceName myName1;
+				public readonly ServiceName myName2;
 
-				public B(int parameter, ServiceName myName)
+				public B(ServiceName myName1, int parameter, ServiceName myName2)
 				{
+					this.myName1 = myName1;
 					this.parameter = parameter;
-					this.myName = myName;
+					this.myName2 = myName2;
 				}
 			}
 
@@ -744,7 +746,9 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("my-test-contract").BindDependencies<B>(new {parameter = 78}));
-				Assert.That(container.Get<A>().b.myName.ToString(), Is.EqualTo("B[my-test-contract]"));
+				var instance = container.Get<A>().b;
+				Assert.That(instance.myName1.ToString(), Is.EqualTo("B[my-test-contract]"));
+				Assert.That(instance.myName2.ToString(), Is.EqualTo("B[my-test-contract]"));
 			}
 		}
 

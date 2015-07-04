@@ -43,7 +43,6 @@ namespace SimpleContainer.Configuration
 
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
 
-
 			private readonly List<ImplementationSelector> implementationSelectors =
 				new List<ImplementationSelector>();
 
