@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -325,6 +327,53 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(exception.Message,
 					Is.EqualTo(
 						"cyclic dependency A ...-> B -> A\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A <---------------"));
+			}
+		}
+
+		public class ServicesCreatedByConstructorFactoriesAreOwnedByService : FactoriesBasicTest
+		{
+			public class A
+			{
+				private readonly Func<object, B> createB;
+
+				public A(Func<object, B> createB)
+				{
+					this.createB = createB;
+					createB(new { context = "A.ctor" });
+				}
+
+				public void Init()
+				{
+					createB(new { context = "A.Init" });
+				}
+			}
+
+			[Lifestyle(Lifestyle.PerRequest)]
+			public class B : IDisposable
+			{
+				public readonly string context;
+				public static StringBuilder logBuilder = new StringBuilder();
+
+				public B(string context)
+				{
+					this.context = context;
+				}
+
+				public void Dispose()
+				{
+					logBuilder.AppendFormat("B.Dispose({0}) ", context);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var instance = container.Get<A>();
+				instance.Init();
+				Assert.That(B.logBuilder.ToString(), Is.EqualTo(""));
+				container.Dispose();
+				Assert.That(B.logBuilder.ToString(), Is.EqualTo("B.Dispose(A.ctor) "));
 			}
 		}
 	}
