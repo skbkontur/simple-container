@@ -50,6 +50,7 @@
     <Compile Include="Contracts\ContractsReuseTest.cs" />
     <Compile Include="Contracts\ContractsUnionTest.cs" />
     <Compile Include="Contracts\ContractsWithFactoriesTest.cs" />
+    <Compile Include="DynamicConfigurationTest.cs" />
     <Compile Include="ExceptionHandlingTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
     <Compile Include="Factories\FactoriesArgumentsHandlingTest.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="Helpers\TestContractAttribute.cs" />
     <Compile Include="Helpers\TestHelpers.cs" />
     <Compile Include="BuildUpTest.cs" />
+    <Compile Include="Helpers\TestingParametersSource.cs" />
     <Compile Include="InstanceFilterTest.cs" />
     <Compile Include="LongRunning\CrashOnOneThreadDoNotAffectOtherThreads.cs" />
     <Compile Include="RunComponentsTest.cs" />

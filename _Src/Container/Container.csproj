@@ -44,6 +44,7 @@
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\ImplementationSelector.cs" />
     <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
+    <Compile Include="Configuration\InheritorsConfiguration.cs" />
     <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />

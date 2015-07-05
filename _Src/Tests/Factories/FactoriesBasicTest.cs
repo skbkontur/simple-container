@@ -330,7 +330,7 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
-		public class ServicesCreatedByConstructorFactoriesAreOwnedByService : FactoriesBasicTest
+		public class ServicesCreatedByConstructorFactoriesAreOwnedByContainer : FactoriesBasicTest
 		{
 			public class A
 			{

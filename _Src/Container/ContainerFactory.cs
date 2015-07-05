@@ -147,7 +147,7 @@ namespace SimpleContainer
 				: null;
 			if (fileConfigurator != null)
 				fileConfigurator(_ => true, builder);
-			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build());
+			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build(inheritors));
 		}
 
 		private IContainer CreateContainer(Dictionary<Type, List<Type>> inheritors, GenericsAutoCloser genericsAutoCloser,

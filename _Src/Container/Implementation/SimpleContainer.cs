@@ -161,7 +161,7 @@ namespace SimpleContainer.Implementation
 				return Configuration;
 			var builder = new ContainerConfigurationBuilder();
 			configure(builder);
-			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build());
+			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build(inheritors));
 		}
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)

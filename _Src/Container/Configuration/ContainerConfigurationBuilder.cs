@@ -15,5 +15,15 @@ namespace SimpleContainer.Configuration
 			RegistryBuilder.RegisterImplementationSelector(s);
 			return this;
 		}
+
+		public ServiceConfigurationBuilder<object> InheritorOf(Type baseType)
+		{
+			return new ServiceConfigurationBuilder<object>(RegistryBuilder.InheritorOf(baseType));
+		}
+
+		public ServiceConfigurationBuilder<object> InheritorOf<T>()
+		{
+			return InheritorOf(typeof (T));
+		}
 	}
 }

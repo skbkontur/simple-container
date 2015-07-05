@@ -41,6 +41,8 @@ namespace SimpleContainer.Configuration
 			private readonly IDictionary<Type, ServiceConfigurationSet> configurations =
 				new Dictionary<Type, ServiceConfigurationSet>();
 
+			private readonly List<InheritorsConfiguration> inheritorConfigurators = new List<InheritorsConfiguration>();
+
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
 
 			private readonly List<ImplementationSelector> implementationSelectors =
@@ -69,9 +71,26 @@ namespace SimpleContainer.Configuration
 				implementationSelectors.Add(s);
 			}
 
-			public ConfigurationRegistry Build()
+			public ServiceConfigurationSet InheritorOf(Type baseType)
+			{
+				var result = new ServiceConfigurationSet();
+				inheritorConfigurators.Add(new InheritorsConfiguration
+				{
+					BaseType = baseType,
+					ConfigurationSet = result
+				});
+				return result;
+			}
+
+			public ConfigurationRegistry Build(Dictionary<Type,List<Type>> inheritorsHierarchy)
 			{
 				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
+				List<Type> inheritors;
+				foreach (var inheritorConfigurator in inheritorConfigurators)
+					if (inheritorsHierarchy.TryGetValue(inheritorConfigurator.BaseType, out inheritors))
+						foreach (var inheritor in inheritors)
+							if (!builtConfigurations.ContainsKey(inheritor))
+								builtConfigurations.Add(inheritor, inheritorConfigurator.ConfigurationSet);
 				return new ConfigurationRegistry(builtConfigurations, contractUnions, implementationSelectors.ToArray());
 			}
 		}
