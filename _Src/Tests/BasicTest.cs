@@ -126,6 +126,22 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanInjectPublicClassWithInternalConstructor : BasicTest
+		{
+			public class Service
+			{
+				internal Service()
+				{
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Assert.That(Container().Get<Service>(), Is.Not.Null);
+			}
+		}
+
 		public class CanInjectEnumerableByCtor : BasicTest
 		{
 			[Test]
