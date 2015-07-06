@@ -193,7 +193,7 @@ namespace SimpleContainer.Implementation
 				builder.CreateInstanceBy(() => builder.Configuration.Factory(this), builder.Configuration.ContainerOwnsInstance);
 			else if (builder.Configuration.FactoryWithTarget != null)
 			{
-				var previousService = builder.Context.GetPreviousService();
+				var previousService = builder.Context.GetPreviousBuilder();
 				var target = previousService == null ? null : previousService.Type;
 				builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
 					builder.Configuration.ContainerOwnsInstance);

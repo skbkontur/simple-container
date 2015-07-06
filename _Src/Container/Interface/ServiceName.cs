@@ -1,6 +1,5 @@
 ﻿using System;
 using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
 
 namespace SimpleContainer.Interface
 {

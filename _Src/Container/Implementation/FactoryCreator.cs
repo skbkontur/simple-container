@@ -53,20 +53,25 @@ namespace SimpleContainer.Implementation
 
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder)
 		{
-			var declaredContractNames = builder.DeclaredContracts;
-			var hostService = builder.Context.GetPreviousService();
+			var factoryContractNames = builder.DeclaredContracts;
+			var hostBuilder = builder.Context.GetPreviousBuilder();
 			builder.UseAllDeclaredContracts();
 			return delegate(Type type, object arguments)
 			{
-				if (hostService == null || hostService != builder.Context.GetTopService())
+				if (hostBuilder == null || hostBuilder != builder.Context.GetTopBuilder())
 				{
-					var resolvedService = builder.Context.Container.Create(type, declaredContractNames, arguments);
+					var resolvedService = builder.Context.Container.Create(type, factoryContractNames, arguments);
 					resolvedService.Run();
 					return resolvedService.Single();
 				}
-				var result = builder.Context.Create(type, arguments);
+				string contractName = null;
+				if (hostBuilder.DeclaredContracts.Length == factoryContractNames.Length - 1)
+					contractName = factoryContractNames[factoryContractNames.Length - 1];
+				else if (hostBuilder.DeclaredContracts.Length != factoryContractNames.Length)
+					throw new SimpleContainerException("assertion failure");
+				var result = builder.Context.Create(type, arguments, contractName);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
-				hostService.AddDependency(resultDependency, false);
+				hostBuilder.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;

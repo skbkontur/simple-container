@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -20,9 +21,14 @@ namespace SimpleContainer.Implementation
 			Contracts = new List<string>(contracts);
 		}
 
-		internal ContainerService Create(Type type, object arguments)
+		internal ContainerService Create(Type type, object arguments, string contract = null)
 		{
-			return Instantiate(type, true, ObjectAccessor.Get(arguments));
+			if (contract != null)
+				Contracts.Add(contract);
+			var result = Instantiate(type, true, ObjectAccessor.Get(arguments));
+			if (contract != null)
+				Contracts.RemoveLast();
+			return result;
 		}
 
 		public ContainerService Instantiate(Type type, bool crearteNew, IObjectAccessor arguments)
@@ -33,7 +39,7 @@ namespace SimpleContainer.Implementation
 			var declaredName = builder.GetDeclaredName();
 			if (!constructingServices.Add(declaredName))
 			{
-				var previous = GetTopService();
+				var previous = GetTopBuilder();
 				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
 					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
 				var cycleBuilder = new ContainerService.Builder(type, this, false, null);
@@ -87,12 +93,12 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		public ContainerService.Builder GetTopService()
+		public ContainerService.Builder GetTopBuilder()
 		{
 			return stack.Count == 0 ? null : stack[stack.Count - 1];
 		}
 
-		public ContainerService.Builder GetPreviousService()
+		public ContainerService.Builder GetPreviousBuilder()
 		{
 			return stack.Count <= 1 ? null : stack[stack.Count - 2];
 		}

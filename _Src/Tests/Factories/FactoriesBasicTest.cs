@@ -9,40 +9,6 @@ namespace SimpleContainer.Tests.Factories
 {
 	public abstract class FactoriesBasicTest : SimpleContainerTestBase
 	{
-		public class NewInstanceOfServiceWithUnusedContract : FactoriesBasicTest
-		{
-			[TestContract("a")]
-			public class A
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<A>()));
-			}
-		}
-
-		public class NewInstanceOfServiceWithUnusedContractViaInterface : FactoriesBasicTest
-		{
-			public class A : IA
-			{
-			}
-
-			[TestContract("a")]
-			public interface IA
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<IA>()));
-			}
-		}
-
 		public class Simple : FactoriesBasicTest
 		{
 			public class ServiceA
