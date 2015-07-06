@@ -41,13 +41,13 @@ namespace SimpleContainer.Helpers
 
 		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
 		{
-			var allConstructors = target.GetConstructors();
+			var allConstructors = target.GetConstructors(BindingFlags.NonPublic| BindingFlags.Public| BindingFlags.Instance);
 			ConstructorInfo publicConstructor = null;
 			ConstructorInfo containerConstructor = null;
 			var hasManyPublicConstructors = false;
 			foreach (var constructor in allConstructors)
 			{
-				if (!constructor.IsPublic)
+				if (!constructor.IsPublic && !constructor.IsAssembly)
 					continue;
 				if (publicConstructor != null)
 					hasManyPublicConstructors = true;
