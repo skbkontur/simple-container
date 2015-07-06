@@ -25,11 +25,13 @@ namespace SimpleContainer.Implementation
 		protected readonly Dictionary<Type, List<Type>> inheritors;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
+		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
 		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
-			Dictionary<Type, List<Type>> inheritors, LogError errorLogger, LogInfo infoLogger)
+			Dictionary<Type, List<Type>> inheritors, LogError errorLogger, LogInfo infoLogger,
+			Dictionary<Type, Func<object, string>> valueFormatters)
 		{
 			Configuration = configurationRegistry;
 			implementationSelectors = configurationRegistry.GetImplementationSelectors();
@@ -38,6 +40,7 @@ namespace SimpleContainer.Implementation
 			dependenciesInjector = new DependenciesInjector(this);
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
+			this.valueFormatters = valueFormatters;
 		}
 
 		public ResolvedService Resolve(Type type, IEnumerable<string> contracts)
@@ -152,7 +155,8 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), inheritors, null, infoLogger);
+			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), inheritors, null, infoLogger,
+				valueFormatters);
 		}
 
 		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)

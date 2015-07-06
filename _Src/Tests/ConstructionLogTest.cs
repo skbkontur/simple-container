@@ -89,7 +89,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
-				const string expectedConstructionLog = "A\r\n\tCancellationToken const";
+				const string expectedConstructionLog = "A\r\n\tCancellationToken const\r\n\t\tIsCancellationRequested -> false\r\n\t\tCanBeCanceled -> false";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -313,6 +313,133 @@ namespace SimpleContainer.Tests
 				const string expectedMessage =
 					"many instances for [IB]\r\n\tB1\r\n\tB2\r\n\r\n!C\r\n\t!A\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
+			}
+		}
+
+		public class CanDumpNestedSimpleTypes : BasicTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+				public string StrVal { get; set; }
+				public B ComplexType { get; set; }
+				public int IntVal { get; set; }
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("dto", new Dto
+				{
+					IntVal = 5,
+					StrVal = "test-string",
+					ComplexType = new B()
+				}));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\tDto const\r\n\t\tStrVal -> test-string\r\n\t\tIntVal -> 5"));
+			}
+		}
+		
+		public class CanRegisterCustomValueFormatters : BasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public Dto Val { get; set; }
+			}
+
+			public class Dto
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithConfigurator(b=>b.BindDependency<A>("b", new B{Val = new Dto()}))
+					.WithValueFormatter<Dto>(x => "dumpted Dto");
+				using (var container = f.Build())
+					Assert.That(container.Resolve<A>().GetConstructionLog(),
+						Is.EqualTo("A\r\n\tB const\r\n\t\tVal -> dumpted Dto"));
+			}
+		}
+		
+		public class CustomValueFormatterForEntireValue : BasicTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithConfigurator(b => b.BindDependency<A>("dto", new Dto()))
+					.WithValueFormatter<Dto>(x => "dumpted Dto");
+				using (var container = f.Build())
+					Assert.That(container.Resolve<A>().GetConstructionLog(),
+						Is.EqualTo("A\r\n\tDto const -> dumpted Dto"));
+			}
+		}
+		
+		public class IgnoreNonReadableProperties : BasicTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+				public string Prop
+				{
+					set { }
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("dto", new Dto()));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\tDto const"));
 			}
 		}
 	}

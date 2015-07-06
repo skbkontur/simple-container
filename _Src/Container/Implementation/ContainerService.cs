@@ -22,6 +22,7 @@ namespace SimpleContainer.Implementation
 		private Exception constructionException;
 		private ServiceDependency[] dependencies;
 		private InstanceWrap[] instances;
+		private SimpleContainer container;
 
 		private ContainerService()
 		{
@@ -110,7 +111,7 @@ namespace SimpleContainer.Implementation
 
 		public void WriteConstructionLog(ISimpleLogWriter writer)
 		{
-			WriteConstructionLog(new ConstructionLogContext(writer));
+			WriteConstructionLog(new ConstructionLogContext(writer, container.valueFormatters));
 		}
 
 		public void WriteConstructionLog(ConstructionLogContext context)
@@ -398,6 +399,7 @@ namespace SimpleContainer.Implementation
 				target.instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
+				target.container = Context.Container;
 				return target;
 			}
 

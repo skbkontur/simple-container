@@ -23,6 +23,7 @@ namespace SimpleContainer
 		private Action<ContainerConfigurationBuilder> configure;
 		private Func<Type[]> types;
 		private IParametersSource parameters;
+		private readonly Dictionary<Type, Func<object, string>> valueFormatters = new Dictionary<Type, Func<object, string>>(); 
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -47,6 +48,12 @@ namespace SimpleContainer
 		public ContainerFactory WithParameters(IParametersSource newParameters)
 		{
 			parameters = newParameters;
+			return this;
+		}
+
+		public ContainerFactory WithValueFormatter<T>(Func<T, string> formatter)
+		{
+			valueFormatters[typeof (T)] = o => formatter((T) o);
 			return this;
 		}
 
@@ -153,7 +160,8 @@ namespace SimpleContainer
 		private IContainer CreateContainer(Dictionary<Type, List<Type>> inheritors, GenericsAutoCloser genericsAutoCloser,
 			IConfigurationRegistry configuration)
 		{
-			return new Implementation.SimpleContainer(genericsAutoCloser, configuration, inheritors, errorLogger, infoLogger);
+			return new Implementation.SimpleContainer(genericsAutoCloser, configuration,
+				inheritors, errorLogger, infoLogger, valueFormatters);
 		}
 
 		private static string GetBinDirectory()

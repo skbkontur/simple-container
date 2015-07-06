@@ -114,7 +114,34 @@ namespace SimpleContainer.Implementation
 				if (Value == null || Value.GetType().IsSimpleType())
 					context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
 				else
+				{
 					context.Writer.WriteMeta(" const");
+					Func<object, string> formatter;
+					if (context.ValueFormatters.TryGetValue(Value.GetType(), out formatter))
+						context.Writer.WriteMeta(" -> " + formatter(Value));
+					else
+					{
+						context.Indent++;
+						foreach (var prop in Value.GetType().GetProperties())
+						{
+							if (!prop.CanRead)
+								continue;
+							var propVal = prop.GetValue(Value, null);
+							string formattedValue;
+							if (propVal == null || propVal.GetType().IsSimpleType())
+								formattedValue = InternalHelpers.DumpValue(propVal);
+							else if (context.ValueFormatters.TryGetValue(propVal.GetType(), out formatter))
+								formattedValue = formatter(propVal);
+							else
+								continue;
+							context.Writer.WriteNewLine();
+							context.WriteIndent();
+							context.Writer.WriteName(prop.Name);
+							context.Writer.WriteMeta(" -> " + formattedValue);
+						}
+						context.Indent--;
+					}
+				}
 			}
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
