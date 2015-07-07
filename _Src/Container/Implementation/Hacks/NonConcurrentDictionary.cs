@@ -39,6 +39,28 @@ namespace SimpleContainer.Implementation.Hacks
 			locker.ExitReadLock();
 			return found;
 		}
+		
+		public bool TryGetValue(TKey key, out TValue value)
+		{
+			if (ReferenceEquals(key, null))
+				throw new ArgumentNullException("key");
+			locker.EnterReadLock();
+			var found = impl.TryGetValue(key, out value);
+			locker.ExitReadLock();
+			return found;
+		}
+		
+		public bool TryAdd(TKey key, TValue value)
+		{
+			if (ReferenceEquals(key, null))
+				throw new ArgumentNullException("key");
+			locker.EnterReadLock();
+			var keyAlreadyExists = impl.ContainsKey(key);
+			if (!keyAlreadyExists)
+				impl.Add(key,value);
+			locker.ExitReadLock();
+			return !keyAlreadyExists;
+		}
 
 		public IEnumerable<TValue> Values
 		{

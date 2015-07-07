@@ -50,14 +50,25 @@ namespace SimpleContainer.Generics
 			return what == by;
 		}
 
-		public static bool MatchWith(this Type pattern, Type value, Type[] matched)
+		public static bool TryMatchWith(this Type pattern, Type value, Type[] matched)
 		{
 			if (pattern.IsGenericParameter)
 			{
-				var position = pattern.GenericParameterPosition;
-				if (matched[position] != null && matched[position] != value)
-					return false;
-				matched[position] = value;
+				if (value.IsGenericParameter)
+					return true;
+				foreach (var constraint in pattern.GetTypeInfo().GetGenericParameterConstraints())
+					if (!constraint.IsAssignableFrom(value))
+						return false;
+				if (pattern.GetTypeInfo().GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+					if (value.GetConstructors().FirstOrDefault(x=>x.GetParameters().Length == 0) == null)
+						return false;
+				if (matched != null)
+				{
+					var position = pattern.GenericParameterPosition;
+					if (matched[position] != null && matched[position] != value)
+						return false;
+					matched[position] = value;
+				}
 				return true;
 			}
 			if (pattern.GetTypeInfo().IsGenericType ^ value.GetTypeInfo().IsGenericType)
@@ -69,7 +80,7 @@ namespace SimpleContainer.Generics
 			var patternArguments = pattern.GetGenericArguments();
 			var valueArguments = value.GetGenericArguments();
 			for (var i = 0; i < patternArguments.Length; i++)
-				if (!patternArguments[i].MatchWith(valueArguments[i], matched))
+				if (!patternArguments[i].TryMatchWith(valueArguments[i], matched))
 					return false;
 			return true;
 		}

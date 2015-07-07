@@ -21,12 +21,12 @@ namespace SimpleContainer.Implementation
 		}
 
 		public static ConfiguratorRunner Create(bool isStatic, IContainerConfiguration configuration,
-			IInheritanceHierarchy hierarchy, ConfigurationContext context)
+			IInheritanceHierarchy hierarchy, ConfigurationContext context,GenericsAutoCloser genericsAutoCloser)
 		{
 			Func<Type, bool> filter = x => x.GetTypeInfo().Assembly == containerAssembly || x.IsDefined<StaticAttribute>() == isStatic;
 			var filteredHierarchy = new FilteredInheritanceHierarchy(hierarchy, filter);
 			var container = new ConfigurationContainer(isStatic ? CacheLevel.Static : CacheLevel.Local,
-				new FilteredContainerConfiguration(configuration, filter), filteredHierarchy);
+				new FilteredContainerConfiguration(configuration, filter), filteredHierarchy, genericsAutoCloser);
 			return new ConfiguratorRunner(context, container);
 		}
 
@@ -45,8 +45,8 @@ namespace SimpleContainer.Implementation
 		private class ConfigurationContainer : SimpleContainer
 		{
 			public ConfigurationContainer(CacheLevel cacheLevel, IContainerConfiguration configuration,
-				IInheritanceHierarchy inheritors)
-				: base(configuration, inheritors, null, cacheLevel, new HashSet<Type>(), null, null)
+				IInheritanceHierarchy inheritors,GenericsAutoCloser genericsAutoCloser)
+				: base(configuration, inheritors, null, cacheLevel, new HashSet<Type>(), null, null, genericsAutoCloser)
 			{
 			}
 

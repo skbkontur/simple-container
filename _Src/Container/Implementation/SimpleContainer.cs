@@ -31,6 +31,7 @@ namespace SimpleContainer.Implementation
 		protected readonly CacheLevel cacheLevel;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
+		private readonly GenericsAutoCloser genericsAutoCloser;
 		protected readonly ISet<Type> staticServices;
 
 		private readonly NonConcurrentDictionary<ServiceName, ContainerService> instanceCache =
@@ -42,7 +43,7 @@ namespace SimpleContainer.Implementation
 
 		public SimpleContainer(IContainerConfiguration configuration, IInheritanceHierarchy inheritors,
 			StaticContainer staticContainer, CacheLevel cacheLevel, ISet<Type> staticServices, LogError errorLogger,
-			LogInfo infoLogger)
+			LogInfo infoLogger,GenericsAutoCloser genericsAutoCloser)
 		{
 			this.configuration = configuration;
 			this.inheritors = inheritors;
@@ -58,6 +59,7 @@ namespace SimpleContainer.Implementation
 			this.staticServices = staticServices;
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
+			this.genericsAutoCloser = genericsAutoCloser;
 		}
 
 		public ResolvedService Resolve(Type type, IEnumerable<string> contracts)
@@ -171,7 +173,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new SimpleContainer(CloneConfiguration(configure), inheritors, staticContainer,
-				cacheLevel, staticServices, null, infoLogger);
+				cacheLevel, staticServices, null, infoLogger,genericsAutoCloser);
 		}
 
 		protected IContainerConfiguration CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
@@ -326,7 +328,7 @@ namespace SimpleContainer.Implementation
 			return factoryType == null ? null : factoryType.GetDeclaredMethod("Create");
 		}
 
-		private static IEnumerable<Type> ProcessGenerics(Type type, IEnumerable<Type> candidates)
+		private IEnumerable<Type> ProcessGenerics(Type type, IEnumerable<Type> candidates)
 		{
 			foreach (var candidate in candidates)
 			{
@@ -341,6 +343,10 @@ namespace SimpleContainer.Implementation
 					yield return candidate;
 					continue;
 				}
+				if (candidate.GetTypeInfo().IsGenericType)
+					foreach (var t in genericsAutoCloser.AutoCloseDefinition(candidate))
+						if (type.IsAssignableFrom(t))
+							yield return t;
 				var genericArguments = candidate.GetGenericArguments();
 				var argumentsCount = genericArguments.Length;
 				var candidateInterfaces = type.GetTypeInfo().IsInterface
@@ -349,7 +355,7 @@ namespace SimpleContainer.Implementation
 				foreach (var candidateInterface in candidateInterfaces)
 				{
 					var arguments = new Type[argumentsCount];
-					if (candidateInterface.MatchWith(type, arguments) && arguments.All(x => x != null))
+					if (candidateInterface.TryMatchWith(type, arguments) && arguments.All(x => x != null))
 						yield return candidate.MakeGenericType(arguments);
 				}
 			}

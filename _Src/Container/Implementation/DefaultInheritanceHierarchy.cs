@@ -21,6 +21,11 @@ namespace SimpleContainer.Implementation
 			return inheritors.GetOrDefault(type);
 		}
 
+		public Dictionary<Type, List<Type>> GetImpl()
+		{
+			return (Dictionary<Type, List<Type>>) inheritors;
+		}
+
 		public static IInheritanceHierarchy Create(IEnumerable<Type> types)
 		{
 			var result = new Dictionary<Type, List<Type>>();

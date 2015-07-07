@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using SimpleContainer.Generics;
 using SimpleContainer.Helpers.ReflectionEmit;
 using SimpleContainer.Implementation.Hacks;
 
@@ -57,8 +58,6 @@ namespace SimpleContainer.Helpers
 		{
 			return customAttributeProvider.GetCustomAttributes<Attribute>(true).Any(a => a.GetType().Name == attributeName);
 		}
-
-
 
 		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ParameterInfo attributeProvider, bool inherit = true)
 		{
@@ -168,6 +167,44 @@ namespace SimpleContainer.Helpers
 				return true;
 			var nullableWrapped = Nullable.GetUnderlyingType(type);
 			return nullableWrapped != null && nullableWrapped.IsSimpleType();
+		}
+
+		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
+		{
+			var result = new List<Type>();
+			if (interfaceDefinition.GetTypeInfo().IsInterface)
+			{
+				var interfaces = implementation.GetInterfaces();
+				foreach (var interfaceImpl in interfaces)
+					if (interfaceImpl.GetDefinition() == interfaceDefinition)
+						result.Add(interfaceImpl);
+			}
+			else
+			{
+				var current = implementation;
+				while (current != null)
+				{
+					if (current.GetDefinition() == interfaceDefinition)
+					{
+						result.Add(current);
+						break;
+					}
+					current = current.GetTypeInfo().BaseType;
+				}
+			}
+			return result;
+		}
+
+		public static Type TryCloseByPattern(this Type definition, Type pattern, Type value)
+		{
+			var argumentsCount = definition.GetGenericArguments().Length;
+			var arguments = new Type[argumentsCount];
+			if (!pattern.TryMatchWith(value, arguments))
+				return null;
+			foreach (var argument in arguments)
+				if (argument == null)
+					return null;
+			return definition.MakeGenericType(arguments);
 		}
 
 		private static readonly ISet<Type> simpleTypes = new HashSet<Type>

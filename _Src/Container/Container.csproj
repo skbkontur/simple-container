@@ -44,8 +44,10 @@
     <Compile Include="Helpers\MethodInvoker.cs" />
     <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="Helpers\ReflectionEmit\MemberAccessorsFactory.cs" />
+    <Compile Include="Helpers\ValueOrError.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
     <Compile Include="Implementation\FuncResult.cs" />
+    <Compile Include="Implementation\GenericsAutocloser.cs" />
     <Compile Include="Implementation\Hacks\BindingFlags.cs" />
     <Compile Include="Implementation\Hacks\NonConcurrentDictionary.cs" />
     <Compile Include="Implementation\Hacks\PclReflectionHelpers.cs" />

@@ -89,29 +89,23 @@ namespace SimpleContainer
 			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
 			var configuration = CreateDefaultConfiguration(hostingTypes);
 			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-
+			var genericsAutocloser = new GenericsAutoCloser(((DefaultInheritanceHierarchy) inheritors).GetImpl(),assembliesFilter);
 			var staticServices = new HashSet<Type>();
 			var builder = new ContainerConfigurationBuilder(staticServices, true);
 			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext))
+			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, genericsAutocloser))
 				runner.Run(builder, x => true);
 			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
 			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, null, errorLogger, infoLogger, pluginAssemblies);
+				configurationContext, staticServices, null, errorLogger, infoLogger, pluginAssemblies, genericsAutocloser);
 		}
 
 		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)
 		{
-			var genericsProcessor = new GenericsConfigurationProcessor(assembliesFilter);
 			var factoriesProcessor = new FactoryConfigurationProcessor();
 			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
 			foreach (var type in types)
-			{
-				genericsProcessor.FirstRun(type);
 				factoriesProcessor.FirstRun(builder, type);
-			}
-			foreach (var type in types)
-				genericsProcessor.SecondRun(builder, type);
 			return builder.Build();
 		}
 	}
