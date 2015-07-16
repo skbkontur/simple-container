@@ -45,6 +45,7 @@ namespace SimpleContainer.Implementation
 						.GroupBy(configurator => priorities == null
 							? 0
 							: GetLeafInterfaces(configurator).Max(x => Array.IndexOf(priorities, x.GetDefinition())))
+						.Where(x => x.Key >= 0)
 						.OrderByDescending(x => x.Key)
 						.DefaultIfEmpty(Enumerable.Empty<IServiceConfigurator<T>>())
 						.First();

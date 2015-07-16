@@ -787,5 +787,34 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetImplementationsOf<IService>(), Is.EqualTo(new[] {typeof (ImplTwo)}));
 			}
 		}
+
+		public class ConfiguratorTypeNotIncludedInPriorities_DoNotApply : SimpleContainerTestBase
+		{
+			public interface IExcludedConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
+			public class Service
+			{
+			}
+
+			public class ExcludedConfiguratorImplementation : IExcludedConfigurator<Service>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.DontUse();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Factory()
+					.WithPriorities(typeof(IServiceConfigurator<>))
+					.Build();
+
+				Assert.That(container.GetImplementationsOf<Service>(), Is.Not.Empty);
+			}
+		}
 	}
 }
