@@ -96,6 +96,28 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class UnixStyleNewLinesAreOk : FileConfigurationTest
+		{
+			[TestContract("x")]
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container("[x]\nA.parameter -> 12");
+				var a = container.Get<A>("x");
+				Assert.That(a.parameter, Is.EqualTo(12));
+			}
+		}
+
 		public class IntDependency : FileConfigurationTest
 		{
 			public class A

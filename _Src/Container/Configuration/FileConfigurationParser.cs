@@ -12,7 +12,7 @@ namespace SimpleContainer.Configuration
 	{
 		public static Action<Func<Type, bool>, ContainerConfigurationBuilder> Parse(Type[] types, string fileName)
 		{
-			var parseItems = SplitWithTrim(File.ReadAllText(fileName), Environment.NewLine).Select(Parse).ToArray();
+			var parseItems = SplitWithTrim(File.ReadAllText(fileName).Replace("\r\n", "\n"), "\n").Select(Parse).ToArray();
 			var typesMap = types.ToLookup(x => x.Name);
 			return delegate(Func<Type, bool> f, ContainerConfigurationBuilder builder)
 			{
