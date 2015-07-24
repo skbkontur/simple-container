@@ -21,9 +21,10 @@ namespace SimpleContainer
 		private LogInfo infoLogger;
 		private Type[] priorities;
 		private Action<ContainerConfigurationBuilder> configure;
+		private BuildContext buildContext;
 		private Func<Type[]> types;
 		private IParametersSource parameters;
-		private readonly Dictionary<Type, Func<object, string>> valueFormatters = new Dictionary<Type, Func<object, string>>(); 
+		private readonly Dictionary<Type, Func<object, string>> valueFormatters = new Dictionary<Type, Func<object, string>>();
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -54,12 +55,14 @@ namespace SimpleContainer
 		public ContainerFactory WithValueFormatter<T>(Func<T, string> formatter)
 		{
 			valueFormatters[typeof (T)] = o => formatter((T) o);
+			buildContext = null;
 			return this;
 		}
 
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
 			assembliesFilter = n => newAssembliesFilter(n) || n.Name == "SimpleContainer";
+			buildContext = null;
 			return this;
 		}
 
@@ -72,18 +75,21 @@ namespace SimpleContainer
 		public ContainerFactory WithConfigFile(string fileName)
 		{
 			configFileName = fileName;
+			buildContext = null;
 			return this;
 		}
 
 		public ContainerFactory WithErrorLogger(LogError logger)
 		{
 			errorLogger = logger;
+			buildContext = null;
 			return this;
 		}
 
 		public ContainerFactory WithInfoLogger(LogInfo logger)
 		{
 			infoLogger = logger;
+			buildContext = null;
 			return this;
 		}
 
@@ -131,37 +137,27 @@ namespace SimpleContainer
 		public ContainerFactory WithTypes(Type[] newTypes)
 		{
 			types = () => newTypes;
+			buildContext = null;
 			return this;
 		}
 
 		public IContainer Build()
 		{
-			var defaultTypes = Assembly.GetExecutingAssembly().GetTypes();
-			var hostingTypes = types().Concat(defaultTypes).Distinct().ToArray();
-			var inheritors = InheritorsBuilder.CreateInheritorsMap(hostingTypes);
-			var genericsAutoCloser = new GenericsAutoCloser(inheritors, assembliesFilter);
+			var containerBuildContext = buildContext ?? (buildContext = CreateBuildContext());
 			var builder = new ContainerConfigurationBuilder();
 			var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
-			using (var container = CreateContainer(inheritors, genericsAutoCloser, EmptyConfigurationRegistry.Instance))
-			{
-				var runner = container.Get<ConfiguratorRunner>();
-				runner.Run(builder, configurationContext, priorities);
-			}
+			containerBuildContext.configuratorRunner.Run(builder, configurationContext, priorities);
 			if (configure != null)
 				configure(builder);
-			var fileConfigurator = File.Exists(configFileName)
-				? FileConfigurationParser.Parse(hostingTypes, configFileName)
-				: null;
-			if (fileConfigurator != null)
-				fileConfigurator(_ => true, builder);
-			return CreateContainer(inheritors, genericsAutoCloser, builder.RegistryBuilder.Build(inheritors));
+			if (containerBuildContext.fileConfigurator != null)
+				containerBuildContext.fileConfigurator(builder);
+			return CreateContainer(containerBuildContext, builder.RegistryBuilder.Build(containerBuildContext.inheritors));
 		}
 
-		private IContainer CreateContainer(Dictionary<Type, List<Type>> inheritors, GenericsAutoCloser genericsAutoCloser,
-			IConfigurationRegistry configuration)
+		private IContainer CreateContainer(BuildContext currentBuildContext, IConfigurationRegistry configuration)
 		{
-			return new Implementation.SimpleContainer(genericsAutoCloser, configuration,
-				inheritors, errorLogger, infoLogger, valueFormatters);
+			return new Implementation.SimpleContainer(currentBuildContext.genericsAutoCloser, configuration,
+				currentBuildContext.inheritors, errorLogger, infoLogger, valueFormatters);
 		}
 
 		private static string GetBinDirectory()
@@ -189,7 +185,32 @@ namespace SimpleContainer
 					}
 				});
 			types = newTypes.ToArray;
+			buildContext = null;
 			return this;
+		}
+
+		private BuildContext CreateBuildContext()
+		{
+			var result = new BuildContext
+			{
+				types = types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray()
+			};
+			result.inheritors = InheritorsBuilder.CreateInheritorsMap(result.types);
+			result.genericsAutoCloser = new GenericsAutoCloser(result.inheritors, assembliesFilter);
+			if (configFileName != null && File.Exists(configFileName))
+				result.fileConfigurator = FileConfigurationParser.Parse(result.types, configFileName);
+			var configurationContainer = CreateContainer(result, EmptyConfigurationRegistry.Instance);
+			result.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
+			return result;
+		}
+
+		private class BuildContext
+		{
+			public Type[] types;
+			public Dictionary<Type, List<Type>> inheritors;
+			public GenericsAutoCloser genericsAutoCloser;
+			public Action<ContainerConfigurationBuilder> fileConfigurator;
+			public ConfiguratorRunner configuratorRunner;
 		}
 	}
 }

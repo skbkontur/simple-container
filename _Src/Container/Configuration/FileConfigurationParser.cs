@@ -10,13 +10,13 @@ namespace SimpleContainer.Configuration
 {
 	internal static class FileConfigurationParser
 	{
-		public static Action<Func<Type, bool>, ContainerConfigurationBuilder> Parse(Type[] types, string fileName)
+		public static Action<ContainerConfigurationBuilder> Parse(Type[] types, string fileName)
 		{
 			var parseItems = SplitWithTrim(File.ReadAllText(fileName).Replace("\r\n", "\n"), "\n").Select(Parse).ToArray();
 			var typesMap = types.ToLookup(x => x.Name);
-			return delegate(Func<Type, bool> f, ContainerConfigurationBuilder builder)
+			return delegate(ContainerConfigurationBuilder builder)
 			{
-				var context = new ParseContext(builder.RegistryBuilder, typesMap, f);
+				var context = new ParseContext(builder.RegistryBuilder, typesMap);
 				foreach (var item in parseItems)
 					item(context);
 			};
@@ -86,14 +86,12 @@ namespace SimpleContainer.Configuration
 		{
 			private readonly ConfigurationRegistry.Builder builder;
 			private readonly ILookup<string, Type> typesMap;
-			private readonly Func<Type, bool> filter;
 			private string contractName;
 
-			public ParseContext(ConfigurationRegistry.Builder builder, ILookup<string, Type> typesMap, Func<Type, bool> filter)
+			public ParseContext(ConfigurationRegistry.Builder builder, ILookup<string, Type> typesMap)
 			{
 				this.builder = builder;
 				this.typesMap = typesMap;
-				this.filter = filter;
 			}
 
 			public void SetContract(string name)
@@ -111,7 +109,7 @@ namespace SimpleContainer.Configuration
 
 			public Type ParseType(string name)
 			{
-				var foundTypes = typesMap[name].Where(filter).ToArray();
+				var foundTypes = typesMap[name].ToArray();
 				if (foundTypes.Length > 1)
 				{
 					const string messageFormat = "for name [{0}] more than one type found {1}";
