@@ -4,9 +4,24 @@ using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
-	public static class InheritorsBuilder
+	public class TypesList
 	{
-		public static Dictionary<Type, List<Type>> CreateInheritorsMap(Type[] types)
+		public Type[] Types { get; private set; }
+		private readonly Dictionary<Type, List<Type>> inheritors;
+
+		public TypesList(Type[] types, Dictionary<Type, List<Type>> inheritors)
+		{
+			Types = types;
+			this.inheritors = inheritors;
+		}
+
+		public List<Type> InheritorsOf(Type type)
+		{
+			List<Type> result;
+			return inheritors.TryGetValue(type, out result) ? result : InternalHelpers.emptyTypesList;
+		}
+
+		public static TypesList Create(Type[] types)
 		{
 			var result = new Dictionary<Type, List<Type>>();
 			foreach (var type in types)
@@ -25,7 +40,7 @@ namespace SimpleContainer.Implementation
 					current = current.BaseType;
 				}
 			}
-			return result;
+			return new TypesList(types, result);
 		}
 
 		private static void Include(Dictionary<Type, List<Type>> result, Type parentType, Type type)

@@ -16,6 +16,11 @@ namespace SimpleContainer.Configuration
 		private Exception exception;
 		private string errorMessage;
 
+		public bool IsEmpty()
+		{
+			return lazyConfigurators.Count == 0 && builders.Count == 0;
+		}
+
 		public ServiceConfiguration GetConfiguration(List<string> contracts)
 		{
 			if (!initialized)

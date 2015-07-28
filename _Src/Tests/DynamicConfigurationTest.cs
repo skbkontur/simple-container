@@ -22,10 +22,10 @@ namespace SimpleContainer.Tests
 					builder.RegisterImplementationSelector(
 						delegate(Type type, Type[] types, List<ImplementationSelectorDecision> decisions)
 						{
-							if (type == typeof(IA))
+							if (type == typeof (IA))
 								decisions.Add(new ImplementationSelectorDecision
 								{
-									target = typeof(MyPrivateImpl),
+									target = typeof (MyPrivateImpl),
 									action = ImplementationSelectorDecision.Action.Include,
 									comment = "private-impl"
 								});
@@ -97,13 +97,13 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				using (var c = Factory().WithProfile(typeof(InMemoryProfile)).Build())
+				using (var c = Factory().WithProfile(typeof (InMemoryProfile)).Build())
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<InMemoryA>());
 					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\t!DefaultA - in-memory\r\n\tInMemoryA"));
 				}
-				using (var c = Factory().WithProfile(typeof(LiteProfile)).Build())
+				using (var c = Factory().WithProfile(typeof (LiteProfile)).Build())
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
@@ -134,7 +134,7 @@ namespace SimpleContainer.Tests
 						(interfaceType, implementationTypes, decisions) => decisions.Add(new ImplementationSelectorDecision
 						{
 							action = ImplementationSelectorDecision.Action.Exclude,
-							target = typeof(DefaultA)
+							target = typeof (DefaultA)
 						}));
 				}
 			}
@@ -187,7 +187,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.InheritorOf<IRunnable>().Dependencies(context.Parameters);
+					builder.InheritorsOf<IRunnable>((t, b) => b.Dependencies(context.Parameters));
 				}
 			}
 
@@ -205,6 +205,49 @@ namespace SimpleContainer.Tests
 					Assert.That(allRunnables.OfType<A1>().Single().a, Is.EqualTo(42));
 					Assert.That(allRunnables.OfType<A2>().Single().b, Is.EqualTo("test string"));
 				}
+			}
+		}
+
+		public class ApplyConfigurationByFilter : DynamicConfigurationTest
+		{
+			public class A1
+			{
+				public readonly int parameter;
+
+				public A1(int parameter = 10)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class A2
+			{
+				public readonly int parameter;
+
+				public A2(int parameter = 10)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class FilteredConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					builder.ForAll((t, b) =>
+					{
+						if (t == typeof (A1))
+							b.Dependencies(new {parameter = 20});
+					});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A1>().parameter, Is.EqualTo(20));
+				Assert.That(container.Get<A2>().parameter, Is.EqualTo(10));
 			}
 		}
 	}

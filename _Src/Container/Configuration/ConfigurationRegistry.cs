@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
 {
@@ -41,7 +42,7 @@ namespace SimpleContainer.Configuration
 			private readonly IDictionary<Type, ServiceConfigurationSet> configurations =
 				new Dictionary<Type, ServiceConfigurationSet>();
 
-			private readonly List<InheritorsConfiguration> inheritorConfigurators = new List<InheritorsConfiguration>();
+			private readonly List<DynamicConfiguration> dynamicConfigurators = new List<DynamicConfiguration>();
 
 			private readonly IDictionary<string, List<string>> contractUnions = new Dictionary<string, List<string>>();
 
@@ -71,26 +72,35 @@ namespace SimpleContainer.Configuration
 				implementationSelectors.Add(s);
 			}
 
-			public ServiceConfigurationSet InheritorOf(Type baseType)
+			public void Filtered(Type baseType, Action<Type, ServiceConfigurationBuilder<object>> configureAction)
 			{
-				var result = new ServiceConfigurationSet();
-				inheritorConfigurators.Add(new InheritorsConfiguration
+				dynamicConfigurators.Add(new DynamicConfiguration
 				{
 					BaseType = baseType,
-					ConfigurationSet = result
+					ConfigureAction = configureAction
 				});
-				return result;
 			}
 
-			public ConfigurationRegistry Build(Dictionary<Type,List<Type>> inheritorsHierarchy)
+			public ConfigurationRegistry Build(TypesList typesList)
 			{
 				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
-				List<Type> inheritors;
-				foreach (var inheritorConfigurator in inheritorConfigurators)
-					if (inheritorsHierarchy.TryGetValue(inheritorConfigurator.BaseType, out inheritors))
-						foreach (var inheritor in inheritors)
-							if (!builtConfigurations.ContainsKey(inheritor))
-								builtConfigurations.Add(inheritor, inheritorConfigurator.ConfigurationSet);
+				var configurationSet = new ServiceConfigurationSet();
+				var builder = new ServiceConfigurationBuilder<object>(configurationSet);
+				foreach (var c in dynamicConfigurators)
+				{
+					var targetTypes = c.BaseType == null ? typesList.Types.ToList() : typesList.InheritorsOf(c.BaseType);
+					foreach (var t in targetTypes)
+					{
+						if (builtConfigurations.ContainsKey(t))
+							continue;
+						c.ConfigureAction(t, builder);
+						if (configurationSet.IsEmpty())
+							continue;
+						builtConfigurations.Add(t, configurationSet);
+						configurationSet = new ServiceConfigurationSet();
+						builder = new ServiceConfigurationBuilder<object>(configurationSet);
+					}
+				}
 				return new ConfigurationRegistry(builtConfigurations, contractUnions, implementationSelectors.ToArray());
 			}
 		}

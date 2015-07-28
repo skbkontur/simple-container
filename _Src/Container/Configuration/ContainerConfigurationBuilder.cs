@@ -16,14 +16,22 @@ namespace SimpleContainer.Configuration
 			return this;
 		}
 
-		public ServiceConfigurationBuilder<object> InheritorOf(Type baseType)
+		public ContainerConfigurationBuilder InheritorsOf(Type baseType,
+			Action<Type, ServiceConfigurationBuilder<object>> configure)
 		{
-			return new ServiceConfigurationBuilder<object>(RegistryBuilder.InheritorOf(baseType));
+			RegistryBuilder.Filtered(baseType, configure);
+			return this;
 		}
 
-		public ServiceConfigurationBuilder<object> InheritorOf<T>()
+		public ContainerConfigurationBuilder InheritorsOf<T>(Action<Type, ServiceConfigurationBuilder<object>> configure)
 		{
-			return InheritorOf(typeof (T));
+			return InheritorsOf(typeof (T), configure);
+		}
+
+		public ContainerConfigurationBuilder ForAll(Action<Type, ServiceConfigurationBuilder<object>> configure)
+		{
+			RegistryBuilder.Filtered(null, configure);
+			return this;
 		}
 	}
 }

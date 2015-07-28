@@ -151,13 +151,13 @@ namespace SimpleContainer
 				configure(builder);
 			if (containerBuildContext.fileConfigurator != null)
 				containerBuildContext.fileConfigurator(builder);
-			return CreateContainer(containerBuildContext, builder.RegistryBuilder.Build(containerBuildContext.inheritors));
+			return CreateContainer(containerBuildContext, builder.RegistryBuilder.Build(containerBuildContext.typesList));
 		}
 
 		private IContainer CreateContainer(BuildContext currentBuildContext, IConfigurationRegistry configuration)
 		{
 			return new Implementation.SimpleContainer(currentBuildContext.genericsAutoCloser, configuration,
-				currentBuildContext.inheritors, errorLogger, infoLogger, valueFormatters);
+				currentBuildContext.typesList, errorLogger, infoLogger, valueFormatters);
 		}
 
 		private static string GetBinDirectory()
@@ -193,12 +193,11 @@ namespace SimpleContainer
 		{
 			var result = new BuildContext
 			{
-				types = types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray()
+				typesList = TypesList.Create(types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray())
 			};
-			result.inheritors = InheritorsBuilder.CreateInheritorsMap(result.types);
-			result.genericsAutoCloser = new GenericsAutoCloser(result.inheritors, assembliesFilter);
+			result.genericsAutoCloser = new GenericsAutoCloser(result.typesList, assembliesFilter);
 			if (configFileName != null && File.Exists(configFileName))
-				result.fileConfigurator = FileConfigurationParser.Parse(result.types, configFileName);
+				result.fileConfigurator = FileConfigurationParser.Parse(result.typesList.Types, configFileName);
 			var configurationContainer = CreateContainer(result, EmptyConfigurationRegistry.Instance);
 			result.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
 			return result;
@@ -206,8 +205,7 @@ namespace SimpleContainer
 
 		private class BuildContext
 		{
-			public Type[] types;
-			public Dictionary<Type, List<Type>> inheritors;
+			public TypesList typesList;
 			public GenericsAutoCloser genericsAutoCloser;
 			public Action<ContainerConfigurationBuilder> fileConfigurator;
 			public ConfiguratorRunner configuratorRunner;

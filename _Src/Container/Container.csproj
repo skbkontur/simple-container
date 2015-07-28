@@ -41,16 +41,16 @@
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
     <Compile Include="Configuration\EmptyConfigurationRegistry.cs" />
+    <Compile Include="Configuration\DynamicConfiguration.cs" />
     <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\ImplementationSelector.cs" />
     <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
-    <Compile Include="Configuration\InheritorsConfiguration.cs" />
     <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
     <Compile Include="Helpers\ValueWithType.cs" />
-    <Compile Include="Implementation\InheritorsBuilder.cs" />
+    <Compile Include="Implementation\TypesList.cs" />
     <Compile Include="Implementation\LazyCreator.cs" />
     <Compile Include="Implementation\NestedFactoryCreator.cs" />
     <Compile Include="Implementation\GenericsAutoCloser.cs" />

@@ -9,13 +9,13 @@ namespace SimpleContainer.Implementation
 {
 	internal class GenericsAutoCloser
 	{
-		private readonly Dictionary<Type, List<Type>> hierarchy;
+		private readonly TypesList typesList;
 		private readonly Func<AssemblyName, bool> assemblyFilter;
 		private readonly ConcurrentDictionary<Type, Type[]> cache = new ConcurrentDictionary<Type, Type[]>();
 
-		public GenericsAutoCloser(Dictionary<Type,List<Type>> hierarchy, Func<AssemblyName, bool> assemblyFilter)
+		public GenericsAutoCloser(TypesList typesList, Func<AssemblyName, bool> assemblyFilter)
 		{
-			this.hierarchy = hierarchy;
+			this.typesList = typesList;
 			this.assemblyFilter = assemblyFilter;
 		}
 
@@ -127,10 +127,7 @@ namespace SimpleContainer.Implementation
 
 		private void MarkInterface(GenericDefinition definition, Dictionary<Type, GenericDefinition> context)
 		{
-			var implementationTypes = hierarchy.GetOrDefault(definition.type);
-			if (implementationTypes == null)
-				return;
-			foreach (var implType in implementationTypes)
+			foreach (var implType in typesList.InheritorsOf(definition.type))
 			{
 				var interfaceImpls = implType.ImplementationsOf(definition.type);
 				if (implType.IsGenericType)
@@ -165,19 +162,19 @@ namespace SimpleContainer.Implementation
 			foreach (var c in constraints)
 				if (!assemblyFilter(c.Assembly.GetName()))
 					return;
-			var impls = hierarchy.GetOrDefault(constraints[0]) ?? InternalHelpers.emptyTypesList;
+			var impls = typesList.InheritorsOf(constraints[0]);
 			for (var i = 1; i < constraints.Length; i++)
 			{
 				if (impls.Count == 0)
 					return;
-				var current = hierarchy.GetOrDefault(constraints[i]) ?? InternalHelpers.emptyTypesList;
+				var current = typesList.InheritorsOf(constraints[i]);
 				for (var j = impls.Count - 1; j >= 0; j--)
 					if (current.IndexOf(impls[j]) < 0)
 						impls.RemoveAt(j);
 			}
 			if (impls.Count == 0)
 				return;
-			var nonGenericOverrides = (hierarchy.GetOrDefault(definition.type) ?? InternalHelpers.emptyTypesList)
+			var nonGenericOverrides = typesList.InheritorsOf(definition.type)
 				.Where(x => !x.IsGenericType)
 				.ToArray();
 			foreach (var impl in impls)

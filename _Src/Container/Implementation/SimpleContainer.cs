@@ -22,7 +22,7 @@ namespace SimpleContainer.Implementation
 		private bool disposed;
 
 		private readonly GenericsAutoCloser genericsAutoCloser;
-		protected readonly Dictionary<Type, List<Type>> inheritors;
+		protected readonly TypesList typesList;
 		protected readonly LogError errorLogger;
 		protected readonly LogInfo infoLogger;
 		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
@@ -30,13 +30,13 @@ namespace SimpleContainer.Implementation
 		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
-			Dictionary<Type, List<Type>> inheritors, LogError errorLogger, LogInfo infoLogger,
+			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
 			Dictionary<Type, Func<object, string>> valueFormatters)
 		{
 			Configuration = configurationRegistry;
 			implementationSelectors = configurationRegistry.GetImplementationSelectors();
 			this.genericsAutoCloser = genericsAutoCloser;
-			this.inheritors = inheritors;
+			this.typesList = typesList;
 			dependenciesInjector = new DependenciesInjector(this);
 			this.errorLogger = errorLogger;
 			this.infoLogger = infoLogger;
@@ -100,14 +100,13 @@ namespace SimpleContainer.Implementation
 			var interfaceConfiguration = GetConfigurationWithoutContracts(interfaceType);
 			if (interfaceConfiguration != null && interfaceConfiguration.ImplementationTypes != null)
 				return interfaceConfiguration.ImplementationTypes;
-			List<Type> result;
-			return inheritors.TryGetValue(interfaceType, out result)
-				? result.Where(delegate(Type type)
+			return typesList.InheritorsOf(interfaceType)
+				.Where(delegate(Type type)
 				{
 					var implementationConfiguration = GetConfigurationWithoutContracts(type);
 					return implementationConfiguration == null || !implementationConfiguration.DontUseIt;
-				}).ToArray()
-				: Type.EmptyTypes;
+				})
+				.ToArray();
 		}
 
 		public BuiltUpService BuildUp(object target, IEnumerable<string> contracts)
@@ -155,7 +154,7 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), inheritors, null, infoLogger,
+			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), typesList, null, infoLogger,
 				valueFormatters);
 		}
 
@@ -165,7 +164,7 @@ namespace SimpleContainer.Implementation
 				return Configuration;
 			var builder = new ContainerConfigurationBuilder();
 			configure(builder);
-			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build(inheritors));
+			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build(typesList));
 		}
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
@@ -285,7 +284,7 @@ namespace SimpleContainer.Implementation
 			if (builder.Configuration.ImplementationTypes != null)
 				candidates.AddRange(builder.Configuration.ImplementationTypes);
 			if (builder.Configuration.ImplementationTypes == null || builder.Configuration.UseAutosearch)
-				candidates.AddRange(inheritors.GetOrDefault(builder.Type.GetDefinition()) ?? InternalHelpers.emptyTypesList);
+				candidates.AddRange(typesList.InheritorsOf(builder.Type.GetDefinition()));
 			foreach (var implType in candidates)
 			{
 				if (!implType.IsGenericType)
