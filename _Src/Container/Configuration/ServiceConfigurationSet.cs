@@ -21,6 +21,13 @@ namespace SimpleContainer.Configuration
 			return lazyConfigurators.Count == 0 && builders.Count == 0;
 		}
 
+		public void SetDefaultComment(string defaultComment)
+		{
+			foreach (var b in builders)
+				if (string.IsNullOrEmpty(b.Comment))
+					b.SetComment(defaultComment);
+		}
+
 		public ServiceConfiguration GetConfiguration(List<string> contracts)
 		{
 			if (!initialized)

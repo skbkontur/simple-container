@@ -13,32 +13,26 @@ namespace SimpleContainer.Configuration
 		{
 		}
 
-		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames, bool clearOld = false)
+		public ContractConfigurationBuilder UnionOf(IEnumerable<string> contractNames)
 		{
 			if (contracts.Count != 1)
 			{
 				const string messageFormat = "UnionOf can be applied to single contract, current contracts [{0}]";
 				throw new SimpleContainerException(string.Format(messageFormat, contracts.JoinStrings(", ")));
 			}
-			RegistryBuilder.DefineContractsUnion(contracts[0], contractNames.ToList(), clearOld);
+			RegistryBuilder.DefineContractsUnion(contracts[0], contractNames.ToList());
 			return this;
 		}
 
-		public ContractConfigurationBuilder Union<TContract>(bool clearOld = false)
+		public ContractConfigurationBuilder Union<TContract>()
 			where TContract : RequireContractAttribute, new()
 		{
-			return UnionOf(clearOld, InternalHelpers.NameOf<TContract>());
+			return UnionOf(InternalHelpers.NameOf<TContract>());
 		}
 
 		public ContractConfigurationBuilder UnionOf(params string[] contractNames)
 		{
 			return UnionOf(contractNames.AsEnumerable());
 		}
-
-		public ContractConfigurationBuilder UnionOf(bool clearOld, params string[] contractNames)
-		{
-			return UnionOf(contractNames.AsEnumerable(), clearOld);
-		}
-		
 	}
 }

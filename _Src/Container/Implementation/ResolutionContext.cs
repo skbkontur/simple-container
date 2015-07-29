@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -40,8 +39,10 @@ namespace SimpleContainer.Implementation
 			if (!constructingServices.Add(declaredName))
 			{
 				var previous = GetTopBuilder();
-				var message = string.Format("cyclic dependency {0} ...-> {1} -> {0}",
-					type.FormatName(), previous == null ? "null" : previous.Type.FormatName());
+				if (previous == null)
+					throw new InvalidOperationException(string.Format("assertion failure, service [{0}]", declaredName));
+				var message = string.Format("cyclic dependency {0}{1} -> {0}",
+					type.FormatName(), previous.Type == type ? "" : " ...-> " + previous.Type.FormatName());
 				var cycleBuilder = new ContainerService.Builder(type, this, false, null);
 				cycleBuilder.SetError(message);
 				return cycleBuilder.Build();

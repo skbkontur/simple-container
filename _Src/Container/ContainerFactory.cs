@@ -45,13 +45,6 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerFactory WithConfigurator(Action<ContainerConfigurationBuilder> newConfigure)
-		{
-			configure = newConfigure;
-			configurationByProfileCache.Clear();
-			return this;
-		}
-
 		public ContainerFactory WithParameters(IParametersSource newParameters)
 		{
 			parameters = newParameters;
@@ -112,6 +105,12 @@ namespace SimpleContainer
 				throw new SimpleContainerException(string.Format("profile type [{0}] must inherit from IProfile",
 					newProfile.FormatName()));
 			profile = newProfile;
+			return this;
+		}
+
+		public ContainerFactory WithConfigurator(Action<ContainerConfigurationBuilder> newConfigure)
+		{
+			configure = newConfigure;
 			return this;
 		}
 
@@ -184,7 +183,7 @@ namespace SimpleContainer
 				configurationRegistry = builder.RegistryBuilder.Build(typesContext.typesList);
 				configurationByProfileCache.Add(profile ?? typeof (ContainerFactory), configurationRegistry);
 			}
-			return CreateContainer(typesContext, configurationRegistry);
+			return CreateContainer(typesContext, configurationRegistry.Apply(typesContext.typesList, configure));
 		}
 
 		private IContainer CreateContainer(TypesContext currentTypesContext, IConfigurationRegistry configuration)

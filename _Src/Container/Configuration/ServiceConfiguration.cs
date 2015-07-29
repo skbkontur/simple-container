@@ -27,6 +27,7 @@ namespace SimpleContainer.Configuration
 		public bool IgnoredImplementation { get; private set; }
 		public Func<object, bool> InstanceFilter { get; private set; }
 		public IParametersSource ParametersSource { get; private set; }
+		public string Comment { get; private set; }
 
 		public ServiceConfiguration CloneWithFilter(Func<Type, bool> filter)
 		{
@@ -88,6 +89,11 @@ namespace SimpleContainer.Configuration
 				get { return target.Contracts; }
 			}
 
+			public string Comment
+			{
+				get { return target.Comment; }
+			}
+
 			public void Bind(Type interfaceType, Type implementationType, bool clearOld)
 			{
 				if (!interfaceType.IsGenericTypeDefinition && !implementationType.IsGenericTypeDefinition &&
@@ -118,6 +124,11 @@ namespace SimpleContainer.Configuration
 			{
 				target.Factory = creator;
 				target.ContainerOwnsInstance = containerOwnsInstance;
+			}
+
+			public void SetComment(string comment)
+			{
+				target.Comment = comment;
 			}
 
 			public void Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance)

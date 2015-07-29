@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -270,7 +271,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class MergeFailedConstructionLog : BasicTest
+		public class MergeFailedConstructionLog : ConstructionLogTest
 		{
 			public class A
 			{
@@ -316,7 +317,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanDumpNestedSimpleTypes : BasicTest
+		public class CanDumpNestedSimpleTypes : ConstructionLogTest
 		{
 			public class A
 			{
@@ -352,8 +353,8 @@ namespace SimpleContainer.Tests
 					Is.EqualTo("A\r\n\tDto const\r\n\t\tStrVal -> test-string\r\n\t\tIntVal -> 5"));
 			}
 		}
-		
-		public class CanRegisterCustomValueFormatters : BasicTest
+
+		public class CanRegisterCustomValueFormatters : ConstructionLogTest
 		{
 			public class A
 			{
@@ -385,8 +386,8 @@ namespace SimpleContainer.Tests
 						Is.EqualTo("A\r\n\tB const\r\n\t\tVal -> dumpted Dto"));
 			}
 		}
-		
-		public class CustomValueFormatterForEntireValue : BasicTest
+
+		public class CustomValueFormatterForEntireValue : ConstructionLogTest
 		{
 			public class A
 			{
@@ -413,8 +414,79 @@ namespace SimpleContainer.Tests
 						Is.EqualTo("A\r\n\tDto const -> dumpted Dto"));
 			}
 		}
-		
-		public class IgnoreNonReadableProperties : BasicTest
+
+		public class DumpCommentOnlyOnce : ConstructionLogTest
+		{
+			public class X
+			{
+				public readonly IA a1;
+				public readonly IA a2;
+
+				public X(IA a1, IA a2)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+				}
+			}
+
+			public interface IA
+			{
+			}
+
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			public class AConfigurator : IServiceConfigurator<IA>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IA> builder)
+				{
+					builder.WithInstanceFilter(a => a.GetType() == typeof (A2));
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Resolve<X>().GetConstructionLog(),
+					Is.EqualTo("X\r\n\tIA - instance filter\r\n\t\tA1\r\n\t\tA2\r\n\tIA"));
+			}
+		}
+
+		public class ConstructionLogForReusedService : ConstructionLogTest
+		{
+			public class A
+			{
+			}
+
+			public class B
+			{
+				public readonly A a1;
+				public readonly A a2;
+				public readonly A a3;
+
+				public B(A a1, A a2, A a3)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+					this.a3 = a3;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo("B\r\n\tA\r\n\tA\r\n\tA"));
+			}
+		}
+
+		public class IgnoreNonReadableProperties : ConstructionLogTest
 		{
 			public class A
 			{

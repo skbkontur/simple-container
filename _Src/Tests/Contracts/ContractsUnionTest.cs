@@ -275,61 +275,6 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
-		public class ClearOldUnionContracts : ContractsUnionTest
-		{
-			public class AllWrapsHost
-			{
-				public readonly ServiceWrap[] wraps;
-
-				public AllWrapsHost([TestContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
-				{
-					this.wraps = wraps.ToArray();
-				}
-			}
-
-			public class ServiceWrap
-			{
-				public readonly IService service;
-
-				public ServiceWrap(IService service)
-				{
-					this.service = service;
-				}
-			}
-
-			public interface IService
-			{
-			}
-
-			public class Service1 : IService
-			{
-			}
-
-			public class Service2 : IService
-			{
-			}
-
-			public class CompositeContractConfigurator : IContainerConfigurator
-			{
-				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
-				{
-					builder.Contract("c1").Bind<IService, Service1>();
-					builder.Contract("c2").Bind<IService, Service2>();
-					builder.Contract("composite-contract").UnionOf("c1", "c2");
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Contract("composite-contract").UnionOf("c2"));
-				Assert.That(container.Get<AllWrapsHost>().wraps.Length, Is.EqualTo(2));
-
-				container = Container(b => b.Contract("composite-contract").UnionOf(true, "c2"));
-				Assert.That(container.Get<AllWrapsHost>().wraps.Length, Is.EqualTo(1));
-			}
-		}
-
 		public class ContractUnionGeneric : ContractsUnionTest
 		{
 			public class Contract1 : RequireContractAttribute

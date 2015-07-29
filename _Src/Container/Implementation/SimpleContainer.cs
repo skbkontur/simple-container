@@ -154,17 +154,8 @@ namespace SimpleContainer.Implementation
 		public IContainer Clone(Action<ContainerConfigurationBuilder> configure)
 		{
 			EnsureNotDisposed();
-			return new SimpleContainer(genericsAutoCloser, CloneConfiguration(configure), typesList, null, infoLogger,
-				valueFormatters);
-		}
-
-		protected IConfigurationRegistry CloneConfiguration(Action<ContainerConfigurationBuilder> configure)
-		{
-			if (configure == null)
-				return Configuration;
-			var builder = new ContainerConfigurationBuilder();
-			configure(builder);
-			return new MergedConfiguration(Configuration, builder.RegistryBuilder.Build(typesList));
+			return new SimpleContainer(genericsAutoCloser, Configuration.Apply(typesList, configure),
+				typesList, null, infoLogger, valueFormatters);
 		}
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)

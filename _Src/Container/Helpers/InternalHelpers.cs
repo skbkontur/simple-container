@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
@@ -67,6 +68,16 @@ namespace SimpleContainer.Helpers
 			return publicConstructor == null
 				? ValueOrError.Fail<ConstructorInfo>("no public ctors")
 				: ValueOrError.Ok(publicConstructor);
+		}
+
+		public static IConfigurationRegistry Apply(this IConfigurationRegistry configuration,
+			TypesList typesList, Action<ContainerConfigurationBuilder> modificator)
+		{
+			if (modificator == null)
+				return configuration;
+			var builder = new ContainerConfigurationBuilder();
+			modificator(builder);
+			return new MergedConfiguration(configuration, builder.RegistryBuilder.Build(typesList));
 		}
 
 		public static readonly string[] emptyStrings = new string[0];

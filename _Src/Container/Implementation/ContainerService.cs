@@ -127,6 +127,14 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteName(formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
+			if (!context.Seen.Add(new ServiceName(Type, usedContracts)))
+			{
+				//todo refactor this shit
+				if (Status == ServiceStatus.Error && errorMessage.Contains("cyclic dependency"))
+					context.Writer.WriteMeta(" <---------------");
+				context.Writer.WriteNewLine();
+				return;
+			}
 			if (instances.Length > 1)
 				context.Writer.WriteMeta("++");
 			if (Status == ServiceStatus.Error)
@@ -147,7 +155,7 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(context.UsedFromDependency.Value));
 
 			context.Writer.WriteNewLine();
-			if (context.Seen.Add(new ServiceName(Type, usedContracts)) && dependencies != null)
+			if (dependencies != null)
 				foreach (var d in dependencies)
 				{
 					context.Indent++;
@@ -252,6 +260,7 @@ namespace SimpleContainer.Implementation
 					SetError(e);
 					return;
 				}
+				SetComment(Configuration.Comment);
 				foreach (var contract in Configuration.Contracts)
 				{
 					if (usedContractNames == null)

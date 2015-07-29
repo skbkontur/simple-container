@@ -187,7 +187,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.InheritorsOf<IRunnable>((t, b) => b.Dependencies(context.Parameters));
+					builder.InheritorsOf<IRunnable>("runnables use parameters", (t, b) => b.Dependencies(context.Parameters));
 				}
 			}
 
@@ -234,7 +234,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
 				{
-					builder.ForAll((t, b) =>
+					builder.ForAll("spec dependency for A1", (t, b) =>
 					{
 						if (t == typeof (A1))
 							b.Dependencies(new {parameter = 20});
@@ -248,6 +248,10 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				Assert.That(container.Get<A1>().parameter, Is.EqualTo(20));
 				Assert.That(container.Get<A2>().parameter, Is.EqualTo(10));
+				Assert.That(container.Resolve<A1>().GetConstructionLog(),
+					Is.EqualTo("A1 - spec dependency for A1\r\n\tparameter -> 20"));
+				Assert.That(container.Resolve<A2>().GetConstructionLog(),
+					Is.EqualTo("A2\r\n\tparameter -> 10"));
 			}
 		}
 	}

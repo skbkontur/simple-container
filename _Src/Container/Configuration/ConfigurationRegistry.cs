@@ -57,13 +57,11 @@ namespace SimpleContainer.Configuration
 				return result;
 			}
 
-			public void DefineContractsUnion(string contract, List<string> contractNames, bool clearOld = false)
+			public void DefineContractsUnion(string contract, List<string> contractNames)
 			{
 				List<string> union;
 				if (!contractUnions.TryGetValue(contract, out union))
 					contractUnions.Add(contract, union = new List<string>());
-				if (clearOld)
-					union.Clear();
 				union.AddRange(contractNames);
 			}
 
@@ -72,13 +70,10 @@ namespace SimpleContainer.Configuration
 				implementationSelectors.Add(s);
 			}
 
-			public void Filtered(Type baseType, Action<Type, ServiceConfigurationBuilder<object>> configureAction)
+			public void Filtered(string description, Type baseType,
+				Action<Type, ServiceConfigurationBuilder<object>> configureAction)
 			{
-				dynamicConfigurators.Add(new DynamicConfiguration
-				{
-					BaseType = baseType,
-					ConfigureAction = configureAction
-				});
+				dynamicConfigurators.Add(new DynamicConfiguration(description, baseType, configureAction));
 			}
 
 			public ConfigurationRegistry Build(TypesList typesList)
@@ -96,6 +91,8 @@ namespace SimpleContainer.Configuration
 						c.ConfigureAction(t, builder);
 						if (configurationSet.IsEmpty())
 							continue;
+						if (!string.IsNullOrEmpty(c.Description))
+							configurationSet.SetDefaultComment(c.Description);
 						builtConfigurations.Add(t, configurationSet);
 						configurationSet = new ServiceConfigurationSet();
 						builder = new ServiceConfigurationBuilder<object>(configurationSet);
