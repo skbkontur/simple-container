@@ -308,6 +308,7 @@ namespace SimpleContainer.Helpers
 
 		private static readonly IDictionary<Type, string> typeNames = new Dictionary<Type, string>
 		{
+			{typeof (object), "object"},
 			{typeof (byte), "byte"},
 			{typeof (short), "short"},
 			{typeof (ushort), "ushort"},
