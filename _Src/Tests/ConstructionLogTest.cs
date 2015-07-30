@@ -387,6 +387,27 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanDumpArrays : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly string[] urls;
+
+				public A(string[] urls)
+				{
+					this.urls = urls;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("urls", new [] {"a", "b", "c"}));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\turls const\r\n\t\ta\r\n\t\tb\r\n\t\tc"));
+			}
+		}
+
 		public class CustomValueFormatterForEntireValue : ConstructionLogTest
 		{
 			public class A

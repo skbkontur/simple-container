@@ -5,7 +5,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class InstanceWrap
 	{
-		private bool runCalled;
+		private volatile bool runCalled;
 		public object Instance { get; private set; }
 		public bool Owned { get; set; }
 
