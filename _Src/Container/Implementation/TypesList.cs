@@ -34,7 +34,7 @@ namespace SimpleContainer.Implementation
 				foreach (var interfaceType in t.GetInterfaces())
 					Include(result, interfaceType.GetDefinition(), t);
 				var current = t;
-				while (current != null)
+				while (current != null && current != typeof (object))
 				{
 					Include(result, current.GetDefinition(), t);
 					current = current.BaseType;

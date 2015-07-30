@@ -13,5 +13,6 @@ namespace SimpleContainer
 		BuiltUpService BuildUp(object target, IEnumerable<string> contracts);
 		ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments);
 		IContainer Clone(Action<ContainerConfigurationBuilder> configure);
+		Type[] AllTypes { get; }
 	}
 }

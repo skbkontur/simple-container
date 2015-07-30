@@ -43,6 +43,24 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class AllTypesEnumsAllTypes : BasicTest
+		{
+			public class A
+			{
+			}
+
+			public interface IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.AllTypes, Is.EquivalentTo(new[] {typeof (A), typeof (IA)}));
+			}
+		}
+
 		public class CanConfigureGenericDefinition : BasicTest
 		{
 			[Test]

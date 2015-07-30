@@ -28,6 +28,7 @@ namespace SimpleContainer.Implementation
 		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
 		private readonly ImplementationSelector[] implementationSelectors;
 		internal IConfigurationRegistry Configuration { get; private set; }
+		private Type[] allTypes;
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
 			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
@@ -135,7 +136,7 @@ namespace SimpleContainer.Implementation
 						throw new SimpleContainerException(message);
 					}
 			}
-			return ServiceName.Parse(type, contractsArray);
+			return ServiceName.Parse(type, true, contractsArray);
 		}
 
 		private IEnumerable<NamedInstance> GetInstanceCache(Type interfaceType)
@@ -156,6 +157,15 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			return new SimpleContainer(genericsAutoCloser, Configuration.Apply(typesList, configure),
 				typesList, null, infoLogger, valueFormatters);
+		}
+
+		public Type[] AllTypes
+		{
+			get
+			{
+				return allTypes ??
+				       (allTypes = typesList.Types.Where(x => x.Assembly != typeof (SimpleContainer).Assembly).ToArray());
+			}
 		}
 
 		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
@@ -253,7 +263,7 @@ namespace SimpleContainer.Implementation
 					if (decision.HasValue)
 						comment = decision.Value.comment;
 					if (!decision.HasValue || decision.Value.action == ImplementationSelectorDecision.Action.Include)
-						implementationService = builder.Context.Resolve(ServiceName.Parse(implementationType));
+						implementationService = builder.Context.Resolve(ServiceName.Parse(implementationType, false));
 				}
 				if (implementationService != null)
 					builder.LinkTo(implementationService, comment);
@@ -472,8 +482,8 @@ namespace SimpleContainer.Implementation
 						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
 			}
-			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(),
-				InternalHelpers.ParseContracts(formalParameter, false));
+			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
+				InternalHelpers.ParseContracts(formalParameter));
 
 			ServiceConfiguration interfaceConfiguration;
 			try

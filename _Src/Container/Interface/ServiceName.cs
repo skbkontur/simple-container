@@ -14,9 +14,14 @@ namespace SimpleContainer.Interface
 			this.contracts = contracts;
 		}
 
-		internal static ServiceName Parse(Type type, params string[] contracts)
+		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, params string[] contracts)
 		{
-			return new ServiceName(type, contracts.Concat(InternalHelpers.ParseContracts(type, true)));
+			var typeContracts = InternalHelpers.ParseContracts(type);
+			var contractsToUse = excludeTypeContractIfDuplicates && contracts.Length > 0 && typeContracts.Length == 1 &&
+			                     contracts[contracts.Length - 1].EqualsIgnoringCase(typeContracts[0])
+				? contracts
+				: contracts.Concat(typeContracts);
+			return new ServiceName(type, contractsToUse);
 		}
 
 		public Type Type

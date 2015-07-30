@@ -30,7 +30,7 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
-		public static string[] ParseContracts(ICustomAttributeProvider provider, bool inverse)
+		public static string[] ParseContracts(ICustomAttributeProvider provider)
 		{
 			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
 			if (attributes.Length == 0)

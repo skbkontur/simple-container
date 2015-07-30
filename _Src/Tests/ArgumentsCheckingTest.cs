@@ -76,6 +76,29 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class InputContractsDuplicationWithClassContract : ArgumentsCheckingTest
+		{
+			[TestContract("a")]
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 67));
+				var instance = container.Resolve<A>("a");
+				Assert.That(instance.Single().parameter, Is.EqualTo(67));
+				Assert.That(instance.GetConstructionLog(), Is.EqualTo("A[a]\r\n\tparameter -> 67"));
+			}
+		}
+
 		public class ExplicitArgumentNullExceptionForCreate : ArgumentsCheckingTest
 		{
 			public class A
