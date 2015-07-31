@@ -18,20 +18,20 @@ namespace SimpleContainer.Implementation
 		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
 			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
 
-		private readonly DependenciesInjector dependenciesInjector;
-		private bool disposed;
-
-		private readonly GenericsAutoCloser genericsAutoCloser;
-		protected readonly TypesList typesList;
-		protected readonly LogError errorLogger;
-		protected readonly LogInfo infoLogger;
-		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
-		private readonly ImplementationSelector[] implementationSelectors;
-		internal IConfigurationRegistry Configuration { get; private set; }
-		private Type[] allTypes;
-
 		private readonly ConcurrentDictionary<ServiceName, Func<object>> factoryCache =
 			new ConcurrentDictionary<ServiceName, Func<object>>();
+
+		private readonly DependenciesInjector dependenciesInjector;
+		private bool disposed;
+		private readonly GenericsAutoCloser genericsAutoCloser;
+		private readonly TypesList typesList;
+		private readonly LogError errorLogger;
+		private readonly LogInfo infoLogger;
+		private readonly ImplementationSelector[] implementationSelectors;
+		private Type[] allTypes;
+
+		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
+		internal IConfigurationRegistry Configuration { get; private set; }
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
 			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
