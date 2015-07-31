@@ -25,7 +25,7 @@ namespace SimpleContainer
 		public static object Get(this IContainer container, Type type, string contract = null,
 			bool dumpConstructionLog = false)
 		{
-			var resolvedService = container.Resolve(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
+			var resolvedService = container.Resolve(type, string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract});
 			resolvedService.Run(dumpConstructionLog);
 			return resolvedService.Single();
 		}
@@ -33,7 +33,7 @@ namespace SimpleContainer
 		public static ResolvedService Create(this IContainer container, Type type, string contract = null,
 			object arguments = null)
 		{
-			var result = container.Create(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
+			var result = container.Create(type, string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] { contract }, arguments);
 			result.Run();
 			return result;
 		}
