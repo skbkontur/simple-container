@@ -83,6 +83,7 @@
     <Compile Include="Helpers\TestingParametersSource.cs" />
     <Compile Include="InstanceFilterTest.cs" />
     <Compile Include="LongRunning\CrashOnOneThreadDoNotAffectOtherThreads.cs" />
+    <Compile Include="LongRunning\FactoriesLoadTest.cs" />
     <Compile Include="RunComponentsTest.cs" />
     <Compile Include="DisposeTest.cs" />
     <Compile Include="CloneContainerTest.cs" />

@@ -30,6 +30,9 @@ namespace SimpleContainer.Implementation
 		internal IConfigurationRegistry Configuration { get; private set; }
 		private Type[] allTypes;
 
+		private readonly ConcurrentDictionary<ServiceName, Func<object>> factoryCache =
+			new ConcurrentDictionary<ServiceName, Func<object>>();
+
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
 			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
 			Dictionary<Type, Func<object, string>> valueFormatters)
@@ -57,15 +60,19 @@ namespace SimpleContainer.Implementation
 			return new ResolvedService(result, this, name.Type != type);
 		}
 
-		public ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments)
+		public object Create(Type type, IEnumerable<string> contracts, object arguments)
 		{
 			EnsureNotDisposed();
 			if (type == null)
 				throw new ArgumentNullException("type");
 			var name = CreateServiceName(type, contracts);
+			Func<object> compiledFactory;
+			if (arguments == null && factoryCache.TryGetValue(name, out compiledFactory))
+				return compiledFactory();
 			var context = new ResolutionContext(this, name.Contracts);
 			var result = context.Create(type, arguments);
-			return new ResolvedService(result, this, false);
+			result.EnsureRunCalled(infoLogger);
+			return result.GetSingleValue(false, null);
 		}
 
 		internal void Run(ContainerService containerService, string constructionLog)
@@ -240,6 +247,8 @@ namespace SimpleContainer.Implementation
 				builder.SetComment("has no implementations");
 				return;
 			}
+			Func<object> factory = null;
+			var canUseFactory = true;
 			foreach (var implementationType in implementationTypes)
 			{
 				ContainerService implementationService = null;
@@ -266,7 +275,19 @@ namespace SimpleContainer.Implementation
 						implementationService = builder.Context.Resolve(ServiceName.Parse(implementationType, false));
 				}
 				if (implementationService != null)
+				{
 					builder.LinkTo(implementationService, comment);
+					if (builder.CreateNew && builder.Arguments == null &&
+					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
+						if (factory == null)
+						{
+							var implName = new ServiceName(implementationService.Type, implementationService.UsedContracts);
+							if (!factoryCache.TryGetValue(implName, out factory))
+								canUseFactory = false;
+						}
+						else
+							canUseFactory = false;
+				}
 				else
 				{
 					var dependency = ServiceDependency.NotResolved(null, implementationType.FormatName());
@@ -276,6 +297,9 @@ namespace SimpleContainer.Implementation
 				if (builder.Status.IsBad())
 					return;
 			}
+			builder.EndResolveDependencies();
+			if (factory != null && canUseFactory)
+				factoryCache.TryAdd(builder.GetName(), factory);
 		}
 
 		private HashSet<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
@@ -434,6 +458,18 @@ namespace SimpleContainer.Implementation
 			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
+				if (builder.CreateNew && builder.Arguments == null)
+				{
+					var compiledConstructor = constructor.value.Compile();
+					factoryCache.TryAdd(builder.GetName(), () =>
+					{
+						var instance = compiledConstructor(null, actualArguments);
+						var component = instance as IComponent;
+						if (component != null)
+							component.Run();
+						return instance;
+					});
+				}
 				return;
 			}
 			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetName(), createId);

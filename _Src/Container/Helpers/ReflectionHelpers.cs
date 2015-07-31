@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -165,10 +166,9 @@ namespace SimpleContainer.Helpers
 		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
 			EmitCallOf;
 
-		public static object InvokeViaReflectionEmit(this MethodBase method, object self, object[] actualArguments)
+		public static Func<object, object[], object> Compile(this MethodBase method)
 		{
-			var factoryMethod = compiledMethods.GetOrAdd(method, compileMethodDelegate);
-			return factoryMethod(self, actualArguments);
+			return compiledMethods.GetOrAdd(method, compileMethodDelegate);	
 		}
 
 		private static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
@@ -230,7 +230,7 @@ namespace SimpleContainer.Helpers
 			il.Emit(OpCodes.Ret);
 			return (Func<object, object[], object>) dynamicMethod.CreateDelegate(typeof (Func<object, object[], object>));
 		}
-
+		
 		private static OpCode ToConstant(int i)
 		{
 			switch (i)

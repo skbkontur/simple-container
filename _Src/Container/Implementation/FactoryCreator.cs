@@ -59,11 +59,7 @@ namespace SimpleContainer.Implementation
 			return delegate(Type type, object arguments)
 			{
 				if (hostBuilder == null || hostBuilder != builder.Context.GetTopBuilder())
-				{
-					var resolvedService = builder.Context.Container.Create(type, factoryContractNames, arguments);
-					resolvedService.Run();
-					return resolvedService.Single();
-				}
+					return builder.Context.Container.Create(type, factoryContractNames, arguments);
 				string contractName = null;
 				if (hostBuilder.DeclaredContracts.Length == factoryContractNames.Length - 1)
 					contractName = factoryContractNames[factoryContractNames.Length - 1];
