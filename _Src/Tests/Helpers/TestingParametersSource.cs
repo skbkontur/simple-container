@@ -14,6 +14,12 @@ namespace SimpleContainer.Tests.Helpers
 			this.values = values;
 		}
 
+
+		public IEnumerable<string> Names
+		{
+			get { return values.Keys; }
+		}
+
 		public bool TryGet(string name, Type type, out object value)
 		{
 			if (!values.TryGetValue(name, out value))

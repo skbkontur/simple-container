@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
@@ -18,6 +19,11 @@ namespace SimpleContainer.Configuration
 
 		private class EmptyParametersSource : IParametersSource
 		{
+			public IEnumerable<string> Names
+			{
+				get { return new String[0]; }
+			}
+
 			public bool TryGet(string name, Type type, out object value)
 			{
 				value = null;
