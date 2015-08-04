@@ -26,8 +26,8 @@ namespace SimpleContainer
 		private IParametersSource parameters;
 		private readonly Dictionary<Type, Func<object, string>> valueFormatters = new Dictionary<Type, Func<object, string>>();
 
-		private readonly Dictionary<Type, IConfigurationRegistry> configurationByProfileCache =
-			new Dictionary<Type, IConfigurationRegistry>();
+		private readonly Dictionary<Type, ConfigurationRegistry> configurationByProfileCache =
+			new Dictionary<Type, ConfigurationRegistry>();
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
@@ -166,27 +166,25 @@ namespace SimpleContainer
 				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
 				if (configFileName != null && File.Exists(configFileName))
 					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);
-				var configurationContainer = CreateContainer(typesContext, EmptyConfigurationRegistry.Instance);
+				var configurationContainer = CreateContainer(typesContext, ConfigurationRegistry.Empty);
 				typesContext.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
 				typesContextCache = typesContext;
 			}
-			IConfigurationRegistry configurationRegistry;
+			ConfigurationRegistry configurationRegistry;
 			if (!configurationByProfileCache.TryGetValue(profile ?? typeof (ContainerFactory), out configurationRegistry))
 			{
 				var builder = new ContainerConfigurationBuilder();
 				var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
 				typesContext.configuratorRunner.Run(builder, configurationContext, priorities);
-				if (configure != null)
-					configure(builder);
 				if (typesContext.fileConfigurator != null)
 					typesContext.fileConfigurator(builder);
-				configurationRegistry = builder.RegistryBuilder.Build(typesContext.typesList);
+				configurationRegistry = builder.RegistryBuilder.Build(typesContext.typesList, null);
 				configurationByProfileCache.Add(profile ?? typeof (ContainerFactory), configurationRegistry);
 			}
 			return CreateContainer(typesContext, configurationRegistry.Apply(typesContext.typesList, configure));
 		}
 
-		private IContainer CreateContainer(TypesContext currentTypesContext, IConfigurationRegistry configuration)
+		private IContainer CreateContainer(TypesContext currentTypesContext, ConfigurationRegistry configuration)
 		{
 			return new Implementation.SimpleContainer(currentTypesContext.genericsAutoCloser, configuration,
 				currentTypesContext.typesList, errorLogger, infoLogger, valueFormatters);

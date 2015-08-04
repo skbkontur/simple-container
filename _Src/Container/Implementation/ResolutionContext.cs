@@ -68,7 +68,7 @@ namespace SimpleContainer.Implementation
 			return builder.Build();
 		}
 
-		private string[][] TryExpandUnions(IConfigurationRegistry configuration)
+		private string[][] TryExpandUnions(ConfigurationRegistry configuration)
 		{
 			string[][] result = null;
 			var startIndex = 0;

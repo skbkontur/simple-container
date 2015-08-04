@@ -6,13 +6,14 @@ using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
-	internal class ServiceConfigurationSet : IServiceConfigurationSet
+	internal class ServiceConfigurationSet
 	{
+		internal ServiceConfigurationSet parent;
 		private List<Action> lazyConfigurators = new List<Action>();
 		private List<ServiceConfiguration.Builder> builders = new List<ServiceConfiguration.Builder>();
 		private volatile bool initialized;
 		private readonly object lockObject = new object();
-		private ServiceConfiguration[] configurations;
+		private List<ServiceConfiguration> configurations;
 		private Exception exception;
 		private string errorMessage;
 
@@ -30,17 +31,7 @@ namespace SimpleContainer.Configuration
 
 		public ServiceConfiguration GetConfiguration(List<string> contracts)
 		{
-			if (!initialized)
-				lock (lockObject)
-					if (!initialized)
-					{
-						foreach (var configurator in lazyConfigurators)
-							configurator();
-						configurations = builders.Select(x => x.Build()).OrderByDescending(x => x.Contracts.Count).ToArray();
-						builders = null;
-						lazyConfigurators = null;
-						initialized = true;
-					}
+			EnsureBuild();
 			if (exception != null)
 				throw new SimpleContainerException(errorMessage, exception);
 			ServiceConfiguration result = null;
@@ -78,6 +69,66 @@ namespace SimpleContainer.Configuration
 			if (result == null)
 				builders.Add(result = new ServiceConfiguration.Builder(contracts));
 			return result;
+		}
+
+		private void EnsureBuild()
+		{
+			if (!initialized)
+				lock (lockObject)
+					if (!initialized)
+					{
+						foreach (var configurator in lazyConfigurators)
+							configurator();
+						var newConfigurations = new List<ServiceConfiguration>();
+						foreach (var b in builders)
+							newConfigurations.Add(b.Build());
+						builders = null;
+						lazyConfigurators = null;
+						initialized = true;
+						if (exception != null)
+							return;
+						if (parent != null)
+						{
+							parent.EnsureBuild();
+							if (parent.exception != null)
+							{
+								exception = parent.exception;
+								errorMessage = parent.errorMessage;
+								return;
+							}
+							foreach (var p in parent.configurations)
+							{
+								var overriden = false;
+								foreach (var c in newConfigurations)
+								{
+									if (c.Contracts.SequenceEqual(p.Contracts, StringComparer.OrdinalIgnoreCase))
+									{
+										overriden = true;
+										break;
+									}
+								}
+								if (!overriden)
+									newConfigurations.Add(p);
+							}
+						}
+						newConfigurations.Sort(CompareByContractsCount.Intsance);
+						configurations = newConfigurations;
+					}
+		}
+
+		private class CompareByContractsCount : IComparer<ServiceConfiguration>
+		{
+			public static CompareByContractsCount Intsance { get; private set; }
+
+			static CompareByContractsCount()
+			{
+				Intsance = new CompareByContractsCount();
+			}
+
+			public int Compare(ServiceConfiguration x, ServiceConfiguration y)
+			{
+				return y.Contracts.Count.CompareTo(x.Contracts.Count);
+			}
 		}
 	}
 }

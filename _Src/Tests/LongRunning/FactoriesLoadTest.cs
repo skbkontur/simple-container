@@ -72,6 +72,7 @@ namespace SimpleContainer.Tests.LongRunning
 			Parallel.For(0, 1000000, new ParallelOptions {MaxDegreeOfParallelism = Environment.ProcessorCount},
 				_ => invoker.Create(typeof (A)));
 			stopwatch.Stop();
+			Console.Out.WriteLine("elapsed {0} millis", stopwatch.ElapsedMilliseconds);
 			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(400)));
 		}
 
@@ -84,6 +85,7 @@ namespace SimpleContainer.Tests.LongRunning
 			Parallel.For(0, 1000000, new ParallelOptions {MaxDegreeOfParallelism = Environment.ProcessorCount},
 				_ => factory());
 			stopwatch.Stop();
+			Console.Out.WriteLine("elapsed {0} millis", stopwatch.ElapsedMilliseconds);
 			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(400)));
 		}
 	}

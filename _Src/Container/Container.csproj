@@ -40,12 +40,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AbstractConfigurationBuilder.cs" />
-    <Compile Include="Configuration\EmptyConfigurationRegistry.cs" />
     <Compile Include="Configuration\DynamicConfiguration.cs" />
-    <Compile Include="Configuration\IConfigurationRegistry.cs" />
     <Compile Include="Configuration\ImplementationSelector.cs" />
     <Compile Include="Configuration\ImplementationSelectorDecision.cs" />
-    <Compile Include="Configuration\IServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
@@ -102,7 +99,6 @@
     <Compile Include="Helpers\IObjectAccessor.cs" />
     <Compile Include="Interface\ISimpleLogWriter.cs" />
     <Compile Include="Interface\IComponent.cs" />
-    <Compile Include="Configuration\MergedConfiguration.cs" />
     <Compile Include="Helpers\ObjectAccessor.cs" />
     <Compile Include="Interface\LogError.cs" />
     <Compile Include="Interface\LogInfo.cs" />

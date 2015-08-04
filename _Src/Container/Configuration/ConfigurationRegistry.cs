@@ -6,15 +6,22 @@ using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
 {
-	internal class ConfigurationRegistry : IConfigurationRegistry
+	internal class ConfigurationRegistry
 	{
-		private readonly IDictionary<Type, IServiceConfigurationSet> configurations;
+		private readonly IConfigurationSource configurations;
 		private readonly IDictionary<string, List<string>> contractUnions;
-		private readonly ImplementationSelector[] implementationSelectors;
+		private readonly List<ImplementationSelector> implementationSelectors;
+		public static ConfigurationRegistry Empty { get; private set; }
 
-		private ConfigurationRegistry(IDictionary<Type, IServiceConfigurationSet> configurations,
+		static ConfigurationRegistry()
+		{
+			Empty = new ConfigurationRegistry(new SimpleSource(new Dictionary<Type, ServiceConfigurationSet>()),
+				new Dictionary<string, List<string>>(), new List<ImplementationSelector>());
+		}
+
+		private ConfigurationRegistry(IConfigurationSource configurations,
 			IDictionary<string, List<string>> contractUnions,
-			ImplementationSelector[] implementationSelectors)
+			List<ImplementationSelector> implementationSelectors)
 		{
 			this.configurations = configurations;
 			this.contractUnions = contractUnions;
@@ -23,7 +30,7 @@ namespace SimpleContainer.Configuration
 
 		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
-			var configurationSet = configurations.GetOrDefault(type);
+			var configurationSet = configurations.Get(type);
 			return configurationSet == null ? null : configurationSet.GetConfiguration(contracts);
 		}
 
@@ -32,14 +39,43 @@ namespace SimpleContainer.Configuration
 			return contractUnions.GetOrDefault(contract);
 		}
 
-		public ImplementationSelector[] GetImplementationSelectors()
+		public List<ImplementationSelector> GetImplementationSelectors()
 		{
 			return implementationSelectors;
 		}
 
+		public ConfigurationRegistry Apply(TypesList typesList, Action<ContainerConfigurationBuilder> modificator)
+		{
+			if (modificator == null)
+				return this;
+			var builder = new ContainerConfigurationBuilder();
+			modificator(builder);
+			return builder.RegistryBuilder.Build(typesList, this);
+		}
+
+		private interface IConfigurationSource
+		{
+			ServiceConfigurationSet Get(Type type);
+		}
+
+		private class SimpleSource : IConfigurationSource
+		{
+			private readonly Dictionary<Type, ServiceConfigurationSet> impl;
+
+			public SimpleSource(Dictionary<Type, ServiceConfigurationSet> impl)
+			{
+				this.impl = impl;
+			}
+
+			public ServiceConfigurationSet Get(Type type)
+			{
+				return impl.GetOrDefault(type);
+			}
+		}
+
 		internal class Builder
 		{
-			private readonly IDictionary<Type, ServiceConfigurationSet> configurations =
+			private readonly Dictionary<Type, ServiceConfigurationSet> configurations =
 				new Dictionary<Type, ServiceConfigurationSet>();
 
 			private readonly List<DynamicConfiguration> dynamicConfigurators = new List<DynamicConfiguration>();
@@ -76,9 +112,23 @@ namespace SimpleContainer.Configuration
 				dynamicConfigurators.Add(new DynamicConfiguration(description, baseType, configureAction));
 			}
 
-			public ConfigurationRegistry Build(TypesList typesList)
+			public ConfigurationRegistry Build(TypesList typesList, ConfigurationRegistry parent)
 			{
-				var builtConfigurations = configurations.ToDictionary(x => x.Key, x => (IServiceConfigurationSet) x.Value);
+				ApplyDynamicConfigurators(typesList);
+				IConfigurationSource configurationSource = new SimpleSource(configurations);
+				if (parent != null)
+				{
+					foreach (var p in parent.contractUnions)
+						if (!contractUnions.ContainsKey(p.Key))
+							contractUnions.Add(p);
+					implementationSelectors.AddRange(parent.implementationSelectors);
+					configurationSource = new MergingSource(configurationSource, parent.configurations);
+				}
+				return new ConfigurationRegistry(configurationSource, contractUnions, implementationSelectors);
+			}
+
+			private void ApplyDynamicConfigurators(TypesList typesList)
+			{
 				var configurationSet = new ServiceConfigurationSet();
 				var builder = new ServiceConfigurationBuilder<object>(configurationSet);
 				foreach (var c in dynamicConfigurators)
@@ -86,19 +136,41 @@ namespace SimpleContainer.Configuration
 					var targetTypes = c.BaseType == null ? typesList.Types.ToList() : typesList.InheritorsOf(c.BaseType);
 					foreach (var t in targetTypes)
 					{
-						if (builtConfigurations.ContainsKey(t))
+						if (configurations.ContainsKey(t))
 							continue;
 						c.ConfigureAction(t, builder);
 						if (configurationSet.IsEmpty())
 							continue;
 						if (!string.IsNullOrEmpty(c.Description))
 							configurationSet.SetDefaultComment(c.Description);
-						builtConfigurations.Add(t, configurationSet);
+						configurations.Add(t, configurationSet);
 						configurationSet = new ServiceConfigurationSet();
 						builder = new ServiceConfigurationBuilder<object>(configurationSet);
 					}
 				}
-				return new ConfigurationRegistry(builtConfigurations, contractUnions, implementationSelectors.ToArray());
+			}
+
+			private class MergingSource : IConfigurationSource
+			{
+				private readonly IConfigurationSource child;
+				private readonly IConfigurationSource parent;
+
+				public MergingSource(IConfigurationSource child, IConfigurationSource parent)
+				{
+					this.child = child;
+					this.parent = parent;
+				}
+
+				public ServiceConfigurationSet Get(Type type)
+				{
+					var c = child.Get(type);
+					var p = parent.Get(type);
+					if (c == null)
+						return p;
+					if (c.parent == null)
+						c.parent = p;
+					return c;
+				}
 			}
 		}
 	}

@@ -70,16 +70,6 @@ namespace SimpleContainer.Helpers
 				: ValueOrError.Ok(publicConstructor);
 		}
 
-		public static IConfigurationRegistry Apply(this IConfigurationRegistry configuration,
-			TypesList typesList, Action<ContainerConfigurationBuilder> modificator)
-		{
-			if (modificator == null)
-				return configuration;
-			var builder = new ContainerConfigurationBuilder();
-			modificator(builder);
-			return new MergedConfiguration(configuration, builder.RegistryBuilder.Build(typesList));
-		}
-
 		public static readonly string[] emptyStrings = new string[0];
 		public static readonly List<Type> emptyTypesList = new List<Type>(0);
 

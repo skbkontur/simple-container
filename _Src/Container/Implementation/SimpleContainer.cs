@@ -27,13 +27,13 @@ namespace SimpleContainer.Implementation
 		private readonly TypesList typesList;
 		private readonly LogError errorLogger;
 		private readonly LogInfo infoLogger;
-		private readonly ImplementationSelector[] implementationSelectors;
+		private readonly List<ImplementationSelector> implementationSelectors;
 		private Type[] allTypes;
 
 		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
-		internal IConfigurationRegistry Configuration { get; private set; }
+		internal ConfigurationRegistry Configuration { get; private set; }
 
-		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, IConfigurationRegistry configurationRegistry,
+		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, ConfigurationRegistry configurationRegistry,
 			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
 			Dictionary<Type, Func<object, string>> valueFormatters)
 		{
@@ -232,7 +232,7 @@ namespace SimpleContainer.Implementation
 		{
 			var implementationTypes = GetInterfaceImplementationTypes(builder);
 			List<ImplementationSelectorDecision> selectorDecisions = null;
-			if (builder.HasNoConfiguration() && implementationSelectors.Length > 0)
+			if (builder.HasNoConfiguration() && implementationSelectors.Count > 0)
 			{
 				selectorDecisions = new List<ImplementationSelectorDecision>();
 				var typesArray = implementationTypes.ToArray();

@@ -752,6 +752,53 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
+
+		public class CanOverrideServiceInSpecificContract : ContractsBasicTest
+		{
+			public class A
+			{
+				public readonly B b1;
+				public readonly B b2;
+
+				public A(B b1, [TestContract("c")] B b2)
+				{
+					this.b1 = b1;
+					this.b2 = b2;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.BindDependency<B>("parameter", 1);
+					b.Contract("c").BindDependency<B>("parameter", 2);
+				});
+
+				var instance = container.Get<A>();
+				Assert.That(instance.b1.parameter, Is.EqualTo(1));
+				Assert.That(instance.b2.parameter, Is.EqualTo(2));
+
+				using (var child = container.Clone(b => b.BindDependency<B>("parameter", 3)))
+				{
+					var childInstance = child.Get<A>();
+					Assert.That(childInstance.b1.parameter, Is.EqualTo(3));
+					Assert.That(childInstance.b2.parameter, Is.EqualTo(2));
+				}
+			}
+		}
+
 		public class ContractRedefinitionIsProhibited : ContractsBasicTest
 		{
 			public class A
