@@ -168,7 +168,7 @@ namespace SimpleContainer.Configuration
 				var p = parent.Get(type);
 				if (c == null)
 					return p;
-				if (c.parent == null)
+				if (p != null && c.parent == null)
 					c.parent = p;
 				return c;
 			}

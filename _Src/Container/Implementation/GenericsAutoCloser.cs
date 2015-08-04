@@ -112,7 +112,7 @@ namespace SimpleContainer.Implementation
 					continue;
 				if (!parameterType.ContainsGenericParameters)
 					continue;
-				if (!ReflectionHelpers.HasEquivalentParameters(parameterType, definition.type))
+				if (parameterType.GenericParameters().Count != definition.type.GetGenericArguments().Length)
 					continue;
 				hasAnyGenericDependencies = true;
 				Mark(parameterType.GetGenericTypeDefinition(), context).referers.Add(new GenericReferer

@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 		public Type[] Types { get; private set; }
 		private readonly Dictionary<Type, List<Type>> inheritors;
 
-		public TypesList(Type[] types, Dictionary<Type, List<Type>> inheritors)
+		private TypesList(Type[] types, Dictionary<Type, List<Type>> inheritors)
 		{
 			Types = types;
 			this.inheritors = inheritors;

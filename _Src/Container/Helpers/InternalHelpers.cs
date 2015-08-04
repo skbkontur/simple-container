@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using SimpleContainer.Configuration;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;

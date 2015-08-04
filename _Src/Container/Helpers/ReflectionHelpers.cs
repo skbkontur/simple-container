@@ -11,18 +11,20 @@ namespace SimpleContainer.Helpers
 {
 	internal static class ReflectionHelpers
 	{
-		public static bool HasEquivalentParameters(Type dependency, Type definition)
+		public static HashSet<Type> GenericParameters(this Type type)
 		{
-			return SelectGenericParameters(dependency).Distinct().IsEquivalentTo(definition.GetGenericArguments());
+			var result = new HashSet<Type>();
+			FillGenericParameters(type, result);
+			return result;
 		}
 
-		private static IEnumerable<Type> SelectGenericParameters(Type type)
+		private static void FillGenericParameters(Type t, HashSet<Type> result)
 		{
-			if (type.IsGenericParameter)
-				yield return type;
-			else if (type.IsGenericType)
-				foreach (var t in type.GetGenericArguments().SelectMany(SelectGenericParameters))
-					yield return t;
+			if (t.IsGenericParameter)
+				result.Add(t);
+			else if (t.IsGenericType)
+				foreach (var x in t.GetGenericArguments())
+					FillGenericParameters(x, result);
 		}
 
 		public static Type TryCloseByPattern(this Type definition, Type pattern, Type value)
@@ -167,7 +169,7 @@ namespace SimpleContainer.Helpers
 
 		public static Func<object, object[], object> Compile(this MethodBase method)
 		{
-			return compiledMethods.GetOrAdd(method, compileMethodDelegate);	
+			return compiledMethods.GetOrAdd(method, compileMethodDelegate);
 		}
 
 		private static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
@@ -229,7 +231,7 @@ namespace SimpleContainer.Helpers
 			il.Emit(OpCodes.Ret);
 			return (Func<object, object[], object>) dynamicMethod.CreateDelegate(typeof (Func<object, object[], object>));
 		}
-		
+
 		private static OpCode ToConstant(int i)
 		{
 			switch (i)
