@@ -11,8 +11,8 @@ namespace SimpleContainer.Configuration
 		internal ServiceConfigurationSet parent;
 		private List<Action> lazyConfigurators = new List<Action>();
 		private List<ServiceConfiguration.Builder> builders = new List<ServiceConfiguration.Builder>();
-		private volatile bool initialized;
-		private readonly object lockObject = new object();
+		private volatile bool built;
+		private readonly object buildLock = new object();
 		private List<ServiceConfiguration> configurations;
 		private Exception exception;
 		private string errorMessage;
@@ -31,7 +31,7 @@ namespace SimpleContainer.Configuration
 
 		public ServiceConfiguration GetConfiguration(List<string> contracts)
 		{
-			EnsureBuild();
+			EnsureBuilt();
 			if (exception != null)
 				throw new SimpleContainerException(errorMessage, exception);
 			ServiceConfiguration result = null;
@@ -56,14 +56,14 @@ namespace SimpleContainer.Configuration
 
 		public void RegisterLazyConfigurator(Action configurator)
 		{
-			if (initialized)
+			if (built)
 				throw new InvalidOperationException("assertion failure");
 			lazyConfigurators.Add(configurator);
 		}
 
 		public ServiceConfiguration.Builder GetBuilder(List<string> contracts)
 		{
-			if (initialized)
+			if (built)
 				throw new InvalidOperationException("assertion failure");
 			var result = builders.FirstOrDefault(x => x.Contracts.SequenceEqual(contracts, StringComparer.OrdinalIgnoreCase));
 			if (result == null)
@@ -71,11 +71,11 @@ namespace SimpleContainer.Configuration
 			return result;
 		}
 
-		private void EnsureBuild()
+		private void EnsureBuilt()
 		{
-			if (!initialized)
-				lock (lockObject)
-					if (!initialized)
+			if (!built)
+				lock (buildLock)
+					if (!built)
 					{
 						foreach (var configurator in lazyConfigurators)
 							configurator();
@@ -84,12 +84,12 @@ namespace SimpleContainer.Configuration
 							newConfigurations.Add(b.Build());
 						builders = null;
 						lazyConfigurators = null;
-						initialized = true;
+						built = true;
 						if (exception != null)
 							return;
 						if (parent != null)
 						{
-							parent.EnsureBuild();
+							parent.EnsureBuilt();
 							if (parent.exception != null)
 							{
 								exception = parent.exception;

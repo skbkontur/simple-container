@@ -73,7 +73,7 @@ namespace SimpleContainer.Tests.LongRunning
 				_ => invoker.Create(typeof (A)));
 			stopwatch.Stop();
 			Console.Out.WriteLine("elapsed {0} millis", stopwatch.ElapsedMilliseconds);
-			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(400)));
+			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(700)));
 		}
 
 		[Test]
@@ -86,7 +86,7 @@ namespace SimpleContainer.Tests.LongRunning
 				_ => factory());
 			stopwatch.Stop();
 			Console.Out.WriteLine("elapsed {0} millis", stopwatch.ElapsedMilliseconds);
-			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(400)));
+			Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromMilliseconds(700)));
 		}
 	}
 }

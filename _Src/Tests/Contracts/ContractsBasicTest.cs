@@ -752,7 +752,6 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
-
 		public class CanOverrideServiceInSpecificContract : ContractsBasicTest
 		{
 			public class A

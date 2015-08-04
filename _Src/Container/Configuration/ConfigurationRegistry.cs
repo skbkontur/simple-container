@@ -15,7 +15,7 @@ namespace SimpleContainer.Configuration
 
 		static ConfigurationRegistry()
 		{
-			Empty = new ConfigurationRegistry(new SimpleSource(new Dictionary<Type, ServiceConfigurationSet>()),
+			Empty = new ConfigurationRegistry(new SimpleConfigurationSource(new Dictionary<Type, ServiceConfigurationSet>()),
 				new Dictionary<string, List<string>>(), new List<ImplementationSelector>());
 		}
 
@@ -51,26 +51,6 @@ namespace SimpleContainer.Configuration
 			var builder = new ContainerConfigurationBuilder();
 			modificator(builder);
 			return builder.RegistryBuilder.Build(typesList, this);
-		}
-
-		private interface IConfigurationSource
-		{
-			ServiceConfigurationSet Get(Type type);
-		}
-
-		private class SimpleSource : IConfigurationSource
-		{
-			private readonly Dictionary<Type, ServiceConfigurationSet> impl;
-
-			public SimpleSource(Dictionary<Type, ServiceConfigurationSet> impl)
-			{
-				this.impl = impl;
-			}
-
-			public ServiceConfigurationSet Get(Type type)
-			{
-				return impl.GetOrDefault(type);
-			}
 		}
 
 		internal class Builder
@@ -115,14 +95,14 @@ namespace SimpleContainer.Configuration
 			public ConfigurationRegistry Build(TypesList typesList, ConfigurationRegistry parent)
 			{
 				ApplyDynamicConfigurators(typesList);
-				IConfigurationSource configurationSource = new SimpleSource(configurations);
+				IConfigurationSource configurationSource = new SimpleConfigurationSource(configurations);
 				if (parent != null)
 				{
 					foreach (var p in parent.contractUnions)
 						if (!contractUnions.ContainsKey(p.Key))
 							contractUnions.Add(p);
 					implementationSelectors.AddRange(parent.implementationSelectors);
-					configurationSource = new MergingSource(configurationSource, parent.configurations);
+					configurationSource = new MergingConfigurationSource(configurationSource, parent.configurations);
 				}
 				return new ConfigurationRegistry(configurationSource, contractUnions, implementationSelectors);
 			}
@@ -149,28 +129,48 @@ namespace SimpleContainer.Configuration
 					}
 				}
 			}
+		}
 
-			private class MergingSource : IConfigurationSource
+		private interface IConfigurationSource
+		{
+			ServiceConfigurationSet Get(Type type);
+		}
+
+		private class SimpleConfigurationSource : IConfigurationSource
+		{
+			private readonly Dictionary<Type, ServiceConfigurationSet> impl;
+
+			public SimpleConfigurationSource(Dictionary<Type, ServiceConfigurationSet> impl)
 			{
-				private readonly IConfigurationSource child;
-				private readonly IConfigurationSource parent;
+				this.impl = impl;
+			}
 
-				public MergingSource(IConfigurationSource child, IConfigurationSource parent)
-				{
-					this.child = child;
-					this.parent = parent;
-				}
+			public ServiceConfigurationSet Get(Type type)
+			{
+				return impl.GetOrDefault(type);
+			}
+		}
 
-				public ServiceConfigurationSet Get(Type type)
-				{
-					var c = child.Get(type);
-					var p = parent.Get(type);
-					if (c == null)
-						return p;
-					if (c.parent == null)
-						c.parent = p;
-					return c;
-				}
+		private class MergingConfigurationSource : IConfigurationSource
+		{
+			private readonly IConfigurationSource child;
+			private readonly IConfigurationSource parent;
+
+			public MergingConfigurationSource(IConfigurationSource child, IConfigurationSource parent)
+			{
+				this.child = child;
+				this.parent = parent;
+			}
+
+			public ServiceConfigurationSet Get(Type type)
+			{
+				var c = child.Get(type);
+				var p = parent.Get(type);
+				if (c == null)
+					return p;
+				if (c.parent == null)
+					c.parent = p;
+				return c;
 			}
 		}
 	}
