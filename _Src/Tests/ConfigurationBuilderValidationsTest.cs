@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Interface;
+using SimpleContainer.Tests.Generics;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -32,7 +33,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CannotBindValueForOpenGeneric : NotConfiguredGenericsTest
+		public class CannotBindValueForOpenGeneric : GenericsInferringViaArgumentTypesTest
 		{
 			public class A<T>
 			{
@@ -48,7 +49,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 		
-		public class CannotBindFactoryForOpenGeneric : NotConfiguredGenericsTest
+		public class CannotBindFactoryForOpenGeneric : GenericsInferringViaArgumentTypesTest
 		{
 			public class A<T>
 			{

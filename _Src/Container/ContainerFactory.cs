@@ -1,14 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Configuration;
-using SimpleContainer.Factories;
-using SimpleContainer.Generics;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
-using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer
@@ -16,40 +14,88 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private Type profile;
-		private Func<AssemblyName, bool> assembliesFilter;
-		private Func<Type, object> settingsLoader;
+		private Func<AssemblyName, bool> assembliesFilter = n => true;
+		private Func<Type, string, object> settingsLoader;
+		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
-		private readonly List<Assembly> pluginAssemblies = new List<Assembly>();
+		private Type[] priorities;
+		private Action<ContainerConfigurationBuilder> configure;
+		private TypesContext typesContextCache;
+		private Func<Type[]> types;
+		private IParametersSource parameters;
+		private readonly Dictionary<Type, Func<object, string>> valueFormatters = new Dictionary<Type, Func<object, string>>();
+
+		private readonly Dictionary<Type, ConfigurationRegistry> configurationByProfileCache =
+			new Dictionary<Type, ConfigurationRegistry>();
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
-			var cache = new NonConcurrentDictionary<Type, object>();
-			settingsLoader = t => cache.GetOrAdd(t, newLoader);
+			var cache = new ConcurrentDictionary<Type, object>();
+			settingsLoader = (t, _) => cache.GetOrAdd(t, newLoader);
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithSettingsLoader(Func<Type, string, object> newLoader)
+		{
+			var cache = new ConcurrentDictionary<string, object>();
+			settingsLoader = (t, k) => cache.GetOrAdd(t.Name + k, s => newLoader(t, k));
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithParameters(IParametersSource newParameters)
+		{
+			parameters = newParameters;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithValueFormatter<T>(Func<T, string> formatter)
+		{
+			valueFormatters[typeof (T)] = o => formatter((T) o);
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
 			return this;
 		}
 
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
-			assembliesFilter = name => newAssembliesFilter(name) || name.Name == "SimpleContainer";
+			assembliesFilter = n => newAssembliesFilter(n) || n.Name == "SimpleContainer";
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
 			return this;
 		}
 
-		public ContainerFactory WithPlugin(Assembly assembly)
+		public ContainerFactory WithPriorities(params Type[] newConfiguratorTypes)
 		{
-			pluginAssemblies.Add(assembly);
+			priorities = newConfiguratorTypes;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithConfigFile(string fileName)
+		{
+			configFileName = fileName;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
 			return this;
 		}
 
 		public ContainerFactory WithErrorLogger(LogError logger)
 		{
 			errorLogger = logger;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
 			return this;
 		}
 
 		public ContainerFactory WithInfoLogger(LogInfo logger)
 		{
 			infoLogger = logger;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
 			return this;
 		}
 
@@ -62,9 +108,98 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public IStaticContainer FromAssemblies(IEnumerable<Assembly> assemblies)
+		public ContainerFactory WithConfigurator(Action<ContainerConfigurationBuilder> newConfigure)
 		{
-			var types = assemblies
+			configure = newConfigure;
+			return this;
+		}
+
+		public ContainerFactory WithTypesFromDefaultBinDirectory(bool withExecutables)
+		{
+			return WithTypesFromDirectory(GetBinDirectory(), withExecutables);
+		}
+
+		public ContainerFactory WithTypesFromDirectory(string directory, bool withExecutables)
+		{
+			var assemblies = Directory.GetFiles(directory, "*.dll")
+				.Union(withExecutables ? Directory.GetFiles(directory, "*.exe") : Enumerable.Empty<string>())
+				.Select(delegate(string s)
+				{
+					try
+					{
+						return AssemblyName.GetAssemblyName(s);
+					}
+					catch (BadImageFormatException)
+					{
+						return null;
+					}
+				})
+				.NotNull()
+				.Where(assembliesFilter)
+				.AsParallel()
+				.Select(AssemblyHelpers.LoadAssembly);
+			return WithTypesFromAssemblies(assemblies);
+		}
+
+		public ContainerFactory WithTypesFromAssemblies(IEnumerable<Assembly> assemblies)
+		{
+			return WithTypesFromAssemblies(assemblies.AsParallel());
+		}
+
+		public ContainerFactory WithTypes(Type[] newTypes)
+		{
+			types = () => newTypes;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public IContainer Build()
+		{
+			var typesContext = typesContextCache;
+			if (typesContext == null)
+			{
+				typesContext = new TypesContext
+				{
+					typesList = TypesList.Create(types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray())
+				};
+				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
+				if (configFileName != null && File.Exists(configFileName))
+					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);
+				var configurationContainer = CreateContainer(typesContext, ConfigurationRegistry.Empty);
+				typesContext.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
+				typesContextCache = typesContext;
+			}
+			ConfigurationRegistry configurationRegistry;
+			if (!configurationByProfileCache.TryGetValue(profile ?? typeof (ContainerFactory), out configurationRegistry))
+			{
+				var builder = new ContainerConfigurationBuilder();
+				var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
+				typesContext.configuratorRunner.Run(builder, configurationContext, priorities);
+				if (typesContext.fileConfigurator != null)
+					typesContext.fileConfigurator(builder);
+				configurationRegistry = builder.RegistryBuilder.Build(typesContext.typesList, null);
+				configurationByProfileCache.Add(profile ?? typeof (ContainerFactory), configurationRegistry);
+			}
+			return CreateContainer(typesContext, configurationRegistry.Apply(typesContext.typesList, configure));
+		}
+
+		private IContainer CreateContainer(TypesContext currentTypesContext, ConfigurationRegistry configuration)
+		{
+			return new Implementation.SimpleContainer(currentTypesContext.genericsAutoCloser, configuration,
+				currentTypesContext.typesList, errorLogger, infoLogger, valueFormatters);
+		}
+
+		private static string GetBinDirectory()
+		{
+			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
+				? AppDomain.CurrentDomain.BaseDirectory
+				: AppDomain.CurrentDomain.RelativeSearchPath;
+		}
+
+		private ContainerFactory WithTypesFromAssemblies(ParallelQuery<Assembly> assemblies)
+		{
+			var newTypes = assemblies
 				.Where(x => assembliesFilter(x.GetName()))
 				.SelectMany(a =>
 				{
@@ -78,35 +213,18 @@ namespace SimpleContainer
 						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
 						throw new SimpleContainerException(string.Format(messageFormat, a.GetName(), loaderExceptionsText), e);
 					}
-				})
-				.ToArray();
-			return FromTypes(types);
+				});
+			types = newTypes.ToArray;
+			typesContextCache = null;
+			return this;
 		}
 
-		public IStaticContainer FromTypes(Type[] types)
+		private class TypesContext
 		{
-			var defaultTypes = pluginAssemblies.Concat(typeof(ContainerFactory).GetTypeInfo().Assembly).SelectMany(x => x.GetTypes());
-			var hostingTypes = types.Concat(defaultTypes).Distinct().ToArray();
-			var configuration = CreateDefaultConfiguration(hostingTypes);
-			var inheritors = DefaultInheritanceHierarchy.Create(hostingTypes);
-			var genericsAutocloser = new GenericsAutoCloser(((DefaultInheritanceHierarchy) inheritors).GetImpl(),assembliesFilter);
-			var staticServices = new HashSet<Type>();
-			var builder = new ContainerConfigurationBuilder(staticServices, true);
-			var configurationContext = new ConfigurationContext(profile, settingsLoader);
-			using (var runner = ConfiguratorRunner.Create(true, configuration, inheritors, configurationContext, genericsAutocloser))
-				runner.Run(builder, x => true);
-			var containerConfiguration = new MergedConfiguration(configuration, builder.Build());
-			return new StaticContainer(containerConfiguration, inheritors, assembliesFilter,
-				configurationContext, staticServices, null, errorLogger, infoLogger, pluginAssemblies, genericsAutocloser);
-		}
-
-		private IContainerConfiguration CreateDefaultConfiguration(Type[] types)
-		{
-			var factoriesProcessor = new FactoryConfigurationProcessor();
-			var builder = new ContainerConfigurationBuilder(new HashSet<Type>(), false);
-			foreach (var type in types)
-				factoriesProcessor.FirstRun(builder, type);
-			return builder.Build();
+			public TypesList typesList;
+			public GenericsAutoCloser genericsAutoCloser;
+			public Action<ContainerConfigurationBuilder> fileConfigurator;
+			public ConfiguratorRunner configuratorRunner;
 		}
 	}
 }

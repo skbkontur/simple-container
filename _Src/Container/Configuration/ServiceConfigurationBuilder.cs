@@ -1,29 +1,26 @@
+using System.Collections.Generic;
+using System.Linq;
+using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
 
 namespace SimpleContainer.Configuration
 {
 	public class ServiceConfigurationBuilder<T> :
-		AbstractServiceConfigurationBuilder<ServiceConfigurationBuilder<T>, ContainerConfigurationBuilder, T>
+		AbstractServiceConfigurationBuilder<ServiceConfigurationBuilder<T>, T>
 	{
-		public ServiceConfigurationBuilder(ContainerConfigurationBuilder builder)
-			: base(builder)
+		internal ServiceConfigurationBuilder(ServiceConfigurationSet configurationSet)
+			: base(configurationSet, new List<string>())
 		{
 		}
 
 		public ServiceContractConfigurationBuilder<T> Contract<TContract>() where TContract : RequireContractAttribute, new()
 		{
-			return new ServiceContractConfigurationBuilder<T>(builder.Contract<TContract>());
+			return Contract(InternalHelpers.NameOf<TContract>());
 		}
 
-		public ServiceContractConfigurationBuilder<T> Contract(params string[] contracts)
+		public ServiceContractConfigurationBuilder<T> Contract(params string[] newContracts)
 		{
-			return new ServiceContractConfigurationBuilder<T>(builder.Contract(contracts));
-		}
-
-		public ServiceConfigurationBuilder<T> MakeStatic()
-		{
-			builder.MakeStatic(typeof (T));
-			return this;
+			return new ServiceContractConfigurationBuilder<T>(configurationSet, contracts.Concat(newContracts.ToList()));
 		}
 	}
 }

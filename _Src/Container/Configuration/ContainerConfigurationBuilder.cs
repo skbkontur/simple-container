@@ -1,63 +1,38 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using SimpleContainer.Helpers;
-using SimpleContainer.Infection;
-using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
 	public class ContainerConfigurationBuilder : AbstractConfigurationBuilder<ContainerConfigurationBuilder>
 	{
-		private readonly List<ContractConfigurationBuilder> contractConfigurators =
-			new List<ContractConfigurationBuilder>();
-
-		public ContainerConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
-			: base(staticServices, isStaticConfiguration)
+		public ContainerConfigurationBuilder()
+			: base(new ConfigurationRegistry.Builder(), new List<string>())
 		{
 		}
 
-		public ContainerConfigurationBuilder MakeStatic(Type type)
+		public ContainerConfigurationBuilder RegisterImplementationSelector(ImplementationSelector s)
 		{
-			if (!isStaticConfiguration)
-			{
-				const string messageFormat = "can't make type [{0}] static using non static configurator";
-				throw new SimpleContainerException(string.Format(messageFormat, type.FormatName()));
-			}
-			staticServices.Add(type);
+			RegistryBuilder.RegisterImplementationSelector(s);
 			return this;
 		}
 
-		public ContractConfigurationBuilder Contract<T>()
-			where T : RequireContractAttribute, new()
+		public ContainerConfigurationBuilder InheritorsOf(string description, Type baseType,
+			Action<Type, ServiceConfigurationBuilder<object>> configure)
 		{
-			return Contract(InternalHelpers.NameOf<T>());
+			RegistryBuilder.Filtered(description, baseType, configure);
+			return this;
 		}
 
-		public ContractConfigurationBuilder Contract(params string[] contracts)
+		public ContainerConfigurationBuilder InheritorsOf<T>(string description, Action<Type, ServiceConfigurationBuilder<object>> configure)
 		{
-			if (contracts.Length == 0)
-				throw new InvalidOperationException("contracts is empty");
-			var contractName = contracts[contracts.Length - 1];
-			var requiredContracts = contracts.Length == 1
-				? new List<string>(0)
-				: contracts.Where((_, i) => i < contracts.Length - 1).ToList();
-			var requiredContractsKey = InternalHelpers.FormatContractsKey(requiredContracts);
-			var result = contractConfigurators
-				.Where(x => x.Name == contractName)
-				.SingleOrDefault(x => InternalHelpers.FormatContractsKey(x.RequiredContracts) == requiredContractsKey);
-			if (result == null)
-			{
-				result = new ContractConfigurationBuilder(this, contractName, requiredContracts,
-					staticServices, isStaticConfiguration);
-				contractConfigurators.Add(result);
-			}
-			return result;
+			return InheritorsOf(description, typeof(T), configure);
 		}
 
-		internal IContainerConfiguration Build()
+		public ContainerConfigurationBuilder ForAll(string description,
+			Action<Type, ServiceConfigurationBuilder<object>> configure)
 		{
-			return new ContainerConfiguration(configurations, contractConfigurators.Select(x => x.Build()).ToArray());
+			RegistryBuilder.Filtered(description, null, configure);
+			return this;
 		}
 	}
 }

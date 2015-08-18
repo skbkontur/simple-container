@@ -14,6 +14,16 @@ namespace SimpleContainer.Interface
 			this.contracts = contracts;
 		}
 
+		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, params string[] contracts)
+		{
+			var typeContracts = InternalHelpers.ParseContracts(type);
+			var contractsToUse = excludeTypeContractIfDuplicates && contracts.Length > 0 && typeContracts.Length == 1 &&
+			                     contracts[contracts.Length - 1].EqualsIgnoringCase(typeContracts[0])
+				? contracts
+				: contracts.Concat(typeContracts);
+			return new ServiceName(type, contractsToUse);
+		}
+
 		public Type Type
 		{
 			get { return type; }
@@ -22,6 +32,11 @@ namespace SimpleContainer.Interface
 		public string[] Contracts
 		{
 			get { return contracts; }
+		}
+
+		public ServiceName AddContracts(params string[] contract)
+		{
+			return new ServiceName(type, contracts.Concat(contract));
 		}
 
 		public override string ToString()
@@ -62,14 +77,9 @@ namespace SimpleContainer.Interface
 			{
 				var result = 0;
 				foreach (var contract in Contracts)
-					result = CombineHashCodes(result, contract.GetHashCode());
+					result = Utils.CombineHashCodes(result, contract.GetHashCode());
 				return (Type.GetHashCode()*397) ^ result;
 			}
-		}
-
-		private static int CombineHashCodes(int h1, int h2)
-		{
-			return ((h1 << 5) + h1) ^ h2;
 		}
 	}
 }

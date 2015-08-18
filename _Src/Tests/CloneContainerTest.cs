@@ -1,7 +1,7 @@
 using System;
-using System.Linq;
 using System.Text;
 using NUnit.Framework;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -144,23 +144,20 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var logBuilder = new StringBuilder();
-				Action<ContainerFactory> configureFactory =
-					f => f.WithErrorLogger((message, error) => logBuilder.Append(error.InnerException.InnerException.Message));
-				using (var staticContainer = CreateStaticContainer(configureFactory))
+				LogError logError = (message, error) => logBuilder.Append(error.InnerException.InnerException.Message);
+				using (var container = Factory().WithErrorLogger(logError).Build())
 				{
-					using (var localContainer = LocalContainer(staticContainer))
+					var exception = Assert.Throws<AggregateException>(delegate
 					{
-						var exception = Assert.Throws<AggregateException>(delegate
-						{
-							using (var containerClone = localContainer.Clone(null))
-								containerClone.Get<A>();
-						});
-						Assert.That(exception.InnerException.InnerException.Message, Is.EqualTo("test crash "));
-						Assert.That(logBuilder.ToString(), Is.EqualTo(""));
-						localContainer.Get<A>();
-					}
-					Assert.That(logBuilder.ToString(), Is.EqualTo("test crash "));
+						using (var containerClone = container.Clone(null))
+							containerClone.Get<A>();
+					});
+					Assert.That(exception.InnerException.InnerException.Message, Is.EqualTo("test crash "));
+					Assert.That(logBuilder.ToString(), Is.EqualTo(""));
+					container.Get<A>();
+					Assert.That(logBuilder.ToString(), Is.EqualTo(""));
 				}
+				Assert.That(logBuilder.ToString(), Is.EqualTo("test crash "));
 			}
 		}
 

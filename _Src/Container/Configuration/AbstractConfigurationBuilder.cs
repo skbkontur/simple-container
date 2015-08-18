@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
+using System.Linq;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Infection;
@@ -8,28 +8,23 @@ using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
-	public abstract class AbstractConfigurationBuilder<TSelf> : IInternalConfigurationBuilder
+	public abstract class AbstractConfigurationBuilder<TSelf>
 		where TSelf : AbstractConfigurationBuilder<TSelf>
 	{
-		protected readonly bool isStaticConfiguration;
-		protected readonly ISet<Type> staticServices;
-		protected readonly IDictionary<Type, object> configurations = new Dictionary<Type, object>();
+		internal ConfigurationRegistry.Builder RegistryBuilder { get; private set; }
+		protected readonly List<string> contracts;
 
-		protected AbstractConfigurationBuilder(ISet<Type> staticServices, bool isStaticConfiguration)
+		internal AbstractConfigurationBuilder(ConfigurationRegistry.Builder registryBuilder, List<string> contracts)
 		{
-			this.staticServices = staticServices;
-			this.isStaticConfiguration = isStaticConfiguration;
-		}
-
-		protected TSelf Self
-		{
-			get { return (TSelf) this; }
+			RegistryBuilder = registryBuilder;
+			this.contracts = contracts;
 		}
 
 		public TSelf Bind<TInterface, TImplementation>(bool clearOld = false)
 			where TImplementation : TInterface
 		{
-			return Bind(typeof (TInterface), typeof (TImplementation), clearOld);
+			GetServiceBuilder(typeof (TInterface)).Bind(typeof (TInterface), typeof (TImplementation), clearOld);
+			return Self;
 		}
 
 		public TSelf Bind(Type interfaceType, Type implementationType, bool clearOld)
@@ -38,18 +33,20 @@ namespace SimpleContainer.Configuration
 				!interfaceType.IsAssignableFrom(implementationType))
 				throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
 					implementationType.FormatName()));
-			GetOrCreate<InterfaceConfiguration>(interfaceType).AddImplementation(implementationType, clearOld);
+			GetServiceBuilder(interfaceType).Bind(interfaceType, implementationType, clearOld);
 			return Self;
 		}
 
 		public TSelf Bind(Type interfaceType, Type implementationType)
 		{
-			return Bind(interfaceType, implementationType, false);
+			GetServiceBuilder(interfaceType).Bind(interfaceType, implementationType, false);
+			return Self;
 		}
 
 		public TSelf Bind<T>(object value, bool containerOwnsInstance = true)
 		{
-			return Bind(typeof (T), value, containerOwnsInstance);
+			GetServiceBuilder(typeof (T)).Bind(typeof (T), value, containerOwnsInstance);
+			return Self;
 		}
 
 		public TSelf Bind(Type interfaceType, object value, bool containerOwnsInstance = true)
@@ -61,181 +58,162 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format("value {0} can't be casted to required type [{1}]",
 					DumpValue(value),
 					interfaceType.FormatName()));
-			GetOrCreate<InterfaceConfiguration>(interfaceType).UseInstance(value, containerOwnsInstance);
+			GetServiceBuilder(interfaceType).Bind(interfaceType, value, containerOwnsInstance);
 			return Self;
 		}
 
 		public TSelf WithInstanceFilter<T>(Func<T, bool> filter)
 		{
-			GetOrCreate<ImplementationConfiguration>(typeof (T)).InstanceFilter = o => filter((T) o);
+			GetServiceBuilder(typeof (T)).WithInstanceFilter(filter);
 			return Self;
 		}
 
-		public TSelf Bind<T>(Func<FactoryContext, T> creator, bool containerOwnsInstance = true)
+		public TSelf Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance = true)
 		{
-			return Bind(typeof (T), c => creator(c), containerOwnsInstance);
+			GetServiceBuilder(typeof (T)).Bind(creator, containerOwnsInstance);
+			return Self;
 		}
 
-		public TSelf Bind(Type type, Func<FactoryContext, object> creator, bool containerOwnsInstance = true)
+		public TSelf Bind(Type type, Func<IContainer, object> creator, bool containerOwnsInstance = true)
 		{
-			var interfaceConfiguration = GetOrCreate<InterfaceConfiguration>(type);
-			interfaceConfiguration.Factory = creator;
-			interfaceConfiguration.ContainerOwnsInstance = containerOwnsInstance;
+			GetServiceBuilder(type).Bind(creator, containerOwnsInstance);
+			return Self;
+		}
+
+		public TSelf Bind<T>(Func<IContainer, Type, T> creator, bool containerOwnsInstance = true)
+		{
+			GetServiceBuilder(typeof (T)).Bind(creator, containerOwnsInstance);
+			return Self;
+		}
+
+		public TSelf Bind(Type type, Func<IContainer, Type, object> creator, bool containerOwnsInstance = true)
+		{
+			GetServiceBuilder(type).Bind(creator, containerOwnsInstance);
 			return Self;
 		}
 
 		public TSelf BindDependency<T>(string dependencyName, object value)
 		{
-			ConfigureDependency(typeof (T), dependencyName).UseValue(value);
+			GetServiceBuilder(typeof (T)).BindDependency(dependencyName, value);
 			return Self;
 		}
 
 		public TSelf BindDependency(Type type, string dependencyName, object value)
 		{
-			ConfigureDependency(type, dependencyName).UseValue(value);
+			GetServiceBuilder(type).BindDependency(dependencyName, value);
 			return Self;
 		}
 
 		public TSelf BindDependency<T, TDependency>(TDependency value)
 		{
-			BindDependency<T, TDependency>((object) value);
+			GetServiceBuilder(typeof (T)).BindDependency<T, TDependency>(value);
 			return Self;
 		}
 
 		public TSelf BindDependency<T, TDependency>(object value)
 		{
-			if (value != null && value is TDependency == false)
-				throw new SimpleContainerException(
-					string.Format("dependency {0} for service [{1}] can't be casted to required type [{2}]",
-						DumpValue(value),
-						typeof (T).FormatName(),
-						typeof (TDependency).FormatName()));
-			ConfigureDependency(typeof (T), typeof (TDependency)).UseValue(value);
+			GetServiceBuilder(typeof (T)).BindDependency<T, TDependency>(value);
 			return Self;
 		}
 
 		public TSelf BindDependency<T, TDependency, TDependencyValue>()
 			where TDependencyValue : TDependency
 		{
-			ConfigureDependency(typeof (T), typeof (TDependency)).ImplementationType = typeof (TDependencyValue);
+			GetServiceBuilder(typeof (T)).BindDependency<TDependency, TDependencyValue>();
 			return Self;
 		}
 
 		public TSelf BindDependency(Type type, Type dependencyType, Func<IContainer, object> creator)
 		{
-			ConfigureDependency(type, dependencyType).Factory = creator;
+			GetServiceBuilder(type).BindDependency(dependencyType, creator);
 			return Self;
 		}
 
 		public TSelf BindDependencyFactory<T>(string dependencyName, Func<IContainer, object> creator)
 		{
-			ConfigureDependency(typeof (T), dependencyName).Factory = creator;
+			GetServiceBuilder(typeof (T)).BindDependencyFactory(dependencyName, creator);
 			return Self;
 		}
 
 		public TSelf BindDependencyImplementation<T, TDependencyValue>(string dependencyName)
 		{
-			ConfigureDependency(typeof (T), dependencyName).ImplementationType = typeof (TDependencyValue);
+			GetServiceBuilder(typeof (T)).BindDependencyImplementation<TDependencyValue>(dependencyName);
 			return Self;
 		}
 
 		public TSelf BindDependencyImplementation<T, TDependencyInterface, TDependencyImplementation>()
 		{
-			ConfigureDependency(typeof (T), typeof (TDependencyInterface)).ImplementationType =
-				typeof (TDependencyImplementation);
+			GetServiceBuilder(typeof (T)).BindDependencyImplementation<TDependencyInterface, TDependencyImplementation>();
 			return Self;
 		}
 
 		public TSelf BindDependencies<T>(object dependencies)
 		{
-			foreach (var property in dependencies.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
-				BindDependency<T>(property.Name, property.GetValue(dependencies, null));
+			GetServiceBuilder(typeof (T)).BindDependencies(dependencies);
 			return Self;
 		}
 
 		public TSelf BindDependencies<T>(IParametersSource parameters)
 		{
-			GetOrCreate<ImplementationConfiguration>(typeof (T)).ParametersSource = parameters;
+			GetServiceBuilder(typeof (T)).BindDependencies(parameters);
 			return Self;
 		}
 
 		public TSelf BindDependencyValue(Type type, Type dependencyType, object value)
 		{
-			ConfigureDependency(type, dependencyType).UseValue(value);
+			GetServiceBuilder(type).BindDependencyValue(dependencyType, value);
 			return Self;
 		}
 
 		public TSelf UseAutosearch(Type interfaceType, bool useAutosearch)
 		{
-			GetOrCreate<InterfaceConfiguration>(interfaceType).UseAutosearch = useAutosearch;
+			GetServiceBuilder(interfaceType).UseAutosearch(useAutosearch);
 			return Self;
 		}
 
-		public TSelf DontUse(Type pluggableType)
+		public TSelf DontUse(Type t)
 		{
-			GetOrCreate<ImplementationConfiguration>(pluggableType).DontUseIt = true;
+			GetServiceBuilder(t).DontUse();
 			return Self;
 		}
 
 		public TSelf DontUse<T>()
 		{
-			return DontUse(typeof (T));
+			GetServiceBuilder(typeof (T)).DontUse();
+			return Self;
 		}
 
-		void IInternalConfigurationBuilder.DontUse(Type pluggableType)
+		public TSelf IgnoreImplementation(Type t)
 		{
-			DontUse(pluggableType);
+			GetServiceBuilder(t).IgnoreImplementation();
+			return Self;
 		}
 
-		void IInternalConfigurationBuilder.Bind(Type interfaceType, Type implementationType)
+		public TSelf IgnoreImplementation<T>()
 		{
-			Bind(interfaceType, implementationType);
+			GetServiceBuilder(typeof (T)).IgnoreImplementation();
+			return Self;
 		}
 
-		void IInternalConfigurationBuilder.BindDependency(Type type, string dependencyName, object value)
+		private ServiceConfiguration.Builder GetServiceBuilder(Type type)
 		{
-			BindDependency(type, dependencyName, value);
+			return RegistryBuilder.GetConfigurationSet(type).GetBuilder(contracts);
 		}
 
-		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, Type dependencyType)
+		private TSelf Self
 		{
-			return GetDependencyConfigurator(implementationType, InternalHelpers.ByTypeDependencyKey(dependencyType));
+			get { return (TSelf) this; }
 		}
 
-		private ImplentationDependencyConfiguration ConfigureDependency(Type implementationType, string dependencyName)
+		public ContractConfigurationBuilder Contract(params string[] newContracts)
 		{
-			return GetDependencyConfigurator(implementationType, InternalHelpers.ByNameDependencyKey(dependencyName));
+			return new ContractConfigurationBuilder(RegistryBuilder, contracts.Concat(newContracts.ToList()));
 		}
 
-		private ImplentationDependencyConfiguration GetDependencyConfigurator(Type pluggable, string key)
+		public ContractConfigurationBuilder Contract<T>()
+			where T : RequireContractAttribute, new()
 		{
-			return GetOrCreate<ImplementationConfiguration>(pluggable).GetOrCreateByKey(key);
-		}
-
-		protected T GetOrCreate<T>(Type type) where T : class, new()
-		{
-			object result;
-			if (!configurations.TryGetValue(type, out result))
-				configurations.Add(type, result = new T());
-			try
-			{
-				return (T) result;
-			}
-			catch (InvalidCastException e)
-			{
-				throw new InvalidOperationException(string.Format("type {0}, existent {1}, required {2}",
-					type.FormatName(), result.GetType().FormatName(), typeof (T).FormatName()), e);
-			}
-		}
-
-		private static string DumpValue(object value)
-		{
-			if (value == null)
-				return "[<null>]";
-			var type = value.GetType();
-			return type.IsSimpleType()
-				? string.Format("[{0}] of type [{1}]", value, type.FormatName())
-				: string.Format("of type [{0}]", type.FormatName());
+			return Contract(InternalHelpers.NameOf<T>());
 		}
 	}
 }

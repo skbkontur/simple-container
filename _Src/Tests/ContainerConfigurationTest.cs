@@ -1,14 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
-using SimpleContainer.Tests.Contracts;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -84,10 +80,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySubsystemSettings {MyParameter = "abc"};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (var localContainer = LocalContainer(staticContainer))
+				using (var staticContainer = Factory().WithSettingsLoader(loadSettings).Build())
 				{
-					var instance = localContainer.Get<Service>();
+					var instance = staticContainer.Get<Service>();
 					Assert.That(instance.parameter, Is.EqualTo("abc"));
 				}
 			}
@@ -101,11 +96,44 @@ namespace SimpleContainer.Tests
 					log.AppendFormat("load {0} ", t.Name);
 					return new MySubsystemSettings {MyParameter = "abc"};
 				};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-				using (LocalContainer(staticContainer))
-				{
-				}
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					container.Get<Service>();
 				Assert.That(log.ToString(), Is.EqualTo("load MySubsystemSettings "));
+			}
+		}
+
+		public class ServiceConfiguratorsAreLazy : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public static int callCount;
+
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					callCount++;
+					builder.Dependencies(new {parameter = 72});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(AConfigurator.callCount, Is.EqualTo(0));
+				Assert.That(container.Get<A>().parameter, Is.EqualTo(72));
+				Assert.That(AConfigurator.callCount, Is.EqualTo(1));
+				Assert.That(container.Get<Func<A>>().Invoke().parameter, Is.EqualTo(72));
+				Assert.That(AConfigurator.callCount, Is.EqualTo(1));
 			}
 		}
 
@@ -144,21 +172,21 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void SettingsLoaderIsNotConfigured()
 			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
-				}
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+				Assert.That(error.InnerException.InnerException.Message,
+					Is.EqualTo("settings loader is not configured, use ContainerFactory.WithSettingsLoader"));
 			}
 
 			[Test]
 			public void SettingsLoaderRetursNull()
 			{
 				Func<Type, object> loadSettings = t => null;
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message, Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
+					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message,
+						Is.EqualTo("settings loader returned null for type [MySubsystemSettings]"));
 				}
 			}
 
@@ -166,10 +194,10 @@ namespace SimpleContainer.Tests
 			public void SettingsLoaderReturnsObjectOfInvalidType()
 			{
 				Func<Type, object> loadSettings = t => new OtherSubsystemSettings();
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
 				{
-					var error = Assert.Throws<SimpleContainerException>(() => LocalContainer(staticContainer));
-					Assert.That(error.Message,
+					var error = Assert.Throws<SimpleContainerException>(() => container.Get<Service>());
+					Assert.That(error.InnerException.InnerException.Message,
 						Is.EqualTo("invalid settings type, required [MySubsystemSettings], actual [OtherSubsystemSettings]"));
 				}
 			}
@@ -303,8 +331,42 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				Func<Type, object> loadSettings = t => new MySettings {value = 87};
-				using (var staticContainer = CreateStaticContainer(x => x.WithSettingsLoader(loadSettings)))
-					Assert.That(LocalContainer(staticContainer).Get<SomeService>().Value, Is.EqualTo(87));
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					Assert.That(container.Get<SomeService>().Value, Is.EqualTo(87));
+			}
+		}
+
+		public class ContainerConfiguratorWithSettingsWithKey : ContainerConfigurationTest
+		{
+			public class MySettings
+			{
+				public string value;
+			}
+
+			public class SomeService
+			{
+				public SomeService(string value)
+				{
+					Value = value;
+				}
+
+				public string Value { get; private set; }
+			}
+
+			public class MyConfigurator : IContainerConfigurator
+			{
+				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
+				{
+					builder.BindDependency<SomeService>("value", context.Settings<MySettings>("my_context_key").value);
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				Func<Type, string, object> loadSettings = (t, key) => new MySettings {value = key};
+				using (var container = Factory().WithSettingsLoader(loadSettings).Build())
+					Assert.That(container.Get<SomeService>().Value, Is.EqualTo("my_context_key"));
 			}
 		}
 
@@ -345,45 +407,6 @@ namespace SimpleContainer.Tests
 				var a = container.Create<A>("a");
 				Assert.That(a.p1, Is.EqualTo(1));
 				Assert.That(a.p2, Is.EqualTo(2));
-			}
-		}
-
-		public class CanBindFactoryViaServiceConfigurator : ContainerConfigurationTest
-		{
-			public class A
-			{
-				public readonly B b;
-
-				public A(B b)
-				{
-					this.b = b;
-				}
-			}
-
-			public class B
-			{
-				public readonly Type ownerType;
-
-				public B(Type ownerType)
-				{
-					this.ownerType = ownerType;
-				}
-			}
-
-			public class AConfigurator : IServiceConfigurator<B>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<B> builder)
-				{
-					builder.Bind(c => new B(c.target));
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var a = container.Get<A>();
-				Assert.That(a.b.ownerType, Is.EqualTo(typeof (A)));
 			}
 		}
 
@@ -523,86 +546,6 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanInjectStructViaExplicitConfiguration : BasicTest
-		{
-			public class A
-			{
-				public readonly Token token;
-
-				public A(Token token)
-				{
-					this.token = token;
-				}
-			}
-
-			public struct Token
-			{
-				public int value;
-			}
-
-			public class TokenSource
-			{
-				public Token CreateToken()
-				{
-					return new Token {value = 78};
-				}
-			}
-
-			public class TokenConfigurator : IServiceConfigurator<Token>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Token> builder)
-				{
-					builder.Bind(c => c.container.Get<TokenSource>().CreateToken());
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				Assert.That(container.Get<A>().token.value, Is.EqualTo(78));
-			}
-		}
-
-		public class ApplicationNameAndPrimaryAssembly : ContainerConfigurationTest
-		{
-			public class A
-			{
-				public A(string applicationName, Assembly primaryAssembly)
-				{
-					ApplicationName = applicationName;
-					PrimaryAssembly = primaryAssembly;
-				}
-
-				public string ApplicationName { get; private set; }
-				public Assembly PrimaryAssembly { get; private set; }
-			}
-
-			public class AConfigurator : IServiceConfigurator<A>
-			{
-				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
-				{
-					builder.Dependencies(new
-					{
-						applicationName = context.ApplicationName,
-						primaryAssembly = context.PrimaryAssembly
-					});
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var staticContainer = CreateStaticContainer();
-				using (var c = staticContainer.CreateLocalContainer("my-app-name", Assembly.GetExecutingAssembly(), null, null))
-				{
-					var a = c.Get<A>();
-					Assert.That(a.ApplicationName, Is.EqualTo("my-app-name"));
-					Assert.That(a.PrimaryAssembly, Is.SameAs(Assembly.GetExecutingAssembly()));
-				}
-			}
-		}
-
 		public class CanUseParametersSourceFromContext : ContainerConfigurationTest
 		{
 			public class A
@@ -623,30 +566,12 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class SimpleParametersSource : IParametersSource
-			{
-				private readonly IDictionary<string, object> values;
-
-				public SimpleParametersSource(IDictionary<string, object> values)
-				{
-					this.values = values;
-				}
-
-				public bool TryGet(string name, Type type, out object value)
-				{
-					if (!values.TryGetValue(name, out value))
-						return false;
-					Assert.That(value.GetType(), Is.SameAs(type));
-					return true;
-				}
-			}
-
 			[Test]
 			public void Test()
 			{
-				var parameters = new SimpleParametersSource(new Dictionary<string, object> {{"parameter", 42}});
-				var container = Container(parameters: parameters);
-				Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
+				var parameters = new TestingParametersSource(new Dictionary<string, object> {{"parameter", 42}});
+				using (var container = Factory().WithParameters(parameters).Build())
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
@@ -666,7 +591,7 @@ namespace SimpleContainer.Tests
 			{
 				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
 				{
-					builder.Dependencies(new { parametersIsNull = context.Parameters == null });
+					builder.Dependencies(new {parametersIsNull = context.Parameters == null});
 				}
 			}
 
@@ -703,7 +628,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				const string expectedMessage = "can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]\r\n\r\n!A\r\n\t!dependency <---------------";
+				const string expectedMessage =
+					"can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]\r\n\r\n!A\r\n\t!dependency <---------------";
 				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -734,6 +660,47 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var instance = container.Get<A>();
 				Assert.That(instance.dependency, Is.EqualTo(new[] {"a", "b"}));
+			}
+		}
+
+		public class Priorities : ContainerConfigurationTest
+		{
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public interface IHighPriorityServiceConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
+			public class AConfigurator1 : IHighPriorityServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+
+			public class AConfigurator2 : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					builder.Dependencies(new {parameter = 43});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var priorities = new[] {typeof (IServiceConfigurator<>), typeof (IHighPriorityServiceConfigurator<>)};
+				using (var container = Factory().WithPriorities(priorities).Build())
+					Assert.That(container.Get<A>().parameter, Is.EqualTo(42));
 			}
 		}
 
@@ -772,8 +739,81 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				Assert.That(container.Get<IDatabase>(), Is.InstanceOf<Database>());
 
-				var inMemoryContainer = Container(null, typeof (InMemoryProfile));
-				Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
+				using (var inMemoryContainer = Factory().WithProfile(typeof (InMemoryProfile)).Build())
+					Assert.That(inMemoryContainer.Get<IDatabase>(), Is.InstanceOf<InMemoryDatabase>());
+			}
+		}
+
+		public class CanGiveConfiguratorTypeLowerThanDefaultPriority : SimpleContainerTestBase
+		{
+			public interface IService
+			{
+			}
+
+			public class ImplOne : IService
+			{
+			}
+
+			private class ImplTwo : IService
+			{
+			}
+
+			public interface ILowPriorityConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
+			public class LowPriorityConfigurator : ILowPriorityConfigurator<IService>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IService> builder)
+				{
+					builder.Bind<ImplOne>();
+				}
+			}
+
+			public class DefaultConfigurator : IServiceConfigurator<IService>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IService> builder)
+				{
+					builder.Bind<ImplTwo>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Factory()
+					.WithPriorities(typeof (ILowPriorityConfigurator<>), typeof (IServiceConfigurator<>))
+					.Build();
+				Assert.That(container.GetImplementationsOf<IService>(), Is.EqualTo(new[] {typeof (ImplTwo)}));
+			}
+		}
+
+		public class ConfiguratorTypeNotIncludedInPriorities_DoNotApply : SimpleContainerTestBase
+		{
+			public interface IExcludedConfigurator<T> : IServiceConfigurator<T>
+			{
+			}
+
+			public class Service
+			{
+			}
+
+			public class ExcludedConfiguratorImplementation : IExcludedConfigurator<Service>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<Service> builder)
+				{
+					builder.DontUse();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Factory()
+					.WithPriorities(typeof(IServiceConfigurator<>))
+					.Build();
+
+				Assert.That(container.GetImplementationsOf<Service>(), Is.Not.Empty);
 			}
 		}
 	}

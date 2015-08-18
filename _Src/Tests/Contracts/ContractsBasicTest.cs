@@ -346,7 +346,7 @@ namespace SimpleContainer.Tests.Contracts
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
 				Assert.That(container.Resolve<Service>().GetConstructionLog(),
-					Is.EqualTo("Service[test-contract]->[test-contract]\r\n\tIInterface[test-contract]\r\n\t\tImpl2"));
+					Is.EqualTo("Service[test-contract]\r\n\tIInterface[test-contract]\r\n\t\tImpl2"));
 			}
 		}
 
@@ -443,7 +443,7 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(instance.s1, Is.InstanceOf<Impl1>());
 				Assert.That(instance.s2, Is.InstanceOf<Impl2>());
 
-				var impl = (Impl1)instance.s1;
+				var impl = (Impl1) instance.s1;
 				Assert.That(impl.s1, Is.InstanceOf<Impl3>());
 				Assert.That(impl.s2, Is.InstanceOf<Impl4>());
 			}
@@ -686,7 +686,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.StringContaining("!A[a]->[a]\r\n\tparameter -> 78\r\n\t!B\r\n\t\t!parameter <---------------"));
+					Is.StringContaining("!A[a]\r\n\tparameter -> 78\r\n\t!B\r\n\t\t!parameter <---------------"));
 			}
 		}
 
@@ -711,8 +711,90 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("x").BindDependency<A>("parameter", 42));
-				var a = (A)container.Get<IA>();
+				var a = (A) container.Get<IA>();
 				Assert.That(a.parameter, Is.EqualTo(42));
+			}
+		}
+
+		public class CanInjectServiceName : ContractsBasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("my-test-contract")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+				public readonly ServiceName myName1;
+				public readonly ServiceName myName2;
+
+				public B(ServiceName myName1, int parameter, ServiceName myName2)
+				{
+					this.myName1 = myName1;
+					this.parameter = parameter;
+					this.myName2 = myName2;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("my-test-contract").BindDependencies<B>(new {parameter = 78}));
+				var instance = container.Get<A>().b;
+				Assert.That(instance.myName1.ToString(), Is.EqualTo("B[my-test-contract]"));
+				Assert.That(instance.myName2.ToString(), Is.EqualTo("B[my-test-contract]"));
+			}
+		}
+
+		public class CanOverrideServiceInSpecificContract : ContractsBasicTest
+		{
+			public class A
+			{
+				public readonly B b1;
+				public readonly B b2;
+
+				public A(B b1, [TestContract("c")] B b2)
+				{
+					this.b1 = b1;
+					this.b2 = b2;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.BindDependency<B>("parameter", 1);
+					b.Contract("c").BindDependency<B>("parameter", 2);
+				});
+
+				var instance = container.Get<A>();
+				Assert.That(instance.b1.parameter, Is.EqualTo(1));
+				Assert.That(instance.b2.parameter, Is.EqualTo(2));
+
+				using (var child = container.Clone(b => b.BindDependency<B>("parameter", 3)))
+				{
+					var childInstance = child.Get<A>();
+					Assert.That(childInstance.b1.parameter, Is.EqualTo(3));
+					Assert.That(childInstance.b2.parameter, Is.EqualTo(2));
+				}
 			}
 		}
 
@@ -739,7 +821,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\n!A\r\n\t!B->[x] <---------------"));
+					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\n!A\r\n\t!B <---------------"));
 			}
 		}
 	}

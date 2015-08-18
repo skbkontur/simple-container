@@ -13,6 +13,7 @@ namespace SimpleContainer
 		{
 			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
 		}
+
 		public static ResolvedService<T> Resolve<T>(this IContainer container, params string[] contracts)
 		{
 			return new ResolvedService<T>(container.Resolve(typeof (T), contracts));
@@ -26,23 +27,23 @@ namespace SimpleContainer
 		public static object Get(this IContainer container, Type type, string contract = null,
 			bool dumpConstructionLog = false)
 		{
-			var resolvedService = container.Resolve(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract});
+			var resolvedService = container.Resolve(type,
+				string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract});
 			resolvedService.Run(dumpConstructionLog);
 			return resolvedService.Single();
 		}
 
-		public static ResolvedService Create(this IContainer container, Type type, string contract = null,
+		public static object Create(this IContainer container, Type type, string contract = null,
 			object arguments = null)
 		{
-			var result = container.Create(type, string.IsNullOrEmpty(contract) ? new string[0] : new[] {contract}, arguments);
-			result.Run();
-			return result;
+			var contracts = string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract};
+			return container.Create(type, contracts, arguments);
 		}
 
 		public static T Create<T>(this IContainer container, string contract = null, object arguments = null)
 		{
 			var result = container.Create(typeof (T), contract, arguments);
-			return (T) result.Single();
+			return (T) result;
 		}
 
 		public static IEnumerable<Type> GetImplementationsOf<T>(this IContainer container)

@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -98,34 +96,6 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<IMyInterface>(), Is.SameAs(container.Get<MyImpl>()));
 				container.Dispose();
 				Assert.That(LogBuilder.ToString(), Is.EqualTo("MyImpl.Dispose "));
-			}
-		}
-
-		public class SeparateDisposableImplementation : DisposeTest
-		{
-			[Static]
-			public class Impl : IInterface, IDisposable
-			{
-				public void Dispose()
-				{
-					LogBuilder.Append("Impl.Dispose ");
-				}
-			}
-
-			[Static]
-			public interface IInterface
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					staticContainer.Get<IInterface>();
-					Assert.That(LogBuilder.ToString(), Is.EqualTo(""));
-				}
-				Assert.That(LogBuilder.ToString(), Is.EqualTo("Impl.Dispose "));
 			}
 		}
 
@@ -296,17 +266,14 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				using (var staticContainer = CreateStaticContainer())
-				{
-					var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null, null);
-					container.Get<Component1>();
-					var error = Assert.Throws<AggregateException>(container.Dispose);
-					Assert.That(error.Message, Is.EqualTo("SimpleContainer dispose error"));
-					Assert.That(error.InnerExceptions[0].Message, Is.EqualTo("error disposing [Component1]"));
-					Assert.That(error.InnerExceptions[0].InnerException.Message, Is.EqualTo("test component1 crash"));
-					Assert.That(error.InnerExceptions[1].Message, Is.EqualTo("error disposing [Component2]"));
-					Assert.That(error.InnerExceptions[1].InnerException.Message, Is.EqualTo("test component2 crash"));
-				}
+				var container = Container();
+				container.Get<Component1>();
+				var error = Assert.Throws<AggregateException>(container.Dispose);
+				Assert.That(error.Message, Is.EqualTo("SimpleContainer dispose error"));
+				Assert.That(error.InnerExceptions[0].Message, Is.EqualTo("error disposing [Component1]"));
+				Assert.That(error.InnerExceptions[0].InnerException.Message, Is.EqualTo("test component1 crash"));
+				Assert.That(error.InnerExceptions[1].Message, Is.EqualTo("error disposing [Component2]"));
+				Assert.That(error.InnerExceptions[1].InnerException.Message, Is.EqualTo("test component2 crash"));
 			}
 		}
 
@@ -387,16 +354,13 @@ namespace SimpleContainer.Tests
 					disposeErrorMessage = message;
 					disposeError = error;
 				};
-				using (var staticContainer = CreateStaticContainer(f => f.WithErrorLogger(logger)))
-				{
-					using (var container = staticContainer.CreateLocalContainer(null, Assembly.GetExecutingAssembly(), null, null))
-						container.Get<A>();
-					Assert.That(disposeErrorMessage, Is.EqualTo("SimpleContainer dispose error"));
-					var aggregateException = (AggregateException) disposeError;
-					var disposeException = aggregateException.InnerExceptions.Single();
-					Assert.That(disposeException.Message, Is.EqualTo("error disposing [A]"));
-					Assert.That(disposeException.InnerException.Message, Is.EqualTo("my test crash"));
-				}
+				using (var container = Factory().WithErrorLogger(logger).Build())
+					container.Get<A>();
+				Assert.That(disposeErrorMessage, Is.EqualTo("SimpleContainer dispose error"));
+				var aggregateException = (AggregateException) disposeError;
+				var disposeException = aggregateException.InnerExceptions.Single();
+				Assert.That(disposeException.Message, Is.EqualTo("error disposing [A]"));
+				Assert.That(disposeException.InnerException.Message, Is.EqualTo("my test crash"));
 			}
 		}
 	}

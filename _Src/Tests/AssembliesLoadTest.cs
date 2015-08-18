@@ -1,9 +1,7 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
-using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -35,6 +33,103 @@ namespace SimpleContainer.Tests
 		private void CopyAssemblyToTestDirectory(Assembly assembly)
 		{
 			File.Copy(assembly.Location, Path.Combine(testDirectory, Path.GetFileName(assembly.Location)));
+		}
+
+		private FactoryInvoker GetInvoker()
+		{
+			return (FactoryInvoker) appDomain.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().GetName().FullName,
+				typeof (FactoryInvoker).FullName);
+		}
+
+		private class FactoryInvoker : MarshalByRefObject
+		{
+			public string CreateCointainerWithCrash()
+			{
+				try
+				{
+					CreateContainer();
+					return "can't reach here";
+				}
+				catch (Exception e)
+				{
+					return e.ToString();
+				}
+			}
+
+			private static void CreateContainer()
+			{
+				new ContainerFactory()
+					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+					.WithTypesFromDefaultBinDirectory(false)
+					.Build();
+			}
+		}
+
+		public class CorrectExceptionHandling : AssembliesLoadTest
+		{
+			private const string referencedAssemblyCodeV1 = @"
+					using SimpleContainer.Configuration;
+					using SimpleContainer;
+					using System;
+
+					namespace A1
+					{
+						public interface ISomeInterface
+						{
+						}
+					}
+				";
+
+			private const string referencedAssemblyCodeV2 = @"
+					using SimpleContainer.Configuration;
+					using SimpleContainer;
+					using System;
+
+					namespace A1
+					{
+						public interface ISomeInterface
+						{
+							void Do();
+						}
+					}
+				";
+
+			private const string primaryAssemblyCode = @"
+					using System;
+					using A1;
+
+					namespace A2
+					{
+						public class TestClass: ISomeInterface
+						{
+							void ISomeInterface.Do()
+							{
+							}
+						}
+					}
+				";
+
+
+			[Test]
+			public void Test()
+			{
+				var referencedAssemblyV2 = AssemblyCompiler.Compile(referencedAssemblyCodeV2);
+				AssemblyCompiler.Compile(referencedAssemblyCodeV1,
+					Path.Combine(testDirectory, Path.GetFileName(referencedAssemblyV2.Location)));
+				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode, referencedAssemblyV2);
+
+				CopyAssemblyToTestDirectory(primaryAssembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+
+				var exceptionText = GetInvoker().CreateCointainerWithCrash();
+				Assert.That(exceptionText, Is.StringContaining("A1.ISomeInterface.Do"));
+
+				const string englishText = "Unable to load one or more of the requested types";
+				const string russianText = "Не удается загрузить один или более запрошенных типов";
+				Assert.That(exceptionText, Is.StringContaining(englishText).Or.StringContaining(russianText));
+				Assert.That(exceptionText, Is.StringContaining(primaryAssembly.GetName().Name));
+			}
 		}
 	}
 }
