@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Implementation
 {
@@ -8,7 +10,7 @@ namespace SimpleContainer.Implementation
 	{
 		public static object TryCreate(ContainerService.Builder builder)
 		{
-			if (!builder.Type.IsGenericType)
+			if (!builder.Type.GetTypeInfo().IsGenericType)
 				return null;
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return null;

@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using SimpleContainer.Generics;
+using System.Runtime.CompilerServices;
 using SimpleContainer.Helpers.ReflectionEmit;
 using SimpleContainer.Implementation.Hacks;
 
@@ -23,7 +21,7 @@ namespace SimpleContainer.Helpers
 		{
 			if (t.IsGenericParameter)
 				result.Add(t);
-			else if (t.IsGenericType)
+			else if (t.GetTypeInfo().IsGenericType)
 				foreach (var x in t.GetGenericArguments())
 					FillGenericParameters(x, result);
 		}
@@ -46,11 +44,11 @@ namespace SimpleContainer.Helpers
 			{
 				if (value.IsGenericParameter)
 					return true;
-				foreach (var constraint in pattern.GetGenericParameterConstraints())
+				foreach (var constraint in pattern.GetTypeInfo().GetGenericParameterConstraints())
 					if (!constraint.IsAssignableFrom(value))
 						return false;
-				if (pattern.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
-					if (value.GetConstructor(Type.EmptyTypes) == null)
+				if (pattern.GetTypeInfo().GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+					if (value.GetConstructor(InternalHelpers.emptyTypesList) == null)
 						return false;
 				if (matched != null)
 				{
@@ -61,9 +59,9 @@ namespace SimpleContainer.Helpers
 				}
 				return true;
 			}
-			if (pattern.IsGenericType ^ value.IsGenericType)
+			if (pattern.GetTypeInfo().IsGenericType ^ value.GetTypeInfo().IsGenericType)
 				return false;
-			if (!pattern.IsGenericType)
+			if (!pattern.GetTypeInfo().IsGenericType)
 				return pattern == value;
 			if (pattern.GetGenericTypeDefinition() != value.GetGenericTypeDefinition())
 				return false;
@@ -77,7 +75,7 @@ namespace SimpleContainer.Helpers
 
 		public static Type UnwrapEnumerable(this Type type)
 		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+			if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
 				return type.GetGenericArguments()[0];
 			return type.IsArray ? type.GetElementType() : type;
 		}
@@ -95,7 +93,7 @@ namespace SimpleContainer.Helpers
 				return false;
 			var property = memberInfo as PropertyInfo;
 			if (property != null)
-				return IsStatic(property.GetMethod) || IsStatic(property.SetMethod);
+				return IsStatic(property.GetGetMethod()) || IsStatic(property.GetSetMethod());
 			var field = memberInfo as FieldInfo;
 			if (field != null)
 				return field.IsStatic;
@@ -103,77 +101,19 @@ namespace SimpleContainer.Helpers
 			return method != null && method.IsStatic;
 		}
 
-		public static TAttribute[] GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider,
+		public static TAttribute[] GetCustomAttributes<TAttribute>(this object attributeProvider,
 			bool inherit = true)
 		{
-			return (TAttribute[]) (object) attributeProvider.GetCustomAttributesCached(typeof (TAttribute), inherit);
+			return (TAttribute[])(object)attributeProvider.GetCustomAttributesCached(typeof(TAttribute), inherit);
 		}
 
-		public static IEnumerable<Attribute> GetCustomAttributesCached(this MemberInfo attributeProvider,
-			Type type, bool inherit = true)
-		{
-			return (IEnumerable<Attribute>) AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
-		}
-
-		public static TAttribute GetCustomAttributeOrNull<TAttribute>(this MemberInfo type, bool inherit = true)
-		{
-			return type.GetCustomAttributes<TAttribute>(inherit).SingleOrDefault();
-		}
-
-		public static bool TryGetCustomAttribute<TAttribute>(this MemberInfo memberInfo, out TAttribute result)
-		{
-			return memberInfo.GetCustomAttributes<TAttribute>().TrySingle(out result);
-		}
-
-		public static bool IsDefined(this MemberInfo customAttributeProvider, string attributeName)
-		{
-			return customAttributeProvider.GetCustomAttributes<Attribute>(true).Any(a => a.GetType().Name == attributeName);
-		}
-
-		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ParameterInfo attributeProvider, bool inherit = true)
-		{
-			return attributeProvider.GetCustomAttributesCached(typeof(TAttribute), inherit).Cast<TAttribute>();
-		}
-
-		public static IEnumerable<Attribute> GetCustomAttributesCached(this ParameterInfo attributeProvider,
+		public static IEnumerable<Attribute> GetCustomAttributesCached(this object attributeProvider,
 			Type type, bool inherit = true)
 		{
 			return (IEnumerable<Attribute>)AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
 		}
 
-		public static TAttribute GetCustomAttributeOrNull<TAttribute>(this ParameterInfo type, bool inherit = true)
-		{
-			return type.GetCustomAttributes<TAttribute>(inherit).SingleOrDefault();
-		}
-
-		public static bool TryGetCustomAttribute<TAttribute>(this ParameterInfo memberInfo, out TAttribute result)
-		{
-			return memberInfo.GetCustomAttributes<TAttribute>().TrySingle(out result);
-		}
-
-		public static bool IsDefined(this ParameterInfo customAttributeProvider, string attributeName)
-		{
-			return customAttributeProvider.GetCustomAttributes<Attribute>(true).Any(a => a.GetType().Name == attributeName);
-		}
-
-
-		public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this Type attributeProvider, bool inherit = true)
-		{
-			return attributeProvider.GetCustomAttributesCached(typeof(TAttribute), inherit).Cast<TAttribute>();
-		}
-
-		public static IEnumerable<Attribute> GetCustomAttributesCached(this Type attributeProvider,
-			Type type, bool inherit = true)
-		{
-			return (IEnumerable<Attribute>)AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
-		}
-
-		public static TAttribute GetCustomAttributeOrNull<TAttribute>(this Type type, bool inherit = true)
-		{
-			return type.GetCustomAttributes<TAttribute>(inherit).SingleOrDefault();
-		}
-
-		public static bool TryGetCustomAttribute<TAttribute>(this Type memberInfo, out TAttribute result)
+		public static bool TryGetCustomAttribute<TAttribute>(this object memberInfo, out TAttribute result)
 		{
 			return memberInfo.GetCustomAttributes<TAttribute>().TrySingle(out result);
 		}
@@ -189,78 +129,19 @@ namespace SimpleContainer.Helpers
 			return customAttributeProvider.GetCustomAttributes(false).Any(a => a.GetType().Name == attributeName);
 		}
 
+		public static bool IsDefined(this MemberInfo customAttributeProvider, string attributeName)
+		{
+			return customAttributeProvider.GetCustomAttributes(false).Any(a => a.GetType().Name == attributeName);
+		}
+
+		public static bool IsDefined(this ParameterInfo customAttributeProvider, string attributeName)
+		{
+			return customAttributeProvider.GetCustomAttributes(false).Any(a => a.GetType().Name == attributeName);
+		}
 
 		public static bool IsNullableOf(this Type type1, Type type2)
 		{
 			return Nullable.GetUnderlyingType(type1) == type2;
-		}
-
-		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
-		{
-			var result = new List<Type>();
-			if (interfaceDefinition.IsInterface)
-			{
-				var interfaces = implementation.GetInterfaces();
-				foreach (var interfaceImpl in interfaces)
-					if (interfaceImpl.GetDefinition() == interfaceDefinition)
-						result.Add(interfaceImpl);
-			}
-			else
-			{
-				var current = implementation;
-				while (current != null)
-				{
-					if (current.GetDefinition() == interfaceDefinition)
-					{
-						result.Add(current);
-						break;
-					}
-					current = current.BaseType;
-				}
-			}
-			return result;
-		}
-
-		private static readonly ConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
-			new ConcurrentDictionary<MethodBase, Func<object, object[], object>>();
-
-		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
-			EmitCallOf;
-
-		public static Func<object, object[], object> Compile(this MethodBase method)
-		{
-			return compiledMethods.GetOrAdd(method, compileMethodDelegate);
-		}
-
-		public static string FormatName(this Type type)
-		{
-			string result;
-			if (typeNames.TryGetValue(type, out result))
-				return result;
-			result = type.Name;
-			if (type.IsArray)
-				return type.GetElementType().FormatName() + "[]";
-			if (type.GetTypeInfo().IsGenericType)
-			{
-				result = result.Substring(0, result.IndexOf("`", StringComparison.OrdinalIgnoreCase));
-				result += "<" + type.GetGenericArguments().Select(FormatName).JoinStrings(",") + ">";
-			}
-			return result;
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Type GetDefinition(this Type type)
-		{
-			var typeInfo = type.GetTypeInfo();
-			return typeInfo.IsGenericType && !typeInfo.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
-		}
-
-		public static bool IsSimpleType(this Type type)
-		{
-			if (simpleTypes.Contains(type) || type.GetTypeInfo().IsEnum)
-				return true;
-			var nullableWrapped = Nullable.GetUnderlyingType(type);
-			return nullableWrapped != null && nullableWrapped.IsSimpleType();
 		}
 
 		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
@@ -289,16 +170,50 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
-		public static Type TryCloseByPattern(this Type definition, Type pattern, Type value)
+		private static readonly NonConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
+			new NonConcurrentDictionary<MethodBase, Func<object, object[], object>>();
+
+		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
+			EmitCallOf;
+
+		public static Func<object, object[], object> Compile(this MethodBase method)
 		{
-			var argumentsCount = definition.GetGenericArguments().Length;
-			var arguments = new Type[argumentsCount];
-			if (!pattern.TryMatchWith(value, arguments))
-				return null;
-			foreach (var argument in arguments)
-				if (argument == null)
-					return null;
-			return definition.MakeGenericType(arguments);
+			return compiledMethods.GetOrAdd(method, compileMethodDelegate);
+		}
+
+		private static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
+		{
+			throw new NotSupportedException();
+		}
+
+		public static string FormatName(this Type type)
+		{
+			string result;
+			if (typeNames.TryGetValue(type, out result))
+				return result;
+			result = type.Name;
+			if (type.IsArray)
+				return type.GetElementType().FormatName() + "[]";
+			if (type.GetTypeInfo().IsGenericType)
+			{
+				result = result.Substring(0, result.IndexOf("`", StringComparison.OrdinalIgnoreCase));
+				result += "<" + type.GetGenericArguments().Select(FormatName).JoinStrings(",") + ">";
+			}
+			return result;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Type GetDefinition(this Type type)
+		{
+			return type.GetTypeInfo().IsGenericType && !type.GetTypeInfo().IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
+		}
+
+		public static bool IsSimpleType(this Type type)
+		{
+			if (simpleTypes.Contains(type) || type.GetTypeInfo().IsEnum)
+				return true;
+			var nullableWrapped = Nullable.GetUnderlyingType(type);
+			return nullableWrapped != null && nullableWrapped.IsSimpleType();
 		}
 
 		private static readonly ISet<Type> simpleTypes = new HashSet<Type>

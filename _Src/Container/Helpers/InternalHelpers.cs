@@ -32,49 +32,33 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
-		public static string[] ParseContracts(ICustomAttributeProvider provider)
+		public static string[] ParseContracts(ParameterInfo provider)
 		{
-			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
+			return ParseContracts(provider.GetCustomAttributes<RequireContractAttribute>());
+		}
+
+		public static string[] ParseContracts(MemberInfo provider)
+		{
+			return ParseContracts(provider.GetCustomAttributes<RequireContractAttribute>());
+		}
+
+		public static string[] ParseContracts(Type provider)
+		{
+			return ParseContracts(provider.GetCustomAttributes<RequireContractAttribute>());
+		}
+
+		private static string[] ParseContracts(RequireContractAttribute[] attributes)
+		{
 			if (attributes.Length == 0)
 				return emptyStrings;
 			if (attributes.Length > 1)
 				throw new SimpleContainerException("assertion failure");
 			return new[] {attributes[0].ContractName};
 		}
-		public static readonly List<Type> emptyTypesList = new List<Type>(0);
-
-		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
-		{
-			var allConstructors = target.GetConstructors();
-			ConstructorInfo publicConstructor = null;
-			ConstructorInfo containerConstructor = null;
-			var hasManyPublicConstructors = false;
-			foreach (var constructor in allConstructors)
-			{
-				if (!constructor.IsPublic)
-					continue;
-				if (publicConstructor != null)
-					hasManyPublicConstructors = true;
-				else
-					publicConstructor = constructor;
-				if (constructor.IsDefined("ContainerConstructorAttribute"))
-				{
-					if (containerConstructor != null)
-						return ValueOrError.Fail<ConstructorInfo>("many ctors with [ContainerConstructor] attribute");
-					containerConstructor = constructor;
-				}
-			}
-			if (containerConstructor != null)
-				return ValueOrError.Ok(containerConstructor);
-			if (hasManyPublicConstructors)
-				return ValueOrError.Fail<ConstructorInfo>("many public ctors");
-			return publicConstructor == null
-				? ValueOrError.Fail<ConstructorInfo>("no public ctors")
-				: ValueOrError.Ok(publicConstructor);
-		}
 
 		public static readonly string[] emptyStrings = new string[0];
 		public static readonly List<Type> emptyTypesList = new List<Type>(0);
+		public static Type[] emptyTypes = new Type[0];
 
 		public static string DumpValue(object value)
 		{

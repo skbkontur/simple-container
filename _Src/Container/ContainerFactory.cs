@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +6,7 @@ using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer
@@ -16,7 +16,6 @@ namespace SimpleContainer
 		private Type profile;
 		private Func<AssemblyName, bool> assembliesFilter = n => true;
 		private Func<Type, string, object> settingsLoader;
-		private string configFileName;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
 		private Type[] priorities;
@@ -31,7 +30,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithSettingsLoader(Func<Type, object> newLoader)
 		{
-			var cache = new ConcurrentDictionary<Type, object>();
+			var cache = new NonConcurrentDictionary<Type, object>();
 			settingsLoader = (t, _) => cache.GetOrAdd(t, newLoader);
 			configurationByProfileCache.Clear();
 			return this;
@@ -39,7 +38,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithSettingsLoader(Func<Type, string, object> newLoader)
 		{
-			var cache = new ConcurrentDictionary<string, object>();
+			var cache = new NonConcurrentDictionary<string, object>();
 			settingsLoader = (t, k) => cache.GetOrAdd(t.Name + k, s => newLoader(t, k));
 			configurationByProfileCache.Clear();
 			return this;
@@ -75,14 +74,6 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerFactory WithConfigFile(string fileName)
-		{
-			configFileName = fileName;
-			typesContextCache = null;
-			configurationByProfileCache.Clear();
-			return this;
-		}
-
 		public ContainerFactory WithErrorLogger(LogError logger)
 		{
 			errorLogger = logger;
@@ -114,38 +105,6 @@ namespace SimpleContainer
 			return this;
 		}
 
-		public ContainerFactory WithTypesFromDefaultBinDirectory(bool withExecutables)
-		{
-			return WithTypesFromDirectory(GetBinDirectory(), withExecutables);
-		}
-
-		public ContainerFactory WithTypesFromDirectory(string directory, bool withExecutables)
-		{
-			var assemblies = Directory.GetFiles(directory, "*.dll")
-				.Union(withExecutables ? Directory.GetFiles(directory, "*.exe") : Enumerable.Empty<string>())
-				.Select(delegate(string s)
-				{
-					try
-					{
-						return AssemblyName.GetAssemblyName(s);
-					}
-					catch (BadImageFormatException)
-					{
-						return null;
-					}
-				})
-				.NotNull()
-				.Where(assembliesFilter)
-				.AsParallel()
-				.Select(AssemblyHelpers.LoadAssembly);
-			return WithTypesFromAssemblies(assemblies);
-		}
-
-		public ContainerFactory WithTypesFromAssemblies(IEnumerable<Assembly> assemblies)
-		{
-			return WithTypesFromAssemblies(assemblies.AsParallel());
-		}
-
 		public ContainerFactory WithTypes(Type[] newTypes)
 		{
 			types = () => newTypes;
@@ -161,11 +120,9 @@ namespace SimpleContainer
 			{
 				typesContext = new TypesContext
 				{
-					typesList = TypesList.Create(types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray())
+					typesList = TypesList.Create(types().Concat(typeof(ContainerFactory).GetTypeInfo().Assembly.GetTypes()).Distinct().ToArray())
 				};
 				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
-				if (configFileName != null && File.Exists(configFileName))
-					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);
 				var configurationContainer = CreateContainer(typesContext, ConfigurationRegistry.Empty);
 				typesContext.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
 				typesContextCache = typesContext;
@@ -190,14 +147,7 @@ namespace SimpleContainer
 				currentTypesContext.typesList, errorLogger, infoLogger, valueFormatters);
 		}
 
-		private static string GetBinDirectory()
-		{
-			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
-				? AppDomain.CurrentDomain.BaseDirectory
-				: AppDomain.CurrentDomain.RelativeSearchPath;
-		}
-
-		private ContainerFactory WithTypesFromAssemblies(ParallelQuery<Assembly> assemblies)
+		public ContainerFactory WithTypesFromAssemblies(IEnumerable<Assembly> assemblies)
 		{
 			var newTypes = assemblies
 				.Where(x => assembliesFilter(x.GetName()))

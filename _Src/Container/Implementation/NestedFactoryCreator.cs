@@ -1,4 +1,4 @@
-using System;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Implementation
 {
@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 			var factoryType = builder.Type.GetNestedType("Factory");
 			if (factoryType == null)
 				return false;
-			var method = factoryType.GetMethod("Create", Type.EmptyTypes);
+			var method = factoryType.GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Public);
 			if (method == null)
 				return false;
 			var factory = builder.Context.Container.ResolveSingleton(method.DeclaringType, builder.Context);

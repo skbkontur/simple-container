@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -96,7 +97,7 @@ namespace SimpleContainer.Configuration
 
 			public void Bind(Type interfaceType, Type implementationType, bool clearOld)
 			{
-				if (!interfaceType.IsGenericTypeDefinition && !implementationType.IsGenericTypeDefinition &&
+				if (!interfaceType.GetTypeInfo().IsGenericTypeDefinition && !implementationType.GetTypeInfo().IsGenericTypeDefinition &&
 				    !interfaceType.IsAssignableFrom(implementationType))
 					throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
 						implementationType.FormatName()));
@@ -105,7 +106,7 @@ namespace SimpleContainer.Configuration
 
 			public void Bind(Type interfaceType, object value, bool containerOwnsInstance)
 			{
-				if (interfaceType.ContainsGenericParameters)
+				if (interfaceType.GetTypeInfo().ContainsGenericParameters)
 					throw new SimpleContainerException(string.Format("can't bind value for generic definition [{0}]",
 						interfaceType.FormatName()));
 				if (value != null && interfaceType.IsInstanceOfType(value) == false)

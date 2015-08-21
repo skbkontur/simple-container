@@ -8,8 +8,8 @@ namespace SimpleContainer.Helpers
 {
 	internal static class ObjectAccessor
 	{
-		private static readonly NonConcurrentDictionary<Type, TypeAccessor> typeAccessors =
-			new NonConcurrentDictionary<Type, TypeAccessor>();
+		private static readonly NonConcurrentDictionary<Type, Dictionary<string, Property>> typeAccessors =
+			new NonConcurrentDictionary<Type, Dictionary<string, Property>>();
 
 		private static readonly Func<Type, Dictionary<string, Property>> createTypeAccessor = t => t.GetProperties()
 			.ToDictionary(x => x.Name, x => new Property

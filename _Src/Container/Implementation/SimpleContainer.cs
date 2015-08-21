@@ -16,14 +16,11 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly Func<ServiceName, ContainerServiceId> createId = _ => new ContainerServiceId();
 
-		private readonly ConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
-			new ConcurrentDictionary<ServiceName, ContainerServiceId>();
-
 		private readonly NonConcurrentDictionary<ServiceName, Func<object>> factoryCache =
 			new NonConcurrentDictionary<ServiceName, Func<object>>();
 
-		private readonly NonConcurrentDictionary<ServiceName, ContainerService> instanceCache =
-			new NonConcurrentDictionary<ServiceName, ContainerService>();
+		private readonly NonConcurrentDictionary<ServiceName, ContainerServiceId> instanceCache =
+			new NonConcurrentDictionary<ServiceName, ContainerServiceId>();
 
 		private readonly Func<ServiceName, ContainerService> createInstanceDelegate;
 		private readonly DependenciesInjector dependenciesInjector;
@@ -100,7 +97,7 @@ namespace SimpleContainer.Implementation
 		private ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
 		{
 			var result = Configuration.GetConfigurationOrNull(type, contracts);
-			if (result == null && type.IsGenericType)
+			if (result == null && type.GetTypeInfo().IsGenericType)
 				result = Configuration.GetConfigurationOrNull(type.GetDefinition(), contracts);
 			return result;
 		}
@@ -176,7 +173,7 @@ namespace SimpleContainer.Implementation
 			get
 			{
 				return allTypes ??
-				       (allTypes = typesList.Types.Where(x => x.Assembly != typeof (SimpleContainer).Assembly).ToArray());
+				       (allTypes = typesList.Types.Where(x => !Equals(x.GetTypeInfo().Assembly, typeof (SimpleContainer).GetTypeInfo().Assembly)).ToArray());
 			}
 		}
 
@@ -210,9 +207,9 @@ namespace SimpleContainer.Implementation
 				builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
 					builder.Configuration.ContainerOwnsInstance);
 			}
-			else if (builder.Type.IsValueType)
+			else if (builder.Type.GetTypeInfo().IsValueType)
 				builder.SetError("can't create value type");
-			else if (builder.Type.IsGenericType && builder.Type.ContainsGenericParameters)
+			else if (builder.Type.GetTypeInfo().IsGenericType && builder.Type.GetTypeInfo().ContainsGenericParameters)
 				builder.SetError("can't create open generic");
 			else if (!builder.CreateNew && builder.Type.TryGetCustomAttribute(out lifestyle) &&
 			         lifestyle.Lifestyle == Lifestyle.PerRequest)
@@ -220,7 +217,7 @@ namespace SimpleContainer.Implementation
 				const string messageFormat = "service [{0}] with PerRequest lifestyle can't be resolved, use Func<{0}> instead";
 				builder.SetError(string.Format(messageFormat, builder.Type.FormatName()));
 			}
-			else if (builder.Type.IsAbstract)
+			else if (builder.Type.GetTypeInfo().IsAbstract)
 				InstantiateInterface(builder);
 			else
 				InstantiateImplementation(builder);
@@ -317,12 +314,12 @@ namespace SimpleContainer.Implementation
 				candidates.AddRange(typesList.InheritorsOf(builder.Type.GetDefinition()));
 			foreach (var implType in candidates)
 			{
-				if (!implType.IsGenericType)
+				if (!implType.GetTypeInfo().IsGenericType)
 				{
-					if (!builder.Type.IsGenericType || builder.Type.IsAssignableFrom(implType))
+					if (!builder.Type.GetTypeInfo().IsGenericType || builder.Type.IsAssignableFrom(implType))
 						result.Add(implType);
 				}
-				else if (!implType.ContainsGenericParameters)
+				else if (!implType.GetTypeInfo().ContainsGenericParameters)
 					result.Add(implType);
 				else
 				{
@@ -330,7 +327,7 @@ namespace SimpleContainer.Implementation
 					foreach (var type in mapped)
 						if (builder.Type.IsAssignableFrom(type))
 							result.Add(type);
-					if (builder.Type.IsGenericType)
+					if (builder.Type.GetTypeInfo().IsGenericType)
 					{
 						var implInterfaces = implType.ImplementationsOf(builder.Type.GetGenericTypeDefinition());
 						foreach (var implInterface in implInterfaces)
@@ -347,7 +344,7 @@ namespace SimpleContainer.Implementation
 						continue;
 					foreach (var formalParameter in serviceConstructor.value.GetParameters())
 					{
-						if (!formalParameter.ParameterType.ContainsGenericParameters)
+						if (!formalParameter.ParameterType.GetTypeInfo().ContainsGenericParameters)
 							continue;
 						ValueWithType parameterValue;
 						if (!builder.Arguments.TryGet(formalParameter.Name, out parameterValue))
@@ -516,11 +513,11 @@ namespace SimpleContainer.Implementation
 			FromResourceAttribute resourceAttribute;
 			if (implementationType == typeof (Stream) && formalParameter.TryGetCustomAttribute(out resourceAttribute))
 			{
-				var resourceStream = builder.Type.Assembly.GetManifestResourceStream(builder.Type, resourceAttribute.Name);
+				var resourceStream = builder.Type.GetTypeInfo().Assembly.GetManifestResourceStream(builder.Type, resourceAttribute.Name);
 				if (resourceStream == null)
 					return ServiceDependency.Error(null, formalParameter.Name,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
-						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
+						resourceAttribute.Name, builder.Type, builder.Type.GetTypeInfo().Assembly.GetName().Name);
 				return ServiceDependency.Constant(formalParameter, resourceStream);
 			}
 			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
@@ -557,7 +554,7 @@ namespace SimpleContainer.Implementation
 			{
 				if (formalParameter.HasDefaultValue)
 					return ServiceDependency.Service(resultService, formalParameter.DefaultValue);
-				if (formalParameter.IsDefined<OptionalAttribute>() || formalParameter.IsDefined("CanBeNullAttribute"))
+				if (formalParameter.IsDefined(typeof (OptionalAttribute), true) || formalParameter.IsDefined("CanBeNullAttribute"))
 					return ServiceDependency.Service(resultService, null);
 				return ServiceDependency.NotResolved(resultService);
 			}

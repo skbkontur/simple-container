@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace SimpleContainer.Implementation.Hacks
 {
@@ -34,7 +36,12 @@ namespace SimpleContainer.Implementation.Hacks
 
 		public static Attribute[] GetCustomAttributes<TAttr>(this Type type, bool inherit)
 		{
-			return type.GetTypeInfo().GetCustomAttributes(typeof(TAttr), inherit).ToArray();
+			return type.GetTypeInfo().GetCustomAttributes(typeof (TAttr), inherit).ToArray();
+		}
+
+		public static Attribute[] GetCustomAttributes(this Type type, bool inherit)
+		{
+			return type.GetTypeInfo().GetCustomAttributes(inherit).ToArray();
 		}
 
 		public static IEnumerable<ConstructorInfo> GetConstructors(this Type type)
@@ -42,9 +49,15 @@ namespace SimpleContainer.Implementation.Hacks
 			return type.GetTypeInfo().DeclaredConstructors.Where(c => c.IsPublic);
 		}
 
+		public static ConstructorInfo GetConstructor(this Type target, List<Type> types)
+		{
+			return
+				target.GetConstructors().SingleOrDefault(x => x.GetParameters().Select(p => p.ParameterType).SequenceEqual(types));
+		}
+
 		public static bool IsInstanceOfType(this Type type, object obj)
 		{
-			return obj != null && type.IsAssignableFrom(obj.GetType());
+			return obj != null && type.IsInstanceOfType(obj);
 		}
 
 		public static MethodInfo GetAddMethod(this EventInfo eventInfo, bool nonPublic = false)
@@ -99,13 +112,13 @@ namespace SimpleContainer.Implementation.Hacks
 				properties = type.GetRuntimeProperties();
 
 			return from property in properties
-				   let getMethod = property.GetMethod
-				   where getMethod != null
-				   where ((flags & BindingFlags.Public) != BindingFlags.Public || getMethod.IsPublic) ||
-						 ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !getMethod.IsPublic)
-				   where (flags & BindingFlags.Instance) != BindingFlags.Instance || !getMethod.IsStatic
-				   where (flags & BindingFlags.Static) != BindingFlags.Static || getMethod.IsStatic
-				   select property;
+				let getMethod = property.GetMethod
+				where getMethod != null
+				where ((flags & BindingFlags.Public) != BindingFlags.Public || getMethod.IsPublic) ||
+				      ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !getMethod.IsPublic)
+				where (flags & BindingFlags.Instance) != BindingFlags.Instance || !getMethod.IsStatic
+				where (flags & BindingFlags.Static) != BindingFlags.Static || getMethod.IsStatic
+				select property;
 		}
 
 		public static PropertyInfo GetProperty(this Type type, string name, BindingFlags flags)
@@ -133,7 +146,7 @@ namespace SimpleContainer.Implementation.Hacks
 
 			return properties
 				.Where(m => ((flags & BindingFlags.Public) != BindingFlags.Public || m.IsPublic) ||
-						 ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !m.IsPublic))
+				            ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !m.IsPublic))
 				.Where(m => (flags & BindingFlags.Instance) != BindingFlags.Instance || !m.IsStatic)
 				.Where(m => (flags & BindingFlags.Static) != BindingFlags.Static || m.IsStatic);
 		}
@@ -146,14 +159,14 @@ namespace SimpleContainer.Implementation.Hacks
 		public static MethodInfo GetMethod(this Type type, string name)
 		{
 			return GetMethods(type, BindingFlags.Public | BindingFlags.FlattenHierarchy)
-				   .FirstOrDefault(m => m.Name == name);
+				.FirstOrDefault(m => m.Name == name);
 		}
 
 		public static IEnumerable<ConstructorInfo> GetConstructors(this Type type, BindingFlags flags)
 		{
 			return type.GetConstructors()
 				.Where(m => ((flags & BindingFlags.Public) != BindingFlags.Public || m.IsPublic) ||
-						 ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !m.IsPublic))
+				            ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !m.IsPublic))
 				.Where(m => (flags & BindingFlags.Instance) != BindingFlags.Instance || !m.IsStatic)
 				.Where(m => (flags & BindingFlags.Static) != BindingFlags.Static || m.IsStatic);
 		}
@@ -173,7 +186,7 @@ namespace SimpleContainer.Implementation.Hacks
 
 			return fields
 				.Where(f => ((flags & BindingFlags.Public) != BindingFlags.Public || f.IsPublic) ||
-						 ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !f.IsPublic))
+				            ((flags & BindingFlags.NonPublic) != BindingFlags.NonPublic || !f.IsPublic))
 				.Where(f => (flags & BindingFlags.Instance) != BindingFlags.Instance || !f.IsStatic)
 				.Where(f => (flags & BindingFlags.Static) != BindingFlags.Static || f.IsStatic);
 		}
@@ -191,6 +204,38 @@ namespace SimpleContainer.Implementation.Hacks
 		public static Type[] GetGenericArguments(this Type type)
 		{
 			return type.GenericTypeArguments.Length == 0 ? type.GetTypeInfo().GenericTypeParameters : type.GenericTypeArguments;
+		}
+
+		public static Type GetNestedType(this Type type, string name)
+		{
+			return type.GetTypeInfo().GetDeclaredNestedType(name).AsType();
+		}
+
+		public static Stream GetManifestResourceStream(this Assembly assembly,
+			Type type,
+			string name)
+		{
+			var sb = new StringBuilder();
+			if (type == null)
+			{
+				if (name == null)
+					throw new ArgumentNullException("type");
+			}
+			else
+			{
+				var nameSpace = type.Namespace;
+				if (nameSpace != null)
+				{
+					sb.Append(nameSpace);
+					if (name != null)
+						sb.Append('.');
+				}
+			}
+
+			if (name != null)
+				sb.Append(name);
+
+			return assembly.GetManifestResourceStream(sb.ToString());
 		}
 	}
 }

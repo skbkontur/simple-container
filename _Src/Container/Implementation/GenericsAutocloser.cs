@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Implementation
 {
@@ -11,7 +11,7 @@ namespace SimpleContainer.Implementation
 	{
 		private readonly TypesList typesList;
 		private readonly Func<AssemblyName, bool> assemblyFilter;
-		private readonly ConcurrentDictionary<Type, Type[]> cache = new ConcurrentDictionary<Type, Type[]>();
+		private readonly NonConcurrentDictionary<Type, Type[]> cache = new NonConcurrentDictionary<Type, Type[]>();
 
 		public GenericsAutoCloser(TypesList typesList, Func<AssemblyName, bool> assemblyFilter)
 		{
@@ -84,7 +84,7 @@ namespace SimpleContainer.Implementation
 			if (cache.TryGetValue(definition, out types))
 				foreach (var type in types)
 					result.closures.Add(type);
-			else if (definition.IsAbstract)
+			else if (definition.GetTypeInfo().IsAbstract)
 				MarkInterface(result, context);
 			else
 				MarkImplementation(result, context);
@@ -101,16 +101,16 @@ namespace SimpleContainer.Implementation
 			foreach (var parameter in parameters)
 			{
 				var parameterType = parameter.ParameterType;
-				if (parameterType.IsGenericType && (parameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
+				if (parameterType.GetTypeInfo().IsGenericType && (parameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
 				                                    || parameterType.GetGenericTypeDefinition() == typeof (Func<>)))
 					parameterType = parameterType.GetGenericArguments()[0];
 				if (parameterType.IsSimpleType())
 					continue;
-				if (!assemblyFilter(parameterType.Assembly.GetName()))
+				if (!assemblyFilter(parameterType.GetTypeInfo().Assembly.GetName()))
 					continue;
-				if (!parameterType.IsGenericType)
+				if (!parameterType.GetTypeInfo().IsGenericType)
 					continue;
-				if (!parameterType.ContainsGenericParameters)
+				if (!parameterType.GetTypeInfo().ContainsGenericParameters)
 					continue;
 				if (parameterType.GenericParameters().Count != definition.type.GetGenericArguments().Length)
 					continue;
@@ -130,7 +130,7 @@ namespace SimpleContainer.Implementation
 			foreach (var implType in typesList.InheritorsOf(definition.type))
 			{
 				var interfaceImpls = implType.ImplementationsOf(definition.type);
-				if (implType.IsGenericType)
+				if (implType.GetTypeInfo().IsGenericType)
 				{
 					var markedImpl = Mark(implType, context);
 					foreach (var interfaceImpl in interfaceImpls)
@@ -156,11 +156,11 @@ namespace SimpleContainer.Implementation
 			var genericArguments = definition.type.GetGenericArguments();
 			if (genericArguments.Length != 1)
 				return;
-			var constraints = genericArguments[0].GetGenericParameterConstraints();
+			var constraints = genericArguments[0].GetTypeInfo().GetGenericParameterConstraints();
 			if (constraints.Length == 0)
 				return;
 			foreach (var c in constraints)
-				if (!assemblyFilter(c.Assembly.GetName()))
+				if (!assemblyFilter(c.GetTypeInfo().Assembly.GetName()))
 					return;
 			var impls = typesList.InheritorsOf(constraints[0]);
 			for (var i = 1; i < constraints.Length; i++)
@@ -175,12 +175,12 @@ namespace SimpleContainer.Implementation
 			if (impls.Count == 0)
 				return;
 			var nonGenericOverrides = typesList.InheritorsOf(definition.type)
-				.Where(x => !x.IsGenericType)
+				.Where(x => !x.GetTypeInfo().IsGenericType)
 				.ToArray();
 			foreach (var impl in impls)
 			{
-				if (genericArguments[0].GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
-					if (impl.GetConstructor(Type.EmptyTypes) == null)
+				if (genericArguments[0].GetTypeInfo().GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+					if (impl.GetConstructor(InternalHelpers.emptyTypesList) == null)
 						continue;
 				var closedItem = definition.type.MakeGenericType(impl);
 				var overriden = false;

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation.Hacks;
 
 namespace SimpleContainer.Implementation
 {
@@ -26,9 +28,9 @@ namespace SimpleContainer.Implementation
 			var result = new Dictionary<Type, List<Type>>();
 			foreach (var type in types)
 			{
-				if (type.IsAbstract)
+				if (type.GetTypeInfo().IsAbstract)
 					continue;
-				if (type.IsNestedPrivate)
+				if (type.GetTypeInfo().IsNestedPrivate)
 					continue;
 				var t = type.GetDefinition();
 				foreach (var interfaceType in t.GetInterfaces())
@@ -37,7 +39,7 @@ namespace SimpleContainer.Implementation
 				while (current != null && current != typeof (object))
 				{
 					Include(result, current.GetDefinition(), t);
-					current = current.BaseType;
+					current = current.GetTypeInfo().BaseType;
 				}
 			}
 			return new TypesList(types, result);
