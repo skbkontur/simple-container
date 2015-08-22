@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using SimpleContainer.Implementation.Hacks;
 
@@ -7,16 +8,16 @@ namespace SimpleContainer.Helpers
 	internal class AttributesCache
 	{
 		public static readonly AttributesCache instance = new AttributesCache();
-		private readonly NonConcurrentDictionary<Key, object> cache = new NonConcurrentDictionary<Key, object>();
+		private readonly NonConcurrentDictionary<Key, Attribute[]> cache = new NonConcurrentDictionary<Key, Attribute[]>();
 
 		public AttributesCache()
 		{
 			createDelegate = CreateCustomAttributes;
 		}
 
-		private readonly Func<Key, object> createDelegate;
+		private readonly Func<Key, Attribute[]> createDelegate;
 
-		private static object CreateCustomAttributes(Key key)
+		private static Attribute[] CreateCustomAttributes(Key key)
 		{
 			var attributeProvider = key.attributeProvider;
 			var type = attributeProvider as Type;
@@ -24,14 +25,14 @@ namespace SimpleContainer.Helpers
 				return type.GetCustomAttributes(key.attributeType, key.inherit);
 			var param = attributeProvider as ParameterInfo;
 			if (param != null)
-				return param.GetCustomAttributes(key.attributeType, key.inherit);
+				return param.GetCustomAttributes(key.attributeType, key.inherit).ToArray();
 			var member = attributeProvider as MemberInfo;
 			if (member != null)
-				return member.GetCustomAttributes(key.attributeType, key.inherit);
+				return member.GetCustomAttributes(key.attributeType, key.inherit).ToArray();
 			throw new NotSupportedException(string.Format("invalid type [{0}]", attributeProvider.GetType().FormatName()));
 		}
 
-		public object GetCustomAttributes(object attributeProvider, Type attributeType, bool inherit)
+		public Attribute[] GetCustomAttributes(object attributeProvider, Type attributeType, bool inherit)
 		{
 			return cache.GetOrAdd(new Key(attributeProvider, attributeType, inherit), createDelegate);
 		}

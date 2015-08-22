@@ -57,7 +57,6 @@
     <Compile Include="Factories\FactoriesArgumentsHandlingTest.cs" />
     <Compile Include="Factories\FactoriesExceptionsHandlingTest.cs" />
     <Compile Include="Factories\FactoriesGenericHandlingTest.cs" />
-    <Compile Include="FileConfigurationTest.cs" />
     <Compile Include="Generics\GenericClassImplementingGenericIntefaceWithDifferentArguments.cs" />
     <Compile Include="Generics\CanCloseSingleGenericInterfaceWithMultipleParameters.cs" />
     <Compile Include="Generics\CanNotCreateGenericWithMultipleImplementationsOfDependency.cs" />
@@ -78,6 +77,7 @@
     <Compile Include="Generics\GenericsInferringViaArgumentTypesTest.cs" />
     <Compile Include="GetImplementationsOfTest.cs" />
     <Compile Include="Helpers\AssemblyCompiler.cs" />
+    <Compile Include="Helpers\PclContainertFactoryExtensions.cs" />
     <Compile Include="Helpers\TestContractAttribute.cs" />
     <Compile Include="Helpers\TestHelpers.cs" />
     <Compile Include="BuildUpTest.cs" />

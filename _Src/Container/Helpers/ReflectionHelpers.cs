@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using SimpleContainer.Helpers.ReflectionEmit;
 using SimpleContainer.Implementation.Hacks;
 
@@ -104,13 +105,13 @@ namespace SimpleContainer.Helpers
 		public static TAttribute[] GetCustomAttributes<TAttribute>(this object attributeProvider,
 			bool inherit = true)
 		{
-			return (TAttribute[])(object)attributeProvider.GetCustomAttributesCached(typeof(TAttribute), inherit);
+			return (TAttribute[]) attributeProvider.GetCustomAttributesCached(typeof(TAttribute), inherit).CastToArrayOf(typeof(TAttribute));
 		}
 
 		public static IEnumerable<Attribute> GetCustomAttributesCached(this object attributeProvider,
 			Type type, bool inherit = true)
 		{
-			return (IEnumerable<Attribute>)AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
+			return AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
 		}
 
 		public static bool TryGetCustomAttribute<TAttribute>(this object memberInfo, out TAttribute result)
@@ -173,17 +174,33 @@ namespace SimpleContainer.Helpers
 		private static readonly NonConcurrentDictionary<MethodBase, Func<object, object[], object>> compiledMethods =
 			new NonConcurrentDictionary<MethodBase, Func<object, object[], object>>();
 
-		private static readonly Func<MethodBase, Func<object, object[], object>> compileMethodDelegate =
-			EmitCallOf;
-
 		public static Func<object, object[], object> Compile(this MethodBase method)
 		{
-			return compiledMethods.GetOrAdd(method, compileMethodDelegate);
+			return compiledMethods.GetOrAdd(method, EmitCallOf);
 		}
 
-		private static Func<object, object[], object> EmitCallOf(MethodBase targetMethod)
+		private static Func<object, object[], object> EmitCallOf(MethodBase method)
 		{
-			throw new NotSupportedException();
+			var constructor = method as ConstructorInfo;
+			if (constructor != null)
+				return UnwrapTargetInvocationExceptions((_, args) => constructor.Invoke(args));
+			return UnwrapTargetInvocationExceptions(method.Invoke);
+		}
+
+		private static Func<object, object[], object> UnwrapTargetInvocationExceptions(Func<object, object[], object> func)
+		{
+			return (t, args) =>
+			{
+				try
+				{
+					return func.Invoke(t, args);
+				}
+				catch (TargetInvocationException e)
+				{
+					ExceptionDispatchInfo.Capture(e.InnerException).Throw();
+					throw;
+				}
+			};
 		}
 
 		public static string FormatName(this Type type)

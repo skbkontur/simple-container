@@ -10,7 +10,6 @@ namespace SimpleContainer.Implementation
 {
 	internal class ConfiguratorRunner
 	{
-		private static readonly Assembly containerAssembly = typeof (ConfiguratorRunner).GetTypeInfo().Assembly;
 		private readonly ConfigurationContext context;
 		private readonly IContainer container;
 		private readonly IEnumerable<IServiceConfiguratorInvoker> invokers;

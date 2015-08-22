@@ -34,9 +34,9 @@ namespace SimpleContainer.Implementation.Hacks
 			return type.GetTypeInfo().GetCustomAttributes(attributeType, inherit).ToArray();
 		}
 
-		public static Attribute[] GetCustomAttributes<TAttr>(this Type type, bool inherit)
+		public static TAttr[] GetCustomAttributes<TAttr>(this Type type, bool inherit)
 		{
-			return type.GetTypeInfo().GetCustomAttributes(typeof (TAttr), inherit).ToArray();
+			return type.GetTypeInfo().GetCustomAttributes(typeof (TAttr), inherit).Cast<TAttr>().ToArray();
 		}
 
 		public static Attribute[] GetCustomAttributes(this Type type, bool inherit)
@@ -57,7 +57,8 @@ namespace SimpleContainer.Implementation.Hacks
 
 		public static bool IsInstanceOfType(this Type type, object obj)
 		{
-			return obj != null && type.IsInstanceOfType(obj);
+			// ReSharper disable once UseMethodIsInstanceOfType
+			return obj != null && type.IsAssignableFrom(obj.GetType());
 		}
 
 		public static MethodInfo GetAddMethod(this EventInfo eventInfo, bool nonPublic = false)
@@ -208,7 +209,10 @@ namespace SimpleContainer.Implementation.Hacks
 
 		public static Type GetNestedType(this Type type, string name)
 		{
-			return type.GetTypeInfo().GetDeclaredNestedType(name).AsType();
+			var typeInfo = type.GetTypeInfo().GetDeclaredNestedType(name);
+			if (typeInfo == null)
+				return null;
+			return typeInfo.AsType();
 		}
 
 		public static Stream GetManifestResourceStream(this Assembly assembly,
