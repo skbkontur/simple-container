@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SimpleContainer.Implementation.Hacks
 {
-	public static class PclReflectionExtensions
+	internal static class PclReflectionExtensions
 	{
 		public static IEnumerable<Type> GetTypes(this Assembly assembly)
 		{

@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace SimpleContainer.Implementation.Hacks
 {
-	public class NonConcurrentDictionary<TKey, TValue>
+	internal class NonConcurrentDictionary<TKey, TValue>
 	{
 		private readonly Dictionary<TKey, TValue> impl = new Dictionary<TKey, TValue>();
 		private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim();

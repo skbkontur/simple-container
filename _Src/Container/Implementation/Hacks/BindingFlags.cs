@@ -3,7 +3,7 @@
 namespace SimpleContainer.Implementation.Hacks
 {
 	[Flags]
-	public enum BindingFlags
+	internal enum BindingFlags
 	{
 		None = 0,
 		DeclaredOnly = 0,
