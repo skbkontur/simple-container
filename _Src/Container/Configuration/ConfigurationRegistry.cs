@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
 {
@@ -118,7 +119,15 @@ namespace SimpleContainer.Configuration
 					{
 						if (configurations.ContainsKey(t))
 							continue;
-						c.ConfigureAction(t, builder);
+						try
+						{
+							c.ConfigureAction(t, builder);
+						}
+						catch (Exception e)
+						{
+							const string messageFormat = "exception invoking [{0}] for [{1}]";
+							throw new SimpleContainerException(string.Format(messageFormat, c.Description, t.FormatName()), e);
+						}
 						if (configurationSet.IsEmpty())
 							continue;
 						if (!string.IsNullOrEmpty(c.Description))

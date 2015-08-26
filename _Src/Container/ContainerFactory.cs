@@ -159,10 +159,12 @@ namespace SimpleContainer
 			var typesContext = typesContextCache;
 			if (typesContext == null)
 			{
-				typesContext = new TypesContext
-				{
-					typesList = TypesList.Create(types().Concat(Assembly.GetExecutingAssembly().GetTypes()).Distinct().ToArray())
-				};
+				var targetTypes = types()
+					.Concat(Assembly.GetExecutingAssembly().GetTypes())
+					.Where(x => !x.Name.StartsWith("<>", StringComparison.OrdinalIgnoreCase))
+					.Distinct()
+					.ToArray();
+				typesContext = new TypesContext {typesList = TypesList.Create(targetTypes)};
 				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
 				if (configFileName != null && File.Exists(configFileName))
 					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);

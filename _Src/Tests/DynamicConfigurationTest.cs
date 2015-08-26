@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
+using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -205,6 +207,25 @@ namespace SimpleContainer.Tests
 					Assert.That(allRunnables.OfType<A1>().Single().a, Is.EqualTo(42));
 					Assert.That(allRunnables.OfType<A2>().Single().b, Is.EqualTo("test string"));
 				}
+			}
+		}
+
+		public class ForAllCrashHandledGracefully : DynamicConfigurationTest
+		{
+			[Test]
+			public void Test()
+			{
+				Type crashThrownForType = null;
+				var exception = Assert.Throws<SimpleContainerException>(() =>
+					Container(b => b.ForAll("crash tester", delegate(Type t, ServiceConfigurationBuilder<object> _)
+					{
+						crashThrownForType = t;
+						throw new InvalidOperationException("test crash");
+					})));
+				Assert.That(crashThrownForType, Is.Not.Null);
+				var expectedMessage = string.Format("exception invoking [crash tester] for [{0}]", crashThrownForType.FormatName());
+				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
+				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
 			}
 		}
 
