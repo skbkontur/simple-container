@@ -56,9 +56,15 @@ namespace SimpleContainer.Implementation.Hacks
 				throw new ArgumentNullException("key");
 			locker.EnterReadLock();
 			var keyAlreadyExists = impl.ContainsKey(key);
-			if (!keyAlreadyExists)
-				impl.Add(key,value);
 			locker.ExitReadLock();
+			if (!keyAlreadyExists)
+			{
+				locker.EnterWriteLock();
+				keyAlreadyExists = impl.ContainsKey(key);
+				if (!keyAlreadyExists)
+					impl.Add(key, value);
+				locker.ExitWriteLock();
+			}
 			return !keyAlreadyExists;
 		}
 
