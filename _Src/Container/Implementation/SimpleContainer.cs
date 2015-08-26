@@ -563,7 +563,6 @@ namespace SimpleContainer.Implementation
 		{
 			if (disposed)
 				return;
-			disposed = true;
 			var exceptions = new List<SimpleContainerException>();
 			foreach (var disposable in GetInstanceCache(typeof (IDisposable)).Reverse())
 			{
@@ -576,6 +575,7 @@ namespace SimpleContainer.Implementation
 					exceptions.Add(e);
 				}
 			}
+			disposed = true;
 			if (exceptions.Count > 0)
 			{
 				var error = new AggregateException("SimpleContainer dispose error", exceptions);

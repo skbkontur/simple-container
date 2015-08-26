@@ -334,6 +334,36 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CanAccessContainerDuringDispose : DisposeTest
+		{
+			public class A : IDisposable
+			{
+				private readonly Func<B> createB;
+
+				public A(Func<B> createB)
+				{
+					this.createB = createB;
+				}
+
+				public void Dispose()
+				{
+					createB();
+				}
+			}
+
+			public class B
+			{				
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<A>();
+				Assert.DoesNotThrow(container.Dispose);
+			}
+		}
+
 		public class CanUseLogErrorDelegate : DisposeTest
 		{
 			public class A : IDisposable
