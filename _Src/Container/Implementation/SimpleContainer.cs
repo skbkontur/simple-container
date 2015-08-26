@@ -439,6 +439,16 @@ namespace SimpleContainer.Implementation
 					return;
 				actualArguments[i] = dependency.Value;
 			}
+			foreach (var d in builder.Configuration.ImplicitDependencies)
+			{
+				var dependency = builder.Context.Resolve(d).AsSingleInstanceDependency(null);
+				dependency.Comment = "implicit";
+				builder.AddDependency(dependency, false);
+				if (dependency.ContainerService != null)
+					builder.UnionUsedContracts(dependency.ContainerService);
+				if (builder.Status != ServiceStatus.Ok)
+					return;
+			}
 			builder.EndResolveDependencies();
 			var dependenciesResolvedByArguments = builder.Arguments == null
 				? InternalHelpers.emptyStrings

@@ -8,7 +8,7 @@ namespace SimpleContainer.Interface
 		private readonly Type type;
 		private readonly string[] contracts;
 
-		internal ServiceName(Type type, string[] contracts)
+		public ServiceName(Type type, string[] contracts)
 		{
 			this.type = type;
 			this.contracts = contracts;

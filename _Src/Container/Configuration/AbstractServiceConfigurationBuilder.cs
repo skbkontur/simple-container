@@ -87,6 +87,18 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf WithImplicitDependency(ServiceName name)
+		{
+			GetServiceBuilder().WithImplicitDependency(name);
+			return Self;
+		}
+		
+		public TSelf WithComment(string comment)
+		{
+			GetServiceBuilder().SetComment(comment);
+			return Self;
+		}
+
 		public TSelf DontUse()
 		{
 			GetServiceBuilder().DontUse();

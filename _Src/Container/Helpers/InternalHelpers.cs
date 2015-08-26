@@ -71,6 +71,7 @@ namespace SimpleContainer.Helpers
 
 		public static readonly string[] emptyStrings = new string[0];
 		public static readonly List<Type> emptyTypesList = new List<Type>(0);
+		public static readonly ServiceName[] emptyServiceNames = new ServiceName[0];
 
 		public static string DumpValue(object value)
 		{

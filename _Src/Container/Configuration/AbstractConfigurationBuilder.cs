@@ -56,6 +56,18 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
+		public TSelf WithImplicitDependency<T>(ServiceName name)
+		{
+			GetServiceBuilder(typeof(T)).WithImplicitDependency(name);
+			return Self;
+		}
+
+		public TSelf WithComment<T>(string comment)
+		{
+			GetServiceBuilder(typeof(T)).SetComment(comment);
+			return Self;
+		}
+
 		public TSelf Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance = true)
 		{
 			GetServiceBuilder(typeof (T)).Bind(creator, containerOwnsInstance);

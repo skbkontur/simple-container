@@ -28,6 +28,7 @@ namespace SimpleContainer.Configuration
 		public Func<object, bool> InstanceFilter { get; private set; }
 		public IParametersSource ParametersSource { get; private set; }
 		public string Comment { get; private set; }
+		public ServiceName[] ImplicitDependencies { get; private set; }
 
 		public ServiceConfiguration CloneWithFilter(Func<Type, bool> filter)
 		{
@@ -49,7 +50,8 @@ namespace SimpleContainer.Configuration
 		internal static readonly ServiceConfiguration empty = new ServiceConfiguration(new List<string>())
 		{
 			ContainerOwnsInstance = true,
-			dependencies = new ImplentationDependencyConfiguration[0]
+			dependencies = new ImplentationDependencyConfiguration[0],
+			ImplicitDependencies = InternalHelpers.emptyServiceNames
 		};
 
 		public ImplentationDependencyConfiguration GetByKeyOrNull(string key)
@@ -75,6 +77,7 @@ namespace SimpleContainer.Configuration
 		{
 			private readonly ServiceConfiguration target;
 			public List<Type> ImplementationTypes { get; private set; }
+			public List<ServiceName> ImplicitDependencies { get; private set; }
 
 			private readonly List<ImplentationDependencyConfiguration.Builder> dependencyBuilders =
 				new List<ImplentationDependencyConfiguration.Builder>();
@@ -101,6 +104,13 @@ namespace SimpleContainer.Configuration
 					throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
 						implementationType.FormatName()));
 				AddImplementation(implementationType, clearOld);
+			}
+
+			public void WithImplicitDependency(ServiceName name)
+			{
+				if(ImplicitDependencies == null)
+					ImplicitDependencies = new List<ServiceName>();
+				ImplicitDependencies.Add(name);
 			}
 
 			public void Bind(Type interfaceType, object value, bool containerOwnsInstance)
@@ -227,6 +237,9 @@ namespace SimpleContainer.Configuration
 				target.dependencies = dependencyBuilders.Select(x => x.Build()).ToArray();
 				if (ImplementationTypes != null)
 					target.ImplementationTypes = ImplementationTypes.ToArray();
+				target.ImplicitDependencies = ImplicitDependencies == null
+					? InternalHelpers.emptyServiceNames
+					: ImplicitDependencies.ToArray();
 				return target;
 			}
 
