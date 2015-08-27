@@ -20,13 +20,17 @@ namespace SimpleContainer.Implementation
 			Contracts = new List<string>(contracts);
 		}
 
-		internal ContainerService Create(Type type, object arguments, string contract = null)
+		public ContainerService Create(Type type, List<string> contracts, object arguments)
 		{
-			if (contract != null)
-				Contracts.Add(contract);
+			List<string> oldContracts = null;
+			if (contracts != null)
+			{
+				oldContracts = Contracts;
+				Contracts = contracts;
+			}
 			var result = Instantiate(type, true, ObjectAccessor.Get(arguments));
-			if (contract != null)
-				Contracts.RemoveLast();
+			if (contracts != null)
+				Contracts = oldContracts;
 			return result;
 		}
 

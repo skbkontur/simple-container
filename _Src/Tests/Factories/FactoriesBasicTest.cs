@@ -153,8 +153,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				var constructionLog = a.GetConstructionLog();
-				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>\r\n\t() => B\r\n\t\tC\r\n\t() => B"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<B>\r\n\t() => B\r\n\t\tC\r\n\t() => B"));
 				Assert.That(container.Get<B>(), Is.Not.SameAs(a.Single().b1));
 				Assert.That(a.Single().b1, Is.Not.SameAs(a.Single().b2));
 			}
@@ -293,6 +292,79 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(exception.Message,
 					Is.EqualTo(
 						"cyclic dependency A ...-> B -> A\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A <---------------"));
+			}
+		}
+
+		public class ReusedFactoryInvokationAugmentsItsHostDependencies : FactoriesBasicTest
+		{
+			public class A
+			{
+				public readonly Func<C> createC;
+
+				public A(Func<C> createC)
+				{
+					this.createC = createC;
+				}
+			}
+			
+			public class B
+			{
+				public B(Func<C> createC)
+				{
+					createC();
+				}
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Resolve<A>();
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo("B\r\n\tFunc<C>\r\n\t() => C"));
+			}
+		}
+
+		public class FactoryTakenFromAnyOtherServiceAugmentsItsCurrentHostDependencies : FactoriesBasicTest
+		{
+			public class A
+			{
+				public static Func<C> createC;
+
+				public A(Func<C> createC)
+				{
+					A.createC = createC;
+				}
+			}
+
+			public class B
+			{
+				public B()
+				{
+					A.createC();
+					A.createC();
+				}
+			}
+
+			public class C
+			{
+				public readonly int parameter;
+
+				public C(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("x").BindDependency<C>("parameter", 42));
+				container.Resolve<A>("x");
+				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(), Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
 			}
 		}
 

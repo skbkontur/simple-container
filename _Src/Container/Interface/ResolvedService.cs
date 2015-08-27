@@ -70,7 +70,7 @@ namespace SimpleContainer.Interface
 
 		public ServiceName Name
 		{
-			get { return new ServiceName(containerService.Type, containerService.UsedContracts); }
+			get { return containerService.Name; }
 		}
 
 		public void Run(bool dumpConstructionLog = false)

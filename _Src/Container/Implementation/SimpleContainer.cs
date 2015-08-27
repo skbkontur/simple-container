@@ -70,7 +70,7 @@ namespace SimpleContainer.Implementation
 			if (arguments == null && factoryCache.TryGetValue(name, out compiledFactory))
 				return compiledFactory();
 			var context = new ResolutionContext(this, name.Contracts);
-			var result = context.Create(type, arguments);
+			var result = context.Create(type, null, arguments);
 			result.EnsureRunCalled(infoLogger);
 			return result.GetSingleValue(false, null);
 		}
@@ -78,7 +78,7 @@ namespace SimpleContainer.Implementation
 		internal void Run(ContainerService containerService, string constructionLog)
 		{
 			if (constructionLog != null && infoLogger != null)
-				infoLogger(new ServiceName(containerService.Type, containerService.UsedContracts), "\r\n" + constructionLog);
+				infoLogger(containerService.Name, "\r\n" + constructionLog);
 			containerService.EnsureRunCalled(infoLogger);
 		}
 
@@ -281,8 +281,7 @@ namespace SimpleContainer.Implementation
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
 						if (factory == null)
 						{
-							var implName = new ServiceName(implementationService.Type, implementationService.UsedContracts);
-							if (!factoryCache.TryGetValue(implName, out factory))
+							if (!factoryCache.TryGetValue(implementationService.Name, out factory))
 								canUseFactory = false;
 						}
 						else

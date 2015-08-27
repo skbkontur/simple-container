@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Annotations;
@@ -53,21 +54,17 @@ namespace SimpleContainer.Implementation
 
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder)
 		{
-			var factoryContractNames = builder.DeclaredContracts;
-			var hostBuilder = builder.Context.GetPreviousBuilder();
+			var container = builder.Context.Container;
+			var factoryContracts = new List<string>(builder.DeclaredContracts);
 			builder.UseAllDeclaredContracts();
 			return delegate(Type type, object arguments)
 			{
-				if (hostBuilder == null || hostBuilder != builder.Context.GetTopBuilder())
-					return builder.Context.Container.Create(type, factoryContractNames, arguments);
-				string contractName = null;
-				if (hostBuilder.DeclaredContracts.Length == factoryContractNames.Length - 1)
-					contractName = factoryContractNames[factoryContractNames.Length - 1];
-				else if (hostBuilder.DeclaredContracts.Length != factoryContractNames.Length)
-					throw new SimpleContainerException("assertion failure");
-				var result = builder.Context.Create(type, arguments, contractName);
+				var current = ContainerService.Builder.current;
+				if (current == null)
+					return container.Create(type, factoryContracts, arguments);
+				var result = current.Context.Create(type, factoryContracts, arguments);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
-				hostBuilder.AddDependency(resultDependency, false);
+				current.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();
 				return resultDependency.Value;

@@ -13,6 +13,12 @@ namespace SimpleContainer.Implementation
 		public ServiceStatus Status { get; private set; }
 		public Type Type { get; private set; }
 		public string[] UsedContracts { get; private set; }
+
+		public ServiceName Name
+		{
+			get { return new ServiceName(Type, UsedContracts); }
+		}
+
 		private readonly object lockObject = new object();
 
 		private object[] typedArray;
@@ -431,11 +437,15 @@ namespace SimpleContainer.Implementation
 				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
 			}
 
+			[ThreadStatic] public static Builder current;
+
 			public void CreateInstanceBy(Func<object> creator, bool owned)
 			{
 				object instance;
+				var prev = current;
 				try
 				{
+					current = this;
 					instance = creator();
 				}
 				catch (ServiceCouldNotBeCreatedException e)
@@ -448,6 +458,10 @@ namespace SimpleContainer.Implementation
 				{
 					SetError(e);
 					return;
+				}
+				finally
+				{
+					current = prev;
 				}
 				AddInstance(instance, owned);
 			}
