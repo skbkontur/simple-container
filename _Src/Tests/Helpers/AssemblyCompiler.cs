@@ -15,7 +15,7 @@ namespace SimpleContainer.Tests.Helpers
 		private static readonly Assembly[] defaultAssemblies =
 		{
 			Assembly.GetExecutingAssembly(),
-			typeof (IComponent).Assembly,
+			typeof (IInitializable).Assembly,
 			typeof (NameValueCollection).Assembly
 		};
 

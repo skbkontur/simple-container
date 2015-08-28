@@ -76,15 +76,15 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class CanRunBuilduppedObject : BuildUpTest
+		public class CanInitializeBuilduppedObject : BuildUpTest
 		{
-			public class A : IComponent
+			public class A : IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
@@ -94,9 +94,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				container.BuildUp(this, null).Run();
+				container.BuildUp(this, null).EnsureInitialized();
 				Assert.That(a, Is.Not.Null);
-				Assert.That(A.runCalled);
+				Assert.That(A.initializeCalled);
 			}
 		}
 

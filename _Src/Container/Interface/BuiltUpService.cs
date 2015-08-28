@@ -11,10 +11,10 @@ namespace SimpleContainer.Interface
 			this.injections = injections;
 		}
 
-		public void Run(bool dumpConstructionLog = false)
+		public void EnsureInitialized()
 		{
 			foreach (var injection in injections)
-				injection.value.Run(dumpConstructionLog);
+				injection.value.EnsureInitialized();
 		}
 	}
 }

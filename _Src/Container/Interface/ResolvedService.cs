@@ -18,9 +18,9 @@ namespace SimpleContainer.Interface
 			get { return resolvedService.Name; }
 		}
 
-		public void Run(bool dumpConstructionLog = false)
+		public void EnsureInitialized()
 		{
-			resolvedService.Run(dumpConstructionLog);
+			resolvedService.EnsureInitialized();
 		}
 
 		public bool IsOk()
@@ -73,9 +73,9 @@ namespace SimpleContainer.Interface
 			get { return containerService.Name; }
 		}
 
-		public void Run(bool dumpConstructionLog = false)
+		public void EnsureInitialized()
 		{
-			simpleContainer.Run(containerService, dumpConstructionLog ? GetConstructionLog() : null);
+			simpleContainer.EnsureInitialized(containerService);
 		}
 
 		public void CheckSingleInstance()

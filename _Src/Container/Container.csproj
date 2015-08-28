@@ -98,7 +98,7 @@
     <Compile Include="Infection\RequireContractAttribute.cs" />
     <Compile Include="Helpers\IObjectAccessor.cs" />
     <Compile Include="Interface\ISimpleLogWriter.cs" />
-    <Compile Include="Interface\IComponent.cs" />
+    <Compile Include="Interface\IInitializable.cs" />
     <Compile Include="Helpers\ObjectAccessor.cs" />
     <Compile Include="Interface\LogError.cs" />
     <Compile Include="Interface\LogInfo.cs" />

@@ -8,9 +8,9 @@ namespace SimpleContainer
 {
 	public static class ContainerExtensions
 	{
-		public static T Get<T>(this IContainer container, string contract = null, bool dumpConstructionLog = false)
+		public static T Get<T>(this IContainer container, string contract = null)
 		{
-			return (T) container.Get(typeof (T), contract, dumpConstructionLog);
+			return (T) container.Get(typeof (T), contract);
 		}
 
 		public static ResolvedService<T> Resolve<T>(this IContainer container, params string[] contracts)
@@ -23,12 +23,11 @@ namespace SimpleContainer
 			return container.Resolve(type, contracts);
 		}
 
-		public static object Get(this IContainer container, Type type, string contract = null,
-			bool dumpConstructionLog = false)
+		public static object Get(this IContainer container, Type type, string contract = null)
 		{
-			var resolvedService = container.Resolve(type,
-				string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract});
-			resolvedService.Run(dumpConstructionLog);
+			var contracts = string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract};
+			var resolvedService = container.Resolve(type, contracts);
+			resolvedService.EnsureInitialized();
 			return resolvedService.Single();
 		}
 

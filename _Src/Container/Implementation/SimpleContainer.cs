@@ -71,15 +71,8 @@ namespace SimpleContainer.Implementation
 				return compiledFactory();
 			var context = new ResolutionContext(this, name.Contracts);
 			var result = context.Create(type, null, arguments);
-			result.EnsureRunCalled(infoLogger);
+			EnsureInitialized(result);
 			return result.GetSingleValue(false, null);
-		}
-
-		internal void Run(ContainerService containerService, string constructionLog)
-		{
-			if (constructionLog != null && infoLogger != null)
-				infoLogger(containerService.Name, "\r\n" + constructionLog);
-			containerService.EnsureRunCalled(infoLogger);
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
@@ -90,6 +83,11 @@ namespace SimpleContainer.Implementation
 		internal ServiceConfiguration GetConfiguration(Type type, ResolutionContext context)
 		{
 			return GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
+		}
+
+		internal void EnsureInitialized(ContainerService containerService)
+		{
+			containerService.EnsureInitialized(infoLogger);
 		}
 
 		private ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
@@ -473,9 +471,9 @@ namespace SimpleContainer.Implementation
 					factoryCache.TryAdd(builder.GetName(), () =>
 					{
 						var instance = compiledConstructor(null, actualArguments);
-						var component = instance as IComponent;
+						var component = instance as IInitializable;
 						if (component != null)
-							component.Run();
+							component.Initialize();
 						return instance;
 					});
 				}

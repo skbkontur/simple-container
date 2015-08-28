@@ -22,7 +22,7 @@ namespace SimpleContainer.Implementation
 		private readonly object lockObject = new object();
 
 		private object[] typedArray;
-		private volatile bool runCalled;
+		private volatile bool initialized;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
@@ -71,21 +71,21 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
-		public void EnsureRunCalled(LogInfo infoLogger)
+		public void EnsureInitialized(LogInfo infoLogger)
 		{
 			if (Status != ServiceStatus.Ok)
 				return;
-			if (!runCalled)
+			if (!initialized)
 				lock (lockObject)
-					if (!runCalled)
+					if (!initialized)
 					{
 						if (dependencies != null)
 							foreach (var dependency in dependencies)
 								if (dependency.ContainerService != null)
-									dependency.ContainerService.EnsureRunCalled(infoLogger);
+									dependency.ContainerService.EnsureInitialized(infoLogger);
 						foreach (var instance in instances)
-							instance.EnsureRunCalled(this, infoLogger);
-						runCalled = true;
+							instance.EnsureInitialized(this, infoLogger);
+						initialized = true;
 					}
 		}
 

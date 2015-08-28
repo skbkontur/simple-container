@@ -5,7 +5,7 @@ namespace SimpleContainer.Implementation
 {
 	internal class InstanceWrap
 	{
-		private volatile bool runCalled;
+		private volatile bool initialized;
 		public object Instance { get; private set; }
 		public bool Owned { get; set; }
 
@@ -23,29 +23,29 @@ namespace SimpleContainer.Implementation
 			return ReferenceEquals(Instance, ((InstanceWrap) obj).Instance);
 		}
 
-		public void EnsureRunCalled(ContainerService service, LogInfo infoLogger)
+		public void EnsureInitialized(ContainerService service, LogInfo infoLogger)
 		{
-			var componentInstance = Instance as IComponent;
+			var componentInstance = Instance as IInitializable;
 			if (componentInstance == null)
 				return;
-			if (!runCalled)
+			if (!initialized)
 				lock (this)
-					if (!runCalled)
+					if (!initialized)
 					{
 						var name = new ServiceName(Instance.GetType(), service.UsedContracts);
 						if (infoLogger != null)
-							infoLogger(name, "run started");
+							infoLogger(name, "initialize started");
 						try
 						{
-							componentInstance.Run();
+							componentInstance.Initialize();
 						}
 						catch (Exception e)
 						{
-							throw new SimpleContainerException(string.Format("exception running {0}", name), e);
+							throw new SimpleContainerException(string.Format("exception initializing {0}", name), e);
 						}
 						if (infoLogger != null)
-							infoLogger(name, "run finished");
-						runCalled = true;
+							infoLogger(name, "initialize finished");
+						initialized = true;
 					}
 		}
 

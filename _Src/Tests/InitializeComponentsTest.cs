@@ -9,9 +9,9 @@ using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
-	public abstract class RunComponentsTest : SimpleContainerTestBase
+	public abstract class InitializeComponentsTest : SimpleContainerTestBase
 	{
-		public class Simple : RunComponentsTest
+		public class Simple : InitializeComponentsTest
 		{
 			public class ComponentWrap
 			{
@@ -23,7 +23,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class Component2 : IComponent
+			public class Component2 : IInitializable
 			{
 				public readonly IntermediateService intermediateService;
 
@@ -33,9 +33,9 @@ namespace SimpleContainer.Tests
 					LogBuilder.Append("Component2.ctor ");
 				}
 
-				public void Run()
+				public void Initialize()
 				{
-					LogBuilder.Append("Component2.Run ");
+					LogBuilder.Append("Component2.Initialize ");
 				}
 			}
 
@@ -50,7 +50,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class Component1 : IComponent
+			public class Component1 : IInitializable
 			{
 				public Component0 component0;
 
@@ -60,22 +60,22 @@ namespace SimpleContainer.Tests
 					LogBuilder.Append("Component1.ctor ");
 				}
 
-				public void Run()
+				public void Initialize()
 				{
-					LogBuilder.Append("Component1.Run ");
+					LogBuilder.Append("Component1.Initialize ");
 				}
 			}
 
-			public class Component0 : IComponent
+			public class Component0 : IInitializable
 			{
 				public Component0()
 				{
 					LogBuilder.Append("Component0.ctor ");
 				}
 
-				public void Run()
+				public void Initialize()
 				{
-					LogBuilder.Append("Component0.Run ");
+					LogBuilder.Append("Component0.Initialize ");
 				}
 			}
 
@@ -85,12 +85,12 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				container.Get<ComponentWrap>();
 				const string constructorsLog = "Component0.ctor Component1.ctor IntermediateService.ctor Component2.ctor ";
-				const string runLog = "Component0.Run Component1.Run Component2.Run ";
+				const string runLog = "Component0.Initialize Component1.Initialize Component2.Initialize ";
 				Assert.That(LogBuilder.ToString(), Is.EqualTo(constructorsLog + runLog));
 			}
 		}
 
-		public class RunComponentsFromCache : RunComponentsTest
+		public class InitializeComponentsFromCache : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -116,13 +116,13 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class C : IComponent
+			public class C : IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
@@ -134,12 +134,12 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.DontUse<D>());
-				container.Resolve<A>().Run();
-				Assert.That(C.runCalled);
+				container.Resolve<A>().EnsureInitialized();
+				Assert.That(C.initializeCalled);
 			}
 		}
 
-		public class DoNotRunNotUsedComponents : RunComponentsTest
+		public class DoNotInitializeNotUsedComponents : InitializeComponentsTest
 		{
 			private static readonly StringBuilder logBuilder = new StringBuilder();
 
@@ -169,11 +169,11 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class B : IComponent
+			public class B : IInitializable
 			{
-				public void Run()
+				public void Initialize()
 				{
-					logBuilder.Append("Run ");
+					logBuilder.Append("Initialize ");
 				}
 			}
 
@@ -187,7 +187,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class RunUsesInstancesReachableFromAllResolutionContexts : RunComponentsTest
+		public class InitializeUsesInstancesReachableFromAllResolutionContexts : InitializeComponentsTest
 		{
 			private static readonly StringBuilder logBuilder = new StringBuilder();
 
@@ -211,9 +211,9 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class C : IComponent
+			public class C : IInitializable
 			{
-				public void Run()
+				public void Initialize()
 				{
 					logBuilder.Append("Run ");
 				}
@@ -229,7 +229,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class RunUsesInstancesCreatedByFactories : RunComponentsTest
+		public class InitializeUsesInstancesCreatedByFactories : InitializeComponentsTest
 		{
 			private static readonly StringBuilder logBuilder = new StringBuilder();
 
@@ -253,9 +253,9 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class C : IComponent
+			public class C : IInitializable
 			{
-				public void Run()
+				public void Initialize()
 				{
 					logBuilder.Append("Run ");
 				}
@@ -270,7 +270,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class UnionAllDependencies : RunComponentsTest
+		public class UnionAllDependencies : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -286,23 +286,23 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class B : IX, IComponent
+			public class B : IX, IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
-			public class C : IX, IComponent
+			public class C : IX, IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
@@ -317,12 +317,12 @@ namespace SimpleContainer.Tests
 				});
 
 				container.Get<A>();
-				Assert.That(B.runCalled);
-				Assert.That(C.runCalled);
+				Assert.That(B.initializeCalled);
+				Assert.That(C.initializeCalled);
 			}
 		}
 
-		public class InterfaceDependencies : RunComponentsTest
+		public class InterfaceDependencies : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -340,21 +340,21 @@ namespace SimpleContainer.Tests
 
 			public class X1 : IX
 			{
-				public readonly Component component;
+				public readonly Initializable initializable;
 
-				public X1(Component component)
+				public X1(Initializable initializable)
 				{
-					this.component = component;
+					this.initializable = initializable;
 				}
 			}
 
-			public class Component : IComponent
+			public class Initializable : IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
@@ -363,11 +363,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				container.Get<A>();
-				Assert.That(Component.runCalled);
+				Assert.That(Initializable.initializeCalled);
 			}
 		}
 
-		public class EnumerableDependencies : RunComponentsTest
+		public class EnumerableDependencies : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -383,23 +383,23 @@ namespace SimpleContainer.Tests
 			{
 			}
 
-			public class B : IX, IComponent
+			public class B : IX, IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
-			public class C : IX, IComponent
+			public class C : IX, IInitializable
 			{
-				public static bool runCalled;
+				public static bool initializeCalled;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCalled = true;
+					initializeCalled = true;
 				}
 			}
 
@@ -408,12 +408,12 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				container.Get<A>();
-				Assert.That(B.runCalled);
-				Assert.That(C.runCalled);
+				Assert.That(B.initializeCalled);
+				Assert.That(C.initializeCalled);
 			}
 		}
 
-		public class RunComponentsCreatedInFactories : RunComponentsTest
+		public class InitializeComponentsCreatedInFactories : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -435,13 +435,13 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class C : IComponent
+			public class C : IInitializable
 			{
-				public static int runCallCount;
+				public static int initializeCallCount;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCallCount ++;
+					initializeCallCount ++;
 				}
 			}
 
@@ -450,16 +450,16 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var a = container.Get<A>();
-				Assert.That(C.runCallCount, Is.EqualTo(0));
+				Assert.That(C.initializeCallCount, Is.EqualTo(0));
 				var b1 = a.createB();
-				Assert.That(C.runCallCount, Is.EqualTo(1));
+				Assert.That(C.initializeCallCount, Is.EqualTo(1));
 				var b2 = a.createB();
-				Assert.That(C.runCallCount, Is.EqualTo(1));
+				Assert.That(C.initializeCallCount, Is.EqualTo(1));
 				Assert.That(b1, Is.Not.SameAs(b2));
 			}
 		}
 
-		public class FactoryCallInConstructor_DelayRunUntilEntireDependencyTreeIsConstructed : RunComponentsTest
+		public class FactoryCallInConstructor_DelayInitializeUntilEntireDependencyTreeIsConstructed : InitializeComponentsTest
 		{
 			public class A
 			{
@@ -499,13 +499,13 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			public class E : IComponent
+			public class E : IInitializable
 			{
-				public static int runCallCount;
+				public static int initializeCallCount;
 
-				public void Run()
+				public void Initialize()
 				{
-					runCallCount++;
+					initializeCallCount++;
 				}
 			}
 
@@ -514,16 +514,16 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.DontUse<D>());
 				Assert.That(container.Get<A>().b, Is.Null);
-				Assert.That(E.runCallCount, Is.EqualTo(0));
+				Assert.That(E.initializeCallCount, Is.EqualTo(0));
 				container.Get<C>();
-				Assert.That(E.runCallCount, Is.EqualTo(2));
+				Assert.That(E.initializeCallCount, Is.EqualTo(2));
 			}
 		}
 
-		public class RunExceptionMustContainServiceContracts : RunComponentsTest
+		public class InitializeExceptionMustContainServiceContracts : InitializeComponentsTest
 		{
 			[TestContract("c1")]
-			public class A : IComponent
+			public class A : IInitializable
 			{
 				public readonly int parameter;
 
@@ -532,7 +532,7 @@ namespace SimpleContainer.Tests
 					this.parameter = parameter;
 				}
 
-				public void Run()
+				public void Initialize()
 				{
 					throw new InvalidOperationException("test crash");
 				}
@@ -543,13 +543,13 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
 				var resolvedA = container.Resolve<A>();
-				var exception = Assert.Throws<SimpleContainerException>(() => resolvedA.Run());
-				Assert.That(exception.Message, Is.EqualTo("exception running A[c1]"));
+				var exception = Assert.Throws<SimpleContainerException>(() => resolvedA.EnsureInitialized());
+				Assert.That(exception.Message, Is.EqualTo("exception initializing A[c1]"));
 				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
 			}
 		}
 
-		public class RunWithRunLogger : RunComponentsTest
+		public class InitializeWithInitializeLogger : InitializeComponentsTest
 		{
 			private static StringBuilder log;
 
@@ -559,7 +559,7 @@ namespace SimpleContainer.Tests
 				log = new StringBuilder();
 			}
 
-			public class ComponentA : IComponent
+			public class ComponentA : IInitializable
 			{
 				public readonly ComponentB componentB;
 
@@ -568,13 +568,13 @@ namespace SimpleContainer.Tests
 					this.componentB = componentB;
 				}
 
-				public void Run()
+				public void Initialize()
 				{
-					log.Append(" ComponentA.Run\r\n");
+					log.Append(" ComponentA.Initialize\r\n");
 				}
 			}
 
-			public class ComponentB : IComponent
+			public class ComponentB : IInitializable
 			{
 				public readonly int parameter;
 
@@ -583,9 +583,9 @@ namespace SimpleContainer.Tests
 					this.parameter = parameter;
 				}
 
-				public void Run()
+				public void Initialize()
 				{
-					log.Append(" ComponentB.Run\r\n");
+					log.Append(" ComponentB.Initialize\r\n");
 				}
 			}
 
@@ -605,9 +605,9 @@ namespace SimpleContainer.Tests
 				{
 					container.Get<ComponentA>("my-contract");
 					const string componentALog =
-						"ComponentA[my-contract] - run started ComponentA.Run\r\nComponentA[my-contract] - run finished";
+						"ComponentA[my-contract] - initialize started ComponentA.Initialize\r\nComponentA[my-contract] - initialize finished";
 					const string componentBLog =
-						"ComponentB[my-contract] - run started ComponentB.Run\r\nComponentB[my-contract] - run finished";
+						"ComponentB[my-contract] - initialize started ComponentB.Initialize\r\nComponentB[my-contract] - initialize finished";
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
 			}
