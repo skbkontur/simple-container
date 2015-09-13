@@ -75,7 +75,7 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
-		public TSelf Bind(object value, bool containerOwnsInstance = true)
+		public TSelf Bind(TService value, bool containerOwnsInstance = true)
 		{
 			GetServiceBuilder().Bind(typeof (TService), value, containerOwnsInstance);
 			return Self;
