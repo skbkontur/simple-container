@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -89,7 +90,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
-				const string expectedConstructionLog = "A\r\n\tCancellationToken const";
+				const string expectedConstructionLog = "A\r\n\tCancellationToken const\r\n\t\tIsCancellationRequested -> false\r\n\t\tCanBeCanceled -> false";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -218,7 +219,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<B>());
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse = <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse -> <null>"));
 			}
 		}
 
@@ -234,7 +235,7 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			[IgnoredImplementation]
+			[DontUseAttribute]
 			public class B
 			{
 			}
@@ -245,7 +246,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - IgnoredImplementation = <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - DontUse -> <null>"));
 			}
 		}
 
@@ -270,7 +271,7 @@ namespace SimpleContainer.Tests
 			}
 		}
 
-		public class MergeFailedConstructionLog : BasicTest
+		public class MergeFailedConstructionLog : ConstructionLogTest
 		{
 			public class A
 			{
@@ -311,8 +312,227 @@ namespace SimpleContainer.Tests
 				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
 				const string expectedMessage =
-					"many implementations for [IB]\r\n\tB1\r\n\tB2\r\n\r\n!C\r\n\t!A\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
+					"many instances for [IB]\r\n\tB1\r\n\tB2\r\n\r\n!C\r\n\t!A\r\n\t\tIB++\r\n\t\t\tB1\r\n\t\t\tB2";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
+			}
+		}
+
+		public class CanDumpNestedSimpleTypes : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+				public string StrVal { get; set; }
+				public B ComplexType { get; set; }
+				public int IntVal { get; set; }
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("dto", new Dto
+				{
+					IntVal = 5,
+					StrVal = "test-string",
+					ComplexType = new B()
+				}));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\tDto const\r\n\t\tStrVal -> test-string\r\n\t\tIntVal -> 5"));
+			}
+		}
+
+		public class CanRegisterCustomValueFormatters : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public Dto Val { get; set; }
+			}
+
+			public class Dto
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithConfigurator(b=>b.BindDependency<A>("b", new B{Val = new Dto()}))
+					.WithValueFormatter<Dto>(x => "dumpted Dto");
+				using (var container = f.Build())
+					Assert.That(container.Resolve<A>().GetConstructionLog(),
+						Is.EqualTo("A\r\n\tB const\r\n\t\tVal -> dumpted Dto"));
+			}
+		}
+
+		public class CanDumpArrays : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly string[] urls;
+
+				public A(string[] urls)
+				{
+					this.urls = urls;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("urls", new [] {"a", "b", "c"}));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\turls const\r\n\t\ta\r\n\t\tb\r\n\t\tc"));
+			}
+		}
+
+		public class CustomValueFormatterForEntireValue : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithConfigurator(b => b.BindDependency<A>("dto", new Dto()))
+					.WithValueFormatter<Dto>(x => "dumpted Dto");
+				using (var container = f.Build())
+					Assert.That(container.Resolve<A>().GetConstructionLog(),
+						Is.EqualTo("A\r\n\tDto const -> dumpted Dto"));
+			}
+		}
+
+		public class DumpCommentOnlyOnce : ConstructionLogTest
+		{
+			public class X
+			{
+				public readonly IA a1;
+				public readonly IA a2;
+
+				public X(IA a1, IA a2)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+				}
+			}
+
+			public interface IA
+			{
+			}
+
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			public class AConfigurator : IServiceConfigurator<IA>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IA> builder)
+				{
+					builder.WithInstanceFilter(a => a.GetType() == typeof (A2));
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Resolve<X>().GetConstructionLog(),
+					Is.EqualTo("X\r\n\tIA - instance filter\r\n\t\tA1\r\n\t\tA2\r\n\tIA"));
+			}
+		}
+
+		public class ConstructionLogForReusedService : ConstructionLogTest
+		{
+			public class A
+			{
+			}
+
+			public class B
+			{
+				public readonly A a1;
+				public readonly A a2;
+				public readonly A a3;
+
+				public B(A a1, A a2, A a3)
+				{
+					this.a1 = a1;
+					this.a2 = a2;
+					this.a3 = a3;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo("B\r\n\tA\r\n\tA\r\n\tA"));
+			}
+		}
+
+		public class IgnoreNonReadableProperties : ConstructionLogTest
+		{
+			public class A
+			{
+				public readonly Dto dto;
+
+				public A(Dto dto)
+				{
+					this.dto = dto;
+				}
+			}
+
+			public class Dto
+			{
+				public string Prop
+				{
+					set { }
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.BindDependency<A>("dto", new Dto()));
+				Assert.That(container.Resolve<A>().GetConstructionLog(),
+					Is.EqualTo("A\r\n\tDto const"));
 			}
 		}
 	}

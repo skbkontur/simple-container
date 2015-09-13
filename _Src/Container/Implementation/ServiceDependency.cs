@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using SimpleContainer.Helpers;
 using SimpleContainer.Implementation.Hacks;
@@ -11,6 +12,7 @@ namespace SimpleContainer.Implementation
 		public object Value { get; private set; }
 		public string Name { get; private set; }
 		public string ErrorMessage { get; private set; }
+		public string Comment { get; set; }
 		public ServiceStatus Status { get; private set; }
 
 		private ServiceDependency()
@@ -83,12 +85,6 @@ namespace SimpleContainer.Implementation
 			}.WithName(null, name);
 		}
 
-		public static ServiceDependency Error(ContainerService containerService, ParameterInfo parameterInfo, string message,
-			params object[] args)
-		{
-			return Error(containerService, parameterInfo.Name, message, args);
-		}
-
 		public static ServiceDependency ServiceError(ContainerService service, string name = null)
 		{
 			return new ServiceDependency
@@ -110,24 +106,81 @@ namespace SimpleContainer.Implementation
 			if (Status != ServiceStatus.Ok)
 				context.Writer.WriteMeta("!");
 			context.Writer.WriteName(Name);
+			if (Comment != null)
+			{
+				context.Writer.WriteMeta(" - ");
+				context.Writer.WriteMeta(Comment);
+			}
 			if (Status == ServiceStatus.Ok && isConstant)
 			{
 				if (Value == null || Value.GetType().IsSimpleType())
-					context.Writer.WriteMeta(" -> " + DumpValue(Value));
+					context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
 				else
+				{
 					context.Writer.WriteMeta(" const");
+					WriteValue(context);
+				}
 			}
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
 			context.Writer.WriteNewLine();
 		}
 
-		private static string DumpValue(object value)
+		private void WriteValue(ConstructionLogContext context)
 		{
-			if (value == null)
-				return "<null>";
-			var result = value.ToString();
-			return value is bool ? result.ToLower() : result;
+			string formattedValue;
+
+			if (TryFormat(Value, context, out formattedValue))
+			{
+				context.Writer.WriteMeta(" -> " + formattedValue);
+				return;
+			}
+			var enumerable = Value as IEnumerable;
+			if (enumerable != null)
+			{
+				context.Indent++;
+				foreach (var item in enumerable)
+				{
+					if (!TryFormat(item, context, out formattedValue))
+						formattedValue = "?";
+					context.Writer.WriteNewLine();
+					context.WriteIndent();
+					context.Writer.WriteMeta(formattedValue);
+				}
+				context.Indent--;
+				return;
+			}
+			context.Indent++;
+			foreach (var prop in Value.GetType().GetProperties())
+			{
+				if (!prop.CanRead)
+					continue;
+				var propVal = prop.GetValue(Value, null);
+				if (!TryFormat(propVal, context, out formattedValue))
+					continue;
+				context.Writer.WriteNewLine();
+				context.WriteIndent();
+				context.Writer.WriteName(prop.Name);
+				context.Writer.WriteMeta(" -> " + formattedValue);
+			}
+			context.Indent--;
+		}
+
+		private static bool TryFormat(object value, ConstructionLogContext context, out string formattedValue)
+		{
+			Func<object, string> formatter;
+			if (value != null && context.ValueFormatters.TryGetValue(value.GetType(), out formatter))
+			{
+				formattedValue = formatter(value);
+				return true;
+			}
+			if (value == null || value.GetType().IsSimpleType())
+			{
+				formattedValue = InternalHelpers.DumpValue(value);
+				return true;
+			}
+			formattedValue = null;
+			return false;
 		}
 
 		private ServiceDependency WithName(ParameterInfo parameter, string name)
@@ -141,7 +194,7 @@ namespace SimpleContainer.Implementation
 			if (name != null)
 				return name;
 			var type = GetDependencyType();
-			return type == null || type.IsSimpleType() ? parameter.Name : type.FormatName();
+			return type == null || type.IsSimpleType() || type.UnwrapEnumerable() != type ? parameter.Name : type.FormatName();
 		}
 
 		private Type GetDependencyType()

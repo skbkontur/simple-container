@@ -11,7 +11,8 @@ namespace SimpleContainer
 		IEnumerable<Type> GetImplementationsOf(Type interfaceType);
 		ResolvedService Resolve(Type type, IEnumerable<string> contracts);
 		BuiltUpService BuildUp(object target, IEnumerable<string> contracts);
-		ResolvedService Create(Type type, IEnumerable<string> contracts, object arguments);
+		object Create(Type type, IEnumerable<string> contracts, object arguments);
 		IContainer Clone(Action<ContainerConfigurationBuilder> configure);
+		Type[] AllTypes { get; }
 	}
 }

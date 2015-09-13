@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace SimpleContainer.Implementation.Hacks
 {
-	public class NonConcurrentDictionary<TKey, TValue>
+	internal class NonConcurrentDictionary<TKey, TValue>
 	{
 		private readonly Dictionary<TKey, TValue> impl = new Dictionary<TKey, TValue>();
 		private readonly ReaderWriterLockSlim locker = new ReaderWriterLockSlim();
@@ -56,9 +56,15 @@ namespace SimpleContainer.Implementation.Hacks
 				throw new ArgumentNullException("key");
 			locker.EnterReadLock();
 			var keyAlreadyExists = impl.ContainsKey(key);
-			if (!keyAlreadyExists)
-				impl.Add(key,value);
 			locker.ExitReadLock();
+			if (!keyAlreadyExists)
+			{
+				locker.EnterWriteLock();
+				keyAlreadyExists = impl.ContainsKey(key);
+				if (!keyAlreadyExists)
+					impl.Add(key, value);
+				locker.ExitWriteLock();
+			}
 			return !keyAlreadyExists;
 		}
 

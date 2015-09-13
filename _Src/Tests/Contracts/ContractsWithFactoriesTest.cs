@@ -122,5 +122,73 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(result2.intf, Is.InstanceOf<D>());
 			}
 		}
+
+		public class NewInstanceOfServiceWithUnusedContract : ContractsWithFactoriesTest
+		{
+			[TestContract("a")]
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<A>()));
+			}
+		}
+
+		public class NewInstanceOfServiceWithUnusedContractViaInterface : ContractsWithFactoriesTest
+		{
+			public class A : IA
+			{
+			}
+
+			[TestContract("a")]
+			public interface IA
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<A>(), Is.Not.SameAs(container.Create<IA>()));
+			}
+		}
+
+		public class CaptureFactoryContract : ContractsWithFactoriesTest
+		{
+			public class A
+			{
+				public B b;
+
+				public A([TestContract("a")] Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.BindDependency<B>("parameter", 1);
+					b.Contract("a").BindDependency<B>("parameter", 2);
+				});
+				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(2));
+			}
+		}
 	}
 }

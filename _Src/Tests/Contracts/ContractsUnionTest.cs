@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -10,35 +11,51 @@ namespace SimpleContainer.Tests.Contracts
 {
 	public abstract class ContractsUnionTest : SimpleContainerTestBase
 	{
-		public class MultipleUnionOfDefinitionsOfSingleDeclarationIsProhibited : ContractsUnionTest
+		public class WrapExceptionsFromConfigurators : ContractsUnionTest
 		{
-			[TestContract("c1")]
-			public class A
+			public class AWrap
 			{
-				public readonly B b;
+				public readonly A a;
 
-				public A([TestContract("c2")] B b)
+				public AWrap(A a)
 				{
-					this.b = b;
+					this.a = a;
 				}
 			}
 
-			public class B
+			public class A
 			{
+			}
+
+			public class AConfigurator : IServiceConfigurator<A>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+				{
+					throw new InvalidOperationException("my exception");
+				}
 			}
 
 			[Test]
 			public void Test()
 			{
-				var container = Container(delegate(ContainerConfigurationBuilder b)
-				{
-					b.Contract("c1").Contract("c2").UnionOf("x1", "x2");
-					b.Contract("c2").UnionOf("x3", "x4");
-				});
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message,
-					Is.EqualTo(
-						"contract [c2] has conflicting unions [x1,x2] and [x3,x4]\r\n\r\n!A->[c1]\r\n\t!B->[c1->c2] <---------------"));
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
+				Assert.That(error.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!AWrap\r\n\t!A <---------------"));
+				Assert.That(error.InnerException, Is.InstanceOf<SimpleContainerException>());
+				Assert.That(error.InnerException.Message, Is.EqualTo("error executing configurator [AConfigurator]"));
+				Assert.That(error.InnerException.InnerException, Is.InstanceOf<InvalidOperationException>());
+				Assert.That(error.InnerException.InnerException.Message, Is.EqualTo("my exception"));
+			}
+		}
+
+		public class UnionOfAppliedToManyContracts_CorrectException : ContractsUnionTest
+		{
+			[Test]
+			public void Test()
+			{
+				var error = Assert.Throws<SimpleContainerException>(() => Container(
+					b => b.Contract("c1").Contract("c2").UnionOf("x1", "x2")));
+				Assert.That(error.Message, Is.EqualTo("UnionOf can be applied to single contract, current contracts [c1, c2]"));
 			}
 		}
 
@@ -255,61 +272,6 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(wrap.wraps.Length, Is.EqualTo(2));
 				Assert.That(wrap.wraps[0].service, Is.InstanceOf<Service1>());
 				Assert.That(wrap.wraps[1].service, Is.InstanceOf<Service2>());
-			}
-		}
-
-		public class ClearOldUnionContracts : ContractsUnionTest
-		{
-			public class AllWrapsHost
-			{
-				public readonly ServiceWrap[] wraps;
-
-				public AllWrapsHost([TestContract("composite-contract")] IEnumerable<ServiceWrap> wraps)
-				{
-					this.wraps = wraps.ToArray();
-				}
-			}
-
-			public class ServiceWrap
-			{
-				public readonly IService service;
-
-				public ServiceWrap(IService service)
-				{
-					this.service = service;
-				}
-			}
-
-			public interface IService
-			{
-			}
-
-			public class Service1 : IService
-			{
-			}
-
-			public class Service2 : IService
-			{
-			}
-
-			public class CompositeContractConfigurator : IContainerConfigurator
-			{
-				public void Configure(ConfigurationContext context, ContainerConfigurationBuilder builder)
-				{
-					builder.Contract("c1").Bind<IService, Service1>();
-					builder.Contract("c2").Bind<IService, Service2>();
-					builder.Contract("composite-contract").UnionOf("c1", "c2");
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container(b => b.Contract("composite-contract").UnionOf("c2"));
-				Assert.That(container.Get<AllWrapsHost>().wraps.Length, Is.EqualTo(2));
-
-				container = Container(b => b.Contract("composite-contract").UnionOf(true, "c2"));
-				Assert.That(container.Get<AllWrapsHost>().wraps.Length, Is.EqualTo(1));
 			}
 		}
 
