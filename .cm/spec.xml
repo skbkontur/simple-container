@@ -1,5 +1,0 @@
-<module>
-	<install>
-		<add-ref src="bin/Release/SimpleContainer.dll" />
-	</install>
-</module>
