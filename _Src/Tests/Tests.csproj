@@ -52,6 +52,7 @@
     <Compile Include="Contracts\ContractsWithFactoriesTest.cs" />
     <Compile Include="DynamicConfigurationTest.cs" />
     <Compile Include="ExceptionHandlingTest.cs" />
+    <Compile Include="Factories\CtorDelegatesTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
     <Compile Include="Factories\FactoriesArgumentsHandlingTest.cs" />
     <Compile Include="Factories\FactoriesExceptionsHandlingTest.cs" />

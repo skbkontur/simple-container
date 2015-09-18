@@ -1,0 +1,114 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
+using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
+
+namespace SimpleContainer.Implementation
+{
+	internal static class CtorFactoryCreator
+	{
+		public static bool TryCreate(ContainerService.Builder builder)
+		{
+			if (!builder.Type.IsDelegate())
+				return false;
+			if (!builder.Type.IsNestedPublic)
+				return false;
+			var invokeMethod = builder.Type.GetMethod("Invoke");
+			if (invokeMethod.ReturnType != builder.Type.DeclaringType)
+				return false;
+			var constructor = builder.Type.DeclaringType.GetConstructor();
+			if (!constructor.isOk)
+			{
+				builder.SetError(constructor.errorMessage);
+				return true;
+			}
+			var delegateParameters = invokeMethod.GetParameters();
+			var delegateParameterNameToIndexMap = new Dictionary<string, int>();
+			for (var i = 0; i < delegateParameters.Length; i++)
+				delegateParameterNameToIndexMap[delegateParameters[i].Name] = i;
+
+			var dynamicMethodParameterTypes = new Type[delegateParameters.Length + 1];
+			dynamicMethodParameterTypes[0] = typeof (object[]);
+			for (var i = 1; i < dynamicMethodParameterTypes.Length; i++)
+				dynamicMethodParameterTypes[i] = delegateParameters[i - 1].ParameterType;
+
+			var dynamicMethod = new DynamicMethod("", invokeMethod.ReturnType,
+				dynamicMethodParameterTypes, typeof (ReflectionHelpers), true);
+			
+			var il = dynamicMethod.GetILGenerator();
+			var ctorParameters = constructor.value.GetParameters();
+			var notBoundCtorParameters = ctorParameters
+				.Where(x => x.ParameterType.IsSimpleType() && !delegateParameterNameToIndexMap.ContainsKey(x.Name))
+				.Select(x => x.Name)
+				.ToArray();
+			if (notBoundCtorParameters.Length > 0)
+			{
+				builder.SetError(string.Format("ctor has not bound parameters [{0}]", notBoundCtorParameters.JoinStrings(",")));
+				return true;
+			}
+			var serviceTypeToIndex = new Dictionary<Type, int>();
+			var services = new List<object>();
+			foreach (var p in ctorParameters)
+			{
+				int delegateParameterIndex;
+				if (delegateParameterNameToIndexMap.TryGetValue(p.Name, out delegateParameterIndex))
+				{
+					var delegateParameterType = delegateParameters[delegateParameterIndex].ParameterType;
+					if (!p.ParameterType.IsAssignableFrom(delegateParameterType))
+					{
+						const string messageFormat = "type mismatch for [{0}], delegate type [{1}], ctor type [{2}]";
+						builder.SetError(string.Format(messageFormat,
+							p.Name, delegateParameterType.FormatName(), p.ParameterType.FormatName()));
+						return true;
+					}
+					il.EmitLdArg(delegateParameterIndex + 1);
+					delegateParameterNameToIndexMap.Remove(p.Name);
+				}
+				else
+				{
+					int serviceIndex;
+					if (!serviceTypeToIndex.TryGetValue(p.ParameterType, out serviceIndex))
+					{
+						object value;
+						if (p.ParameterType == typeof (ServiceName))
+							value = null;
+						else
+						{
+							var dependency = builder.Context.Container.InstantiateDependency(p, builder).CastTo(p.ParameterType);
+							builder.AddDependency(dependency, false);
+							if (dependency.ContainerService != null)
+								builder.UnionUsedContracts(dependency.ContainerService);
+							if (builder.Status != ServiceStatus.Ok)
+								return true;
+							value = dependency.Value;
+						}
+						serviceIndex = serviceTypeToIndex.Count;
+						serviceTypeToIndex.Add(p.ParameterType, serviceIndex);
+						services.Add(value);
+					}
+					il.Emit(OpCodes.Ldarg_0);
+					il.EmitLdInt32(serviceIndex);
+					il.Emit(OpCodes.Ldelem_Ref);
+					il.Emit(p.ParameterType.IsValueType ? OpCodes.Unbox_Any : OpCodes.Castclass, p.ParameterType);
+				}
+			}
+			if (delegateParameterNameToIndexMap.Count > 0)
+			{
+				builder.SetError(string.Format("delegate has not used parameters [{0}]",
+					delegateParameterNameToIndexMap.Keys.JoinStrings(",")));
+				return true;
+			}
+			builder.EndResolveDependencies();
+			int serviceNameIndex;
+			if (serviceTypeToIndex.TryGetValue(typeof (ServiceName), out serviceNameIndex))
+				services[serviceNameIndex] = new ServiceName(builder.Type.DeclaringType, builder.FinalUsedContracts);
+			il.Emit(OpCodes.Newobj, constructor.value);
+			il.Emit(OpCodes.Ret);
+			var context = serviceTypeToIndex.Count == 0 ? null : services.ToArray();
+			builder.AddInstance(dynamicMethod.CreateDelegate(builder.Type, context), true);
+			return true;
+		}
+	}
+}

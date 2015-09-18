@@ -27,7 +27,7 @@ namespace SimpleContainer.Implementation
 		public static object TryCreate(ContainerService.Builder builder)
 		{
 			var funcType = builder.Type;
-			if (!funcType.IsGenericType || !typeof (Delegate).IsAssignableFrom(funcType))
+			if (!funcType.IsGenericType || !funcType.IsDelegate())
 				return null;
 			Type resultType;
 			var signature = FindSignature(funcType, out resultType);
@@ -59,7 +59,7 @@ namespace SimpleContainer.Implementation
 			builder.UseAllDeclaredContracts();
 			return delegate(Type type, object arguments)
 			{
-				var current = ContainerService.Builder.current;
+				var current = ContainerService.Builder.Current;
 				if (current == null)
 					return container.Create(type, factoryContracts, arguments);
 				var result = current.Context.Create(type, factoryContracts, arguments);

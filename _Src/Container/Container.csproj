@@ -46,7 +46,9 @@
     <Compile Include="Configuration\ServiceConfigurationSet.cs" />
     <Compile Include="Configuration\ConfigurationRegistry.cs" />
     <Compile Include="Configuration\ServiceConfiguration.cs" />
+    <Compile Include="Helpers\EmitHelpers.cs" />
     <Compile Include="Helpers\ValueWithType.cs" />
+    <Compile Include="Implementation\CtorFactoryCreator.cs" />
     <Compile Include="Implementation\TypesList.cs" />
     <Compile Include="Implementation\LazyCreator.cs" />
     <Compile Include="Implementation\NestedFactoryCreator.cs" />

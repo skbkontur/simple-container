@@ -44,7 +44,8 @@ namespace SimpleContainer.Implementation
 			string message;
 			if (instances.Length == 0)
 			{
-				message = string.Format("no instances for [{0}]", Type.FormatName());
+				var targetType = typeof (Delegate).IsAssignableFrom(Type) ? Type.DeclaringType : Type;
+				message = string.Format("no instances for [{0}]", targetType.FormatName());
 				var notResolvedRoot = SearchForNotResolvedRoot();
 				if (notResolvedRoot != this)
 					message += string.Format(" because [{0}] has no instances", notResolvedRoot.Type.FormatName());
@@ -437,7 +438,12 @@ namespace SimpleContainer.Implementation
 				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
 			}
 
-			[ThreadStatic] public static Builder current;
+			[ThreadStatic] private static Builder current;
+
+			public static Builder Current
+			{
+				get { return current; }
+			}
 
 			public void CreateInstanceBy(Func<object> creator, bool owned)
 			{

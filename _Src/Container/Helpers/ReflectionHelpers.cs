@@ -200,10 +200,7 @@ namespace SimpleContainer.Helpers
 			for (var i = 0; i < parameters.Length; i++)
 			{
 				il.Emit(OpCodes.Ldarg_1);
-				if (i <= 8)
-					il.Emit(ToConstant(i));
-				else
-					il.Emit(OpCodes.Ldc_I4, i);
+				il.EmitLdInt32(i);
 				il.Emit(OpCodes.Ldelem_Ref);
 				var unboxingCaster = new UnboxingCaster(typeof (object), parameters[i].ParameterType);
 				unboxingCaster.EmitCast(il);
@@ -232,33 +229,6 @@ namespace SimpleContainer.Helpers
 			return (Func<object, object[], object>) dynamicMethod.CreateDelegate(typeof (Func<object, object[], object>));
 		}
 
-		private static OpCode ToConstant(int i)
-		{
-			switch (i)
-			{
-				case 0:
-					return OpCodes.Ldc_I4_0;
-				case 1:
-					return OpCodes.Ldc_I4_1;
-				case 2:
-					return OpCodes.Ldc_I4_2;
-				case 3:
-					return OpCodes.Ldc_I4_3;
-				case 4:
-					return OpCodes.Ldc_I4_4;
-				case 5:
-					return OpCodes.Ldc_I4_5;
-				case 6:
-					return OpCodes.Ldc_I4_6;
-				case 7:
-					return OpCodes.Ldc_I4_7;
-				case 8:
-					return OpCodes.Ldc_I4_8;
-				default:
-					throw new InvalidOperationException("method can't have more than 9 parameters");
-			}
-		}
-
 		public static string FormatName(this Type type)
 		{
 			string result;
@@ -267,6 +237,8 @@ namespace SimpleContainer.Helpers
 			result = type.Name;
 			if (type.IsArray)
 				return type.GetElementType().FormatName() + "[]";
+			if (type.IsDelegate() && type.IsNested)
+				return type.DeclaringType.FormatName() + "." + type.Name;
 			if (type.IsGenericType)
 			{
 				result = result.Substring(0, result.IndexOf("`", StringComparison.InvariantCulture));
@@ -287,6 +259,11 @@ namespace SimpleContainer.Helpers
 				return true;
 			var nullableWrapped = Nullable.GetUnderlyingType(type);
 			return nullableWrapped != null && nullableWrapped.IsSimpleType();
+		}
+
+		public static bool IsDelegate(this Type type)
+		{
+			return type.BaseType == typeof (MulticastDelegate);
 		}
 
 		private static readonly ISet<Type> simpleTypes = new HashSet<Type>

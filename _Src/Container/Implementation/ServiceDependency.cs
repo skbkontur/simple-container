@@ -20,15 +20,30 @@ namespace SimpleContainer.Implementation
 
 		public ServiceDependency CastTo(Type targetType)
 		{
-			if (Value == null || targetType.IsInstanceOfType(Value))
-				return this;
+			object castedValue;
+			if (!TryCast(Value, targetType, out castedValue))
+				return Error(ContainerService, Name, "can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
+					Value, Value.GetType().FormatName(), targetType.FormatName(), Name);
+			return ReferenceEquals(castedValue, Value) ? this : CloneWithValue(castedValue);
+		}
+
+		private static bool TryCast(object source, Type targetType, out object value)
+		{
+			if (source == null || targetType.IsInstanceOfType(source))
+			{
+				value = source;
+				return true;
+			}
 			var underlyingType = Nullable.GetUnderlyingType(targetType);
 			if (underlyingType != null)
 				targetType = underlyingType;
-			if (Value is int && targetType == typeof (long))
-				return CloneWithValue((long) (int) Value);
-			return Error(ContainerService, Name, "can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
-				Value, Value.GetType().FormatName(), targetType.FormatName(), Name);
+			if (source is int && targetType == typeof(long))
+			{
+				value = (long)(int)source;
+				return true;
+			}
+			value = null;
+			return false;
 		}
 
 		private ServiceDependency CloneWithValue(object value)

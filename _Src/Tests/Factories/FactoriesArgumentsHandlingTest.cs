@@ -155,6 +155,22 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
+		public class GracefullErrorForNotSupportedDelegateTypes : FactoriesArgumentsHandlingTest
+		{
+			public class A
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<Func<int, int, A>>());
+				Assert.That(exception.Message,
+					Is.EqualTo("can't create delegate [Func<int,int,A>]\r\n\r\n!Func<int,int,A> <---------------"));
+			}
+		}
+
 		public class CanInjectFuncWithTypeWithArgumentsUsingBuildUp : FactoriesArgumentsHandlingTest
 		{
 			public interface IA

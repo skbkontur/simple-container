@@ -30,23 +30,6 @@ namespace SimpleContainer.Configuration
 		public string Comment { get; private set; }
 		public ServiceName[] ImplicitDependencies { get; private set; }
 
-		public ServiceConfiguration CloneWithFilter(Func<Type, bool> filter)
-		{
-			return new ServiceConfiguration(Contracts)
-			{
-				Factory = Factory,
-				Implementation = Implementation,
-				ImplementationAssigned = ImplementationAssigned,
-				ImplementationTypes = ImplementationTypes.Where(filter).ToArray(),
-				UseAutosearch = UseAutosearch,
-				ContainerOwnsInstance = ContainerOwnsInstance,
-				DontUseIt = DontUseIt,
-				InstanceFilter = InstanceFilter,
-				ParametersSource = ParametersSource,
-				dependencies = dependencies
-			};
-		}
-
 		internal static readonly ServiceConfiguration empty = new ServiceConfiguration(new List<string>())
 		{
 			ContainerOwnsInstance = true,
@@ -101,14 +84,19 @@ namespace SimpleContainer.Configuration
 			{
 				if (!interfaceType.IsGenericTypeDefinition && !implementationType.IsGenericTypeDefinition &&
 				    !interfaceType.IsAssignableFrom(implementationType))
-					throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]", interfaceType.FormatName(),
-						implementationType.FormatName()));
-				AddImplementation(implementationType, clearOld);
+					throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]",
+						interfaceType.FormatName(), implementationType.FormatName()));
+				if (ImplementationTypes == null)
+					ImplementationTypes = new List<Type>();
+				if (clearOld)
+					ImplementationTypes.Clear();
+				if (!ImplementationTypes.Contains(implementationType))
+					ImplementationTypes.Add(implementationType);
 			}
 
 			public void WithImplicitDependency(ServiceName name)
 			{
-				if(ImplicitDependencies == null)
+				if (ImplicitDependencies == null)
 					ImplicitDependencies = new List<ServiceName>();
 				ImplicitDependencies.Add(name);
 			}
@@ -163,7 +151,7 @@ namespace SimpleContainer.Configuration
 			{
 				target.DontUseIt = true;
 			}
-			
+
 			public void IgnoreImplementation()
 			{
 				target.IgnoredImplementation = true;
@@ -241,16 +229,6 @@ namespace SimpleContainer.Configuration
 					? InternalHelpers.emptyServiceNames
 					: ImplicitDependencies.ToArray();
 				return target;
-			}
-
-			private void AddImplementation(Type type, bool clearOld)
-			{
-				if (ImplementationTypes == null)
-					ImplementationTypes = new List<Type>();
-				if (clearOld)
-					ImplementationTypes.Clear();
-				if (!ImplementationTypes.Contains(type))
-					ImplementationTypes.Add(type);
 			}
 
 			private void UseInstance(object instance, bool containerOwnsInstance)

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
@@ -363,7 +364,7 @@ namespace SimpleContainer.Implementation
 		public IEnumerable<Type> GetDependencies(Type type)
 		{
 			EnsureNotDisposed();
-			if (typeof (Delegate).IsAssignableFrom(type))
+			if (type.IsDelegate())
 				return Enumerable.Empty<Type>();
 			if (!type.IsAbstract)
 			{
@@ -387,7 +388,7 @@ namespace SimpleContainer.Implementation
 
 		private static bool IsDependency(Type type)
 		{
-			if (typeof (Delegate).IsAssignableFrom(type))
+			if (type.IsDelegate())
 				return false;
 			if (type.IsSimpleType())
 				return false;
@@ -411,6 +412,13 @@ namespace SimpleContainer.Implementation
 			}
 			if (NestedFactoryCreator.TryCreate(builder))
 				return;
+			if (CtorFactoryCreator.TryCreate(builder))
+				return;
+			if (builder.Type.IsDelegate())
+			{
+				builder.SetError(string.Format("can't create delegate [{0}]", builder.Type.FormatName()));
+				return;
+			}
 			var constructor = builder.Type.GetConstructor();
 			if (!constructor.isOk)
 			{
@@ -491,7 +499,7 @@ namespace SimpleContainer.Implementation
 				builder.Reuse(serviceForUsedContracts);
 		}
 
-		private ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)
+		internal ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)
 		{
 			ValueWithType actualArgument;
 			if (builder.Arguments != null && builder.Arguments.TryGet(formalParameter.Name, out actualArgument))
