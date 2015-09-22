@@ -25,6 +25,8 @@ namespace SimpleContainer.Implementation
 
 		public void EnsureInitialized(ContainerService service, LogInfo infoLogger)
 		{
+			if (!Owned)
+				return;
 			var componentInstance = Instance as IInitializable;
 			if (componentInstance == null)
 				return;

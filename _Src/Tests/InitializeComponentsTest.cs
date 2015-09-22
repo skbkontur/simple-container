@@ -549,6 +549,27 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class DontInitiaizeNotOwnedComponents : InitializeComponentsTest
+		{
+			public class A : IInitializable
+			{
+				public static StringBuilder log = new StringBuilder();
+
+				public void Initialize()
+				{
+					log.Append("Initialize ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Bind<A>(new A(), false));
+				container.Get<A>();
+				Assert.That(A.log.ToString(), Is.EqualTo(""));
+			}
+		}
+
 		public class InitializeWithInitializeLogger : InitializeComponentsTest
 		{
 			private static StringBuilder log;
