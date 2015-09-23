@@ -115,8 +115,16 @@ namespace SimpleContainer.Helpers
 		}
 
 		public static bool TryGetCustomAttribute<TAttribute>(this ICustomAttributeProvider memberInfo, out TAttribute result)
+			where TAttribute : Attribute
 		{
-			return memberInfo.GetCustomAttributes<TAttribute>().TrySingle(out result);
+			var attributes = memberInfo.GetCustomAttributes<TAttribute>();
+			if (attributes.Length == 1)
+			{
+				result = attributes[0];
+				return true;
+			}
+			result = null;
+			return false;
 		}
 
 		public static bool IsDefined<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
