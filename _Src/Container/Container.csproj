@@ -59,7 +59,7 @@
     <Compile Include="Implementation\ValueOrError.cs" />
     <Compile Include="Implementation\InstanceWrap.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
-    <Compile Include="Implementation\NamedInstance.cs" />
+    <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
     <Compile Include="Infection\DontUseAttribute.cs" />
     <Compile Include="Infection\Lifestyle.cs" />

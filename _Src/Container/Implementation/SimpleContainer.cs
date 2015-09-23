@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Infection;
@@ -145,10 +144,10 @@ namespace SimpleContainer.Implementation
 			return ServiceName.Parse(type, true, contractsArray);
 		}
 
-		private IEnumerable<NamedInstance> GetInstanceCache(Type interfaceType)
+		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
 		{
 			var seen = new HashSet<object>();
-			var target = new List<NamedInstance>();
+			var target = new List<ServiceInstance>();
 			foreach (var wrap in instanceCache.Values)
 			{
 				ContainerService service;
@@ -600,10 +599,11 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		private static void DisposeService(NamedInstance disposable)
+		private static void DisposeService(ServiceInstance disposable)
 		{
 			try
 			{
+				disposable.ContainerService.disposing = true;
 				((IDisposable) disposable.Instance).Dispose();
 			}
 			catch (Exception e)
@@ -614,8 +614,13 @@ namespace SimpleContainer.Implementation
 				if (aggregateException != null)
 					if (aggregateException.Flatten().InnerExceptions.All(x => x is OperationCanceledException))
 						return;
-				var message = string.Format("error disposing [{0}]", disposable.Name);
+				var instanceName = new ServiceName(disposable.Instance.GetType(), disposable.ContainerService.UsedContracts);
+				var message = string.Format("error disposing [{0}]", instanceName);
 				throw new SimpleContainerException(message, e);
+			}
+			finally
+			{
+				disposable.ContainerService.disposing = false;
 			}
 		}
 

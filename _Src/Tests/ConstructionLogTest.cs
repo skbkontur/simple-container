@@ -1,5 +1,7 @@
 using System;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -504,6 +506,117 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo("B\r\n\tA\r\n\tA\r\n\tA"));
+			}
+		}
+
+		public class DisplayInitializingStatus : ConstructionLogTest
+		{
+			private static readonly StringBuilder log = new StringBuilder();
+
+			public class A : IInitializable
+			{
+				public readonly B b;
+				public static ManualResetEventSlim goInitialize = new ManualResetEventSlim();
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+
+				public void Initialize()
+				{
+					goInitialize.Wait();
+					log.Append("A.Initialize ");
+				}
+			}
+
+			public class B: IInitializable
+			{
+				public static ManualResetEventSlim goInitialize = new ManualResetEventSlim();
+
+				public void Initialize()
+				{
+					goInitialize.Wait();
+					log.Append("B.Initialize ");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var t = Task.Run(() => container.Get<A>());
+				Thread.Sleep(15);
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A, initializing ...\r\n\tB, initializing ..."));
+				Assert.That(log.ToString(), Is.EqualTo(""));
+				B.goInitialize.Set();
+				Thread.Sleep(5);
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A, initializing ...\r\n\tB"));
+				Assert.That(log.ToString(), Is.EqualTo("B.Initialize "));
+				A.goInitialize.Set();
+				Thread.Sleep(5);
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB"));
+				Assert.That(log.ToString(), Is.EqualTo("B.Initialize A.Initialize "));
+				t.Wait();
+			}
+		}
+		
+		public class DisplayDisposingStatus : ConstructionLogTest
+		{
+			private static readonly StringBuilder log = new StringBuilder();
+
+			public class A : IDisposable
+			{
+				public readonly B b;
+				public static ManualResetEventSlim go = new ManualResetEventSlim();
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+
+				public void Dispose()
+				{
+					go.Wait();
+					log.Append("A.Dispose ");
+				}
+			}
+
+			public class B: IDisposable
+			{
+				public static ManualResetEventSlim go = new ManualResetEventSlim();
+
+				public void Dispose()
+				{
+					go.Wait();
+					log.Append("B.Dispose ");
+				}
+			}
+
+			protected override void TearDown()
+			{
+				A.go.Set();
+				B.go.Set();
+				base.TearDown();
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<A>();
+				var t = Task.Run(() => container.Dispose());
+				Thread.Sleep(15);
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A, disposing ...\r\n\tB"));
+				Assert.That(log.ToString(), Is.EqualTo(""));
+				A.go.Set();
+				Thread.Sleep(5);
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tB, disposing ..."));
+				Assert.That(log.ToString(), Is.EqualTo("A.Dispose "));
+				B.go.Set();
+				Thread.Sleep(5);
+				Assert.Throws<ObjectDisposedException>(() => container.Resolve<A>());
+				t.Wait();
 			}
 		}
 

@@ -23,6 +23,8 @@ namespace SimpleContainer.Implementation
 
 		private object[] typedArray;
 		private volatile bool initialized;
+		private volatile bool initializing;
+		internal volatile bool disposing;
 		private string comment;
 		private string errorMessage;
 		private Exception constructionException;
@@ -80,17 +82,25 @@ namespace SimpleContainer.Implementation
 				lock (lockObject)
 					if (!initialized)
 					{
-						if (dependencies != null)
-							foreach (var dependency in dependencies)
-								if (dependency.ContainerService != null)
-									dependency.ContainerService.EnsureInitialized(infoLogger);
-						foreach (var instance in instances)
-							instance.EnsureInitialized(this, infoLogger);
-						initialized = true;
+						initializing = true;
+						try
+						{
+							if (dependencies != null)
+								foreach (var dependency in dependencies)
+									if (dependency.ContainerService != null)
+										dependency.ContainerService.EnsureInitialized(infoLogger);
+							foreach (var instance in instances)
+								instance.EnsureInitialized(this, infoLogger);
+							initialized = true;
+						}
+						finally
+						{
+							initializing = false;
+						}
 					}
 		}
 
-		public void CollectInstances(Type interfaceType, ISet<object> seen, List<NamedInstance> target)
+		public void CollectInstances(Type interfaceType, ISet<object> seen, List<ServiceInstance> target)
 		{
 			if (Status.IsBad())
 				return;
@@ -105,7 +115,7 @@ namespace SimpleContainer.Implementation
 				                     interfaceType.IsInstanceOfType(obj) &&
 				                     seen.Add(obj);
 				if (acceptInstance)
-					target.Add(new NamedInstance(obj, new ServiceName(obj.GetType(), UsedContracts)));
+					target.Add(new ServiceInstance(obj, this));
 			}
 		}
 
@@ -160,7 +170,10 @@ namespace SimpleContainer.Implementation
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
 			    (context.UsedFromDependency.Value == null || context.UsedFromDependency.Value.GetType().IsSimpleType()))
 				context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(context.UsedFromDependency.Value));
-
+			if (initializing)
+				context.Writer.WriteMeta(", initializing ...");
+			else if (disposing)
+				context.Writer.WriteMeta(", disposing ...");
 			context.Writer.WriteNewLine();
 			if (dependencies != null)
 				foreach (var d in dependencies)
