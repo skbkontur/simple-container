@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
+using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -62,6 +63,36 @@ namespace SimpleContainer.Tests.Contracts
 				const string expectedMessage =
 					"no instances for [Wrap] because [IUnimplemented] has no instances\r\n\r\n!Wrap\r\n\t!Service[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations";
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
+			}
+		}
+
+		public class CorrectConstructionLogForExplicitlyIgnoredImplementation : ContractsConstructionLogTest
+		{
+			public class A
+			{
+				public readonly IB b;
+
+				public A(IB b)
+				{
+					this.b = b;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			[IgnoredImplementation]
+			public class B : IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("no instances for [A] because [IB] has no instances\r\n\r\n!A\r\n\t!IB\r\n\t\t!B - IgnoredImplementation"));
 			}
 		}
 

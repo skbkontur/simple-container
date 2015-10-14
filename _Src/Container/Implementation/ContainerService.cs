@@ -232,7 +232,10 @@ namespace SimpleContainer.Implementation
 				var notResolvedDependencies = current.dependencies.Where(x => x.Status == ServiceStatus.NotResolved).ToArray();
 				if (notResolvedDependencies.Length != 1)
 					break;
-				current = notResolvedDependencies[0].ContainerService;
+				var next = notResolvedDependencies[0].ContainerService;
+				if (next == null)
+					break;
+				current = next;
 			}
 			return current;
 		}
