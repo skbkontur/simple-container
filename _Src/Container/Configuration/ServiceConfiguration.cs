@@ -21,7 +21,6 @@ namespace SimpleContainer.Configuration
 		public bool ImplementationAssigned { get; private set; }
 		public Func<IContainer, object> Factory { get; set; }
 		public Func<IContainer, Type, object> FactoryWithTarget { get; set; }
-		public bool UseAutosearch { get; private set; }
 		public bool ContainerOwnsInstance { get; private set; }
 		public bool DontUseIt { get; private set; }
 		public bool IgnoredImplementation { get; private set; }
@@ -155,11 +154,6 @@ namespace SimpleContainer.Configuration
 			public void IgnoreImplementation()
 			{
 				target.IgnoredImplementation = true;
-			}
-
-			public void UseAutosearch(bool useAutosearch)
-			{
-				target.UseAutosearch = useAutosearch;
 			}
 
 			public void BindDependencies(IParametersSource parameters)

@@ -165,12 +165,6 @@ namespace SimpleContainer.Configuration
 			return Self;
 		}
 
-		public TSelf UseAutosearch(Type interfaceType, bool useAutosearch)
-		{
-			GetServiceBuilder(interfaceType).UseAutosearch(useAutosearch);
-			return Self;
-		}
-
 		public TSelf DontUse(Type t)
 		{
 			GetServiceBuilder(t).DontUse();

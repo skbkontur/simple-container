@@ -305,7 +305,7 @@ namespace SimpleContainer.Implementation
 			var result = new HashSet<Type>();
 			if (builder.Configuration.ImplementationTypes != null)
 				candidates.AddRange(builder.Configuration.ImplementationTypes);
-			if (builder.Configuration.ImplementationTypes == null || builder.Configuration.UseAutosearch)
+			if (builder.Configuration.ImplementationTypes == null)
 				candidates.AddRange(typesList.InheritorsOf(builder.Type.GetDefinition()));
 			foreach (var implType in candidates)
 			{
