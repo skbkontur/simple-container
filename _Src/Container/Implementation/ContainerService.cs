@@ -26,7 +26,6 @@ namespace SimpleContainer.Implementation
 		private volatile bool initializing;
 		internal volatile bool disposing;
 		private string comment;
-		private string errorMessage;
 		private Exception constructionException;
 		private ServiceDependency[] dependencies;
 		private InstanceWrap[] instances;
@@ -147,7 +146,7 @@ namespace SimpleContainer.Implementation
 			if (!context.Seen.Add(new ServiceName(Type, usedContracts)))
 			{
 				//todo refactor this shit
-				if (Status == ServiceStatus.Error && errorMessage.Contains("cyclic dependency"))
+				if (Status == ServiceStatus.Error && comment.Contains("cyclic dependency"))
 					context.Writer.WriteMeta(" <---------------");
 				context.Writer.WriteNewLine();
 				return;
@@ -159,7 +158,8 @@ namespace SimpleContainer.Implementation
 			else
 			{
 				var logComment = comment;
-				if (logComment == null && context.UsedFromDependency != null)
+				if (logComment == null && context.UsedFromDependency != null &&
+				    context.UsedFromDependency.Status != ServiceStatus.Error)
 					logComment = context.UsedFromDependency.Comment;
 				if (logComment != null)
 				{
@@ -195,7 +195,7 @@ namespace SimpleContainer.Implementation
 			var currentConstructionException = errorTarget.service != null ? errorTarget.service.constructionException : null;
 			var message = currentConstructionException != null
 				? string.Format("service [{0}] construction exception", errorTarget.service.Type.FormatName())
-				: (errorTarget.service != null ? errorTarget.service.errorMessage : errorTarget.dependency.ErrorMessage);
+				: (errorTarget.service != null ? errorTarget.service.comment : errorTarget.dependency.Comment);
 			throw new SimpleContainerException(message + "\r\n\r\n" + constructionLog, currentConstructionException);
 		}
 
@@ -382,14 +382,13 @@ namespace SimpleContainer.Implementation
 			public void UnionStatusFrom(ContainerService containerService)
 			{
 				target.Status = containerService.Status;
-				target.errorMessage = containerService.errorMessage;
 				target.comment = containerService.comment;
 				target.constructionException = containerService.constructionException;
 			}
 
 			public void SetError(string newErrorMessage)
 			{
-				target.errorMessage = newErrorMessage;
+				target.comment = newErrorMessage;
 				target.Status = ServiceStatus.Error;
 			}
 

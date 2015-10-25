@@ -10,7 +10,6 @@ namespace SimpleContainer.Implementation
 		public ContainerService ContainerService { get; private set; }
 		public object Value { get; private set; }
 		public string Name { get; private set; }
-		public string ErrorMessage { get; private set; }
 		public string Comment { get; set; }
 		public ServiceStatus Status { get; private set; }
 
@@ -51,7 +50,7 @@ namespace SimpleContainer.Implementation
 			return new ServiceDependency
 			{
 				ContainerService = ContainerService,
-				ErrorMessage = ErrorMessage,
+				Comment = Comment,
 				Name = Name,
 				Status = Status,
 				isConstant = isConstant,
@@ -95,7 +94,7 @@ namespace SimpleContainer.Implementation
 			{
 				ContainerService = containerService,
 				Status = ServiceStatus.Error,
-				ErrorMessage = string.Format(message, args)
+				Comment = string.Format(message, args)
 			}.WithName(null, name);
 		}
 
@@ -120,7 +119,7 @@ namespace SimpleContainer.Implementation
 			if (Status != ServiceStatus.Ok)
 				context.Writer.WriteMeta("!");
 			context.Writer.WriteName(Name);
-			if (Comment != null)
+			if (Comment != null && Status != ServiceStatus.Error)
 			{
 				context.Writer.WriteMeta(" - ");
 				context.Writer.WriteMeta(Comment);
