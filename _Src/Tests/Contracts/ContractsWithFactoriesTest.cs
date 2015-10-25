@@ -157,6 +157,149 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
+		public class FactoriesUseOnlyRequiredContracts : ContractsWithFactoriesTest
+		{
+			[TestContract("c1")]
+			public class A
+			{
+				public readonly B b;
+
+				public A(Func<B> createB)
+				{
+					b = createB();
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var c1 = Container(b => b.BindDependencies<B>(new { parameter = 42 }));
+				var a1 = c1.Resolve<A>();
+				Assert.That(a1.Single().b.parameter, Is.EqualTo(42));
+				Assert.That(a1.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<B>\r\n\t() => B\r\n\t\tparameter -> 42"));
+
+				var c2 = Container(b => b.Contract("c1").BindDependencies<B>(new { parameter = 43 }));
+				var a2 = c2.Resolve<A>();
+				Assert.That(a2.Single().b.parameter, Is.EqualTo(43));
+				Assert.That(a2.GetConstructionLog(), Is.EqualTo("A[c1]\r\n\tFunc<B>[c1]\r\n\t() => B[c1]\r\n\t\tparameter -> 43"));
+			}
+		}
+
+		public class FactoryForServiceWithArgument : ContractsWithFactoriesTest
+		{
+			public class A
+			{
+				public readonly int p1;
+				public readonly B b;
+
+				public A(int p1, B b)
+				{
+					this.p1 = p1;
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly int p2;
+
+				public B(int p2)
+				{
+					this.p2 = p2;
+				}
+			}
+
+			public class C
+			{
+				public readonly Func<A> createA;
+
+				public C(Func<A> createA)
+				{
+					this.createA = createA;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {p2 = 2}));
+				var c = container.Resolve<C>("c1");
+				Assert.That(c.GetConstructionLog(), Is.EqualTo("C[c1]\r\n\tFunc<A>[c1]"));
+			}
+		}
+
+		public class TrackDependenciesForLazyServices : ContractsWithFactoriesTest
+		{
+			public class A
+			{
+				public readonly Lazy<B> lazyB;
+
+				public A(Lazy<B> lazyB)
+				{
+					this.lazyB = lazyB;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {parameter = 42}));
+				var a = container.Resolve<A>("c1");
+				Assert.That(a.GetConstructionLog(), Is.EqualTo("A[c1]\r\n\tLazy<B>[c1]"));
+			}
+		}
+
+		public class MergeConstructionLogForLazies : ContractsWithFactoriesTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(Lazy<B> lazyB)
+				{
+					b = lazyB.Value;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Resolve<A>();
+				Assert.That(a.GetConstructionLog(), Is.EqualTo("!A\r\n\tLazy<B>\r\n\t!() => B\r\n\t\t!parameter <---------------"));
+			}
+		}
+
 		public class CaptureFactoryContract : ContractsWithFactoriesTest
 		{
 			public class A

@@ -14,6 +14,8 @@ namespace SimpleContainer.Implementation
 		public List<string> Contracts { get; private set; }
 		public SimpleContainer Container { get; private set; }
 
+		public bool AnalizeDependenciesOnly { get; set; }
+
 		public ResolutionContext(SimpleContainer container, string[] contracts)
 		{
 			Container = container;

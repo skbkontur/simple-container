@@ -33,7 +33,7 @@ namespace SimpleContainer.Implementation
 			var signature = FindSignature(funcType, out resultType);
 			if (signature == null)
 				return null;
-			var factory = CreateFactory(builder);
+			var factory = CreateFactory(builder, resultType);
 			var caster = casters.GetOrAdd(new SignatureDelegateKey(resultType, signature), createCaster);
 			var typedCaster = (Func<Func<Type, object, object>, object>) caster;
 			return typedCaster(factory);
@@ -52,11 +52,14 @@ namespace SimpleContainer.Implementation
 			return null;
 		}
 
-		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder)
+		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
 			var container = builder.Context.Container;
 			var factoryContracts = new List<string>(builder.DeclaredContracts);
-			builder.UseAllDeclaredContracts();
+			builder.Context.AnalizeDependenciesOnly = true;
+			var containerService = builder.Context.Instantiate(resultType, true, null);
+			builder.Context.AnalizeDependenciesOnly = false;
+			builder.UnionUsedContracts(containerService);
 			return delegate(Type type, object arguments)
 			{
 				var current = ContainerService.Builder.Current;

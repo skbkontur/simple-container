@@ -181,7 +181,7 @@ namespace SimpleContainer.Implementation
 			if (!id.AcquireInstantiateLock(out result))
 				return result;
 			result = context.Instantiate(type, false, null);
-			id.ReleaseInstantiateLock(result);
+			id.ReleaseInstantiateLock(context.AnalizeDependenciesOnly ? null : result);
 			return result;
 		}
 
@@ -198,10 +198,13 @@ namespace SimpleContainer.Implementation
 				builder.CreateInstanceBy(() => builder.Configuration.Factory(this), builder.Configuration.ContainerOwnsInstance);
 			else if (builder.Configuration.FactoryWithTarget != null)
 			{
-				var previousService = builder.Context.GetPreviousBuilder();
-				var target = previousService == null ? null : previousService.Type;
-				builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
-					builder.Configuration.ContainerOwnsInstance);
+				if (!builder.Context.AnalizeDependenciesOnly)
+				{
+					var previousService = builder.Context.GetPreviousBuilder();
+					var target = previousService == null ? null : previousService.Type;
+					builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
+						builder.Configuration.ContainerOwnsInstance);
+				}
 			}
 			else if (builder.Type.IsValueType)
 				builder.SetError("can't create value type");
@@ -439,7 +442,7 @@ namespace SimpleContainer.Implementation
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
 					builder.UnionUsedContracts(dependency.ContainerService);
-				if (builder.Status != ServiceStatus.Ok)
+				if (builder.Status != ServiceStatus.Ok && !builder.Context.AnalizeDependenciesOnly)
 					return;
 				actualArguments[i] = dependency.Value;
 			}
@@ -454,6 +457,8 @@ namespace SimpleContainer.Implementation
 					return;
 			}
 			builder.EndResolveDependencies();
+			if (builder.Context.AnalizeDependenciesOnly)
+				return;
 			var dependenciesResolvedByArguments = builder.Arguments == null
 				? InternalHelpers.emptyStrings
 				: builder.Arguments.GetUsed().Select(InternalHelpers.ByNameDependencyKey);
@@ -492,7 +497,9 @@ namespace SimpleContainer.Implementation
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
 				serviceForUsedContracts = builder.Build();
-				serviceForUsedContractsId.ReleaseInstantiateLock(serviceForUsedContracts);
+				serviceForUsedContractsId.ReleaseInstantiateLock(builder.Context.AnalizeDependenciesOnly
+					? null
+					: serviceForUsedContracts);
 			}
 			else
 				builder.Reuse(serviceForUsedContracts);

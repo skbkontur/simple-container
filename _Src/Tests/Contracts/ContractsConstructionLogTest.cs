@@ -155,7 +155,7 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A[a]\r\n\tFunc<B>[a]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<B>"));
 			}
 		}
 

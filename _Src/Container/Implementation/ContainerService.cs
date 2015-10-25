@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -358,12 +359,6 @@ namespace SimpleContainer.Implementation
 			public int FilterInstances(Func<object, bool> filter)
 			{
 				return instances.RemoveAll(o => !filter(o.Instance));
-			}
-
-			public void UseAllDeclaredContracts()
-			{
-				target.UsedContracts = DeclaredContracts;
-				usedContractNames = target.UsedContracts.ToList();
 			}
 
 			public void UnionUsedContracts(ContainerService dependency)
