@@ -56,7 +56,9 @@ namespace SimpleContainer
 
 		public static IEnumerable<T> GetAll<T>(this IContainer container, params string[] contracts)
 		{
-			return container.Resolve<T>(contracts).All();
+			var containerService = container.Resolve<T>(contracts);
+			containerService.EnsureInitialized();
+			return containerService.All();
 		}
 
 		public static bool TryGet<T>(this IContainer container, out T result)
