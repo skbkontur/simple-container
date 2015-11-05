@@ -194,9 +194,11 @@ namespace SimpleContainer
 
 		private static string GetBinDirectory()
 		{
-			return String.IsNullOrEmpty(AppDomain.CurrentDomain.RelativeSearchPath)
-				? AppDomain.CurrentDomain.BaseDirectory
-				: AppDomain.CurrentDomain.RelativeSearchPath;
+			var relativePath = AppDomain.CurrentDomain.RelativeSearchPath;
+			var basePath = AppDomain.CurrentDomain.BaseDirectory;
+			return string.IsNullOrEmpty(relativePath) || !relativePath.IsSubdirectoryOf(basePath)
+				? basePath
+				: relativePath;
 		}
 
 		private ContainerFactory WithTypesFromAssemblies(ParallelQuery<Assembly> assemblies)

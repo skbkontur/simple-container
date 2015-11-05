@@ -46,6 +46,20 @@ namespace SimpleContainer.Helpers
 			}
 		}
 
+		private static string ExcludeTrailingSlash(string p)
+		{
+			if (string.IsNullOrEmpty(p))
+				return p;
+			if (p[p.Length - 1] == '\\' || p[p.Length - 1] == '/')
+				return p.Substring(0, p.Length - 1);
+			return p;
+		}
+
+		public static bool IsSubdirectoryOf(this string child, string parent)
+		{
+			return child.StartsWith(ExcludeTrailingSlash(parent), StringComparison.OrdinalIgnoreCase);
+		}
+
 		public static List<T> Concat<T>(this List<T> first, List<T> second)
 		{
 			if (second.Count == 0)
