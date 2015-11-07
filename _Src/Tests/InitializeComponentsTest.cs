@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
@@ -631,6 +632,43 @@ namespace SimpleContainer.Tests
 						"ComponentB[my-contract] - initialize started ComponentB.Initialize\r\nComponentB[my-contract] - initialize finished";
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
+			}
+		}
+
+		public class GetAllCallsInitializeOnAllInstances : InitializeComponentsTest
+		{
+			public interface IService : IInitializable
+			{
+				bool Initialized { get; set; }
+			}
+
+			public class ImplA : IService
+			{
+				public bool Initialized { get; set; }
+
+				public void Initialize()
+				{
+					Initialized = true;
+				}
+			}
+
+			public class ImplB : IService
+			{
+				public bool Initialized { get; set; }
+
+				public void Initialize()
+				{
+					Initialized = true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var services = Container().GetAll<IService>().ToArray();
+				Assert.That(services.Length, Is.EqualTo(2));
+				foreach (var service in services)
+					Assert.That(service.Initialized, Is.True);
 			}
 		}
 	}

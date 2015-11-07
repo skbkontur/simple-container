@@ -195,6 +195,56 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
+		public class FactoriesUseOnlyRequiredContractsWithNesting : ContractsWithFactoriesTest
+		{
+			public class A
+			{
+			}
+
+			public class C
+			{
+				public readonly B b;
+				public readonly A a;
+
+				public C(B b, Func<A> createA)
+				{
+					a = createA();
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			public class E
+			{
+				public readonly C c;
+
+				public E(C c)
+				{
+					this.c = c;
+				}
+			}
+
+			public class D
+			{
+				public E e;
+
+				public D(Func<E> createE)
+				{
+					e = createE();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<D>().e.c.b, Is.Not.Null);
+			}
+		}
+
 		public class FactoryForServiceWithArgument : ContractsWithFactoriesTest
 		{
 			public class A
