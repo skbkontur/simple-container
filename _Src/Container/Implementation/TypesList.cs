@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
@@ -19,6 +21,11 @@ namespace SimpleContainer.Implementation
 		{
 			List<Type> result;
 			return inheritors.TryGetValue(type, out result) ? result : InternalHelpers.emptyTypesList;
+		}
+
+		public IEnumerable<Assembly> GetAssemblies()
+		{
+			return Types.Select(x => x.Assembly).Distinct().ToArray();
 		}
 
 		public static TypesList Create(Type[] types)

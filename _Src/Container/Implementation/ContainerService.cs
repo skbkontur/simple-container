@@ -54,7 +54,9 @@ namespace SimpleContainer.Implementation
 			}
 			else
 				message = FormatManyImplementationsMessage();
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}", message, GetConstructionLog()));
+			var assemblies = container.typesList.GetAssemblies().Select(x => "\t" + x.GetName().Name).JoinStrings("\r\n");
+			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}\r\nscanned assemblies\r\n{2}",
+				message, GetConstructionLog(), assemblies));
 		}
 
 		public ServiceDependency AsSingleInstanceDependency(string dependencyName)

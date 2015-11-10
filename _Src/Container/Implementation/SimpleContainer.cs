@@ -24,7 +24,7 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 		private readonly GenericsAutoCloser genericsAutoCloser;
-		private readonly TypesList typesList;
+		internal readonly TypesList typesList;
 		private readonly LogError errorLogger;
 		private readonly LogInfo infoLogger;
 		private readonly List<ImplementationSelector> implementationSelectors;

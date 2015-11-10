@@ -61,7 +61,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				const string expectedMessage =
-					"no instances for [Wrap] because [IUnimplemented] has no instances\r\n\r\n!Wrap\r\n\t!Service[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations";
+					"no instances for [Wrap] because [IUnimplemented] has no instances\r\n\r\n!Wrap\r\n\t!Service[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations" + defaultScannedAssemblies;
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -92,7 +92,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("no instances for [A] because [IB] has no instances\r\n\r\n!A\r\n\t!IB\r\n\t\t!B - IgnoredImplementation"));
+				Assert.That(exception.Message, Is.EqualTo("no instances for [A] because [IB] has no instances\r\n\r\n!A\r\n\t!IB\r\n\t\t!B - IgnoredImplementation" + defaultScannedAssemblies));
 			}
 		}
 

@@ -1,14 +1,17 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
 {
 	public abstract class AssembliesLoadTest : UnitTestBase
 	{
-		private AppDomain appDomain;
+		protected AppDomain appDomain;
 		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
 
 		protected override void SetUp()
@@ -56,12 +59,60 @@ namespace SimpleContainer.Tests
 				}
 			}
 
-			private static void CreateContainer()
+			public void DoCallBack<T>(T parameter, Action<T> action)
+			{
+				action(parameter);
+			}
+
+			private void CreateContainer()
 			{
 				new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
 					.WithTypesFromDefaultBinDirectory(false)
 					.Build();
+			}
+		}
+
+		public class DisplayScannedAssembliesInException : AssembliesLoadTest
+		{
+			private const string primaryAssemblyCode = @"
+					using System;
+					using A1;
+
+					namespace A1
+					{
+						public interface ISomeInterface
+						{
+						}
+					}
+				";
+
+
+			[Test]
+			public void Test()
+			{
+				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode);
+				var assemblyName = primaryAssembly.GetName().Name;
+
+				CopyAssemblyToTestDirectory(primaryAssembly);
+				CopyAssemblyToTestDirectory(typeof(IContainer).Assembly);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+				CopyAssemblyToTestDirectory(typeof(Assert).Assembly);
+
+				GetInvoker().DoCallBack(assemblyName, delegate(string s)
+				{
+					var f = new ContainerFactory()
+						.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))
+						.WithTypesFromDefaultBinDirectory(false);
+					var type = Type.GetType("A1.ISomeInterface, " + s);
+					Assert.That(type, Is.Not.Null);
+					using (var c = f.Build())
+					{
+						var exception = Assert.Throws<SimpleContainerException>(() => c.Get(type));
+						var assemblies = new[] {"SimpleContainer", s}.Select(x => "\t" + x).JoinStrings("\r\n");
+						Assert.That(exception.Message, Is.EqualTo("no instances for [ISomeInterface]\r\n\r\n!ISomeInterface - has no implementations\r\nscanned assemblies\r\n" + assemblies));
+					}
+				});
 			}
 		}
 

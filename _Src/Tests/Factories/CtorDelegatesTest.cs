@@ -139,7 +139,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<B.Ctor>());
 				Assert.That(exception.Message,
-					Is.EqualTo("no instances for [B] because [IA] has no instances\r\n\r\n!B.Ctor\r\n\t!IA - has no implementations"));
+					Is.EqualTo("no instances for [B] because [IA] has no instances\r\n\r\n!B.Ctor\r\n\t!IA - has no implementations" + defaultScannedAssemblies));
 			}
 		}
 

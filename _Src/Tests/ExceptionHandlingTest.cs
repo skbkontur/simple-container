@@ -13,7 +13,7 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				const string message =
-					"no instances for [OuterOuterService] because [IInterface] has no instances\r\n\r\n!OuterOuterService\r\n\t!OuterService\r\n\t\t!IInterface - has no implementations";
+					"no instances for [OuterOuterService] because [IInterface] has no instances\r\n\r\n!OuterOuterService\r\n\t!OuterService\r\n\t\t!IInterface - has no implementations" + defaultScannedAssemblies;
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
@@ -76,7 +76,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [C] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!C - DontUse"));
+				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [C] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!C - DontUse" + defaultScannedAssemblies));
 			}
 		}
 
@@ -121,7 +121,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [IC] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!IC\r\n\t\t\t!C1 - DontUse\r\n\t\t\t!C2 - DontUse"));
+				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [IC] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!IC\r\n\t\t\t!C1 - DontUse\r\n\t\t\t!C2 - DontUse" + defaultScannedAssemblies));
 			}
 		}
 	}

@@ -10,6 +10,9 @@ namespace SimpleContainer.Tests.Helpers
 	{
 		protected List<IDisposable> disposables;
 
+		protected const string defaultScannedAssemblies =
+			"\r\nscanned assemblies\r\n\tSimpleContainer.Tests\r\n\tSimpleContainer";
+
 		protected override void SetUp()
 		{
 			base.SetUp();
