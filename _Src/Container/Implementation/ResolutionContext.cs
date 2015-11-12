@@ -61,7 +61,7 @@ namespace SimpleContainer.Implementation
 				foreach (var c in expandResult.CartesianProduct())
 				{
 					var childService = Resolve(new ServiceName(builder.Type, c));
-					builder.LinkTo(childService, null);
+					builder.LinkTo(Container.containerContext, childService, null);
 					if (builder.Status.IsBad())
 						break;
 				}

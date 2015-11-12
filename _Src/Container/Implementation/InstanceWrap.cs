@@ -7,7 +7,7 @@ namespace SimpleContainer.Implementation
 	{
 		private volatile bool initialized;
 		public object Instance { get; private set; }
-		public bool Owned { get; set; }
+		public bool Owned { get; private set; }
 
 		public InstanceWrap(object instance, bool owned)
 		{
@@ -23,7 +23,7 @@ namespace SimpleContainer.Implementation
 			return ReferenceEquals(Instance, ((InstanceWrap) obj).Instance);
 		}
 
-		public void EnsureInitialized(ContainerService service, LogInfo infoLogger)
+		public void EnsureInitialized(ContainerService service, ContainerContext containerContext, ContainerService root)
 		{
 			if (!Owned)
 				return;
@@ -35,18 +35,18 @@ namespace SimpleContainer.Implementation
 					if (!initialized)
 					{
 						var name = new ServiceName(Instance.GetType(), service.UsedContracts);
-						if (infoLogger != null)
-							infoLogger(name, "initialize started");
+						if (containerContext.infoLogger != null)
+							containerContext.infoLogger(name, "initialize started");
 						try
 						{
 							componentInstance.Initialize();
 						}
 						catch (Exception e)
 						{
-							throw new SimpleContainerException(string.Format("exception initializing {0}", name), e);
+							throw new SimpleContainerException(string.Format("exception initializing {0}\r\n\r\n{1}", name, root.GetConstructionLog(containerContext)), e);
 						}
-						if (infoLogger != null)
-							infoLogger(name, "initialize finished");
+						if (containerContext.infoLogger != null)
+							containerContext.infoLogger(name, "initialize finished");
 						initialized = true;
 					}
 		}

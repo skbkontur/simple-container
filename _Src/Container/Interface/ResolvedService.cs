@@ -57,14 +57,14 @@ namespace SimpleContainer.Interface
 	public struct ResolvedService
 	{
 		private readonly ContainerService containerService;
-		private readonly Implementation.SimpleContainer simpleContainer;
+		private readonly ContainerContext containerContext;
 		private readonly bool isEnumerable;
 
-		internal ResolvedService(ContainerService containerService, Implementation.SimpleContainer simpleContainer,
+		internal ResolvedService(ContainerService containerService, ContainerContext containerContext,
 			bool isEnumerable)
 		{
 			this.containerService = containerService;
-			this.simpleContainer = simpleContainer;
+			this.containerContext = containerContext;
 			this.isEnumerable = isEnumerable;
 		}
 
@@ -75,7 +75,7 @@ namespace SimpleContainer.Interface
 
 		public void EnsureInitialized()
 		{
-			simpleContainer.EnsureInitialized(containerService);
+			containerService.EnsureInitialized(containerContext, containerService);
 		}
 
 		public void CheckSingleInstance()
@@ -85,12 +85,12 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue(false, null);
+			return isEnumerable ? All() : containerService.GetSingleValue(containerContext, false, null);
 		}
 
 		public object SingleODefault(object defaultValue)
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue(true, defaultValue);
+			return isEnumerable ? All() : containerService.GetSingleValue(containerContext, true, defaultValue);
 		}
 
 		public bool IsOk()
@@ -100,12 +100,12 @@ namespace SimpleContainer.Interface
 
 		public IEnumerable<object> All()
 		{
-			return containerService.GetAllValues();
+			return containerService.GetAllValues(containerContext);
 		}
 
 		public void DumpConstructionLog(ISimpleLogWriter writer)
 		{
-			containerService.WriteConstructionLog(writer);
+			containerService.WriteConstructionLog(writer,containerContext);
 		}
 
 		public string GetConstructionLog()

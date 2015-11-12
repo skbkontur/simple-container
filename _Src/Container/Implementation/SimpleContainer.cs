@@ -24,14 +24,12 @@ namespace SimpleContainer.Implementation
 		private readonly DependenciesInjector dependenciesInjector;
 		private bool disposed;
 		private readonly GenericsAutoCloser genericsAutoCloser;
-		internal readonly TypesList typesList;
+		private readonly TypesList typesList;
 		private readonly LogError errorLogger;
-		private readonly LogInfo infoLogger;
 		private readonly List<ImplementationSelector> implementationSelectors;
 		private Type[] allTypes;
-
-		internal readonly Dictionary<Type, Func<object, string>> valueFormatters;
 		internal ConfigurationRegistry Configuration { get; private set; }
+		internal readonly ContainerContext containerContext;
 
 		public SimpleContainer(GenericsAutoCloser genericsAutoCloser, ConfigurationRegistry configurationRegistry,
 			TypesList typesList, LogError errorLogger, LogInfo infoLogger,
@@ -43,8 +41,12 @@ namespace SimpleContainer.Implementation
 			this.typesList = typesList;
 			dependenciesInjector = new DependenciesInjector(this);
 			this.errorLogger = errorLogger;
-			this.infoLogger = infoLogger;
-			this.valueFormatters = valueFormatters;
+			containerContext = new ContainerContext
+			{
+				infoLogger = infoLogger,
+				typesList = typesList,
+				valueFormatters = valueFormatters
+			};
 		}
 
 		public ResolvedService Resolve(Type type, IEnumerable<string> contracts)
@@ -57,7 +59,7 @@ namespace SimpleContainer.Implementation
 			ContainerService result;
 			if (!id.TryGet(out result))
 				result = ResolveSingleton(name.Type, new ResolutionContext(this, name.Contracts));
-			return new ResolvedService(result, this, name.Type != type);
+			return new ResolvedService(result, containerContext, name.Type != type);
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
@@ -71,8 +73,8 @@ namespace SimpleContainer.Implementation
 				return compiledFactory();
 			var context = new ResolutionContext(this, name.Contracts);
 			var result = context.Create(type, null, arguments);
-			EnsureInitialized(result);
-			return result.GetSingleValue(false, null);
+			result.EnsureInitialized(containerContext, result);
+			return result.GetSingleValue(containerContext, false, null);
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
@@ -83,11 +85,6 @@ namespace SimpleContainer.Implementation
 		internal ServiceConfiguration GetConfiguration(Type type, ResolutionContext context)
 		{
 			return GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
-		}
-
-		internal void EnsureInitialized(ContainerService containerService)
-		{
-			containerService.EnsureInitialized(infoLogger);
 		}
 
 		private ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
@@ -161,7 +158,7 @@ namespace SimpleContainer.Implementation
 		{
 			EnsureNotDisposed();
 			return new SimpleContainer(genericsAutoCloser, Configuration.Apply(typesList, configure),
-				typesList, null, infoLogger, valueFormatters);
+				typesList, null, containerContext.infoLogger, containerContext.valueFormatters);
 		}
 
 		public Type[] AllTypes
@@ -277,7 +274,7 @@ namespace SimpleContainer.Implementation
 				}
 				if (implementationService != null)
 				{
-					builder.LinkTo(implementationService, comment);
+					builder.LinkTo(containerContext, implementationService, comment);
 					if (builder.CreateNew && builder.Arguments == null &&
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
 						if (factory == null)
@@ -568,7 +565,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.ServiceError(resultService);
 			var isEnumerable = dependencyName.Type != implementationType;
 			if (isEnumerable)
-				return ServiceDependency.Service(resultService, resultService.GetAllValues());
+				return ServiceDependency.Service(resultService, resultService.GetAllValues(containerContext));
 			if (resultService.Status == ServiceStatus.NotResolved)
 			{
 				if (formalParameter.HasDefaultValue)
@@ -631,7 +628,7 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		protected void EnsureNotDisposed()
+		private void EnsureNotDisposed()
 		{
 			if (disposed)
 				throw new ObjectDisposedException("SimpleContainer");

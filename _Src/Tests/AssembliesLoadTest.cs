@@ -11,9 +11,6 @@ namespace SimpleContainer.Tests
 {
 	public abstract class AssembliesLoadTest : UnitTestBase
 	{
-		protected AppDomain appDomain;
-		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
-
 		protected override void SetUp()
 		{
 			base.SetUp();
@@ -32,6 +29,9 @@ namespace SimpleContainer.Tests
 				Directory.Delete(testDirectory, true);
 			base.TearDown();
 		}
+
+		protected AppDomain appDomain;
+		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
 
 		private void CopyAssemblyToTestDirectory(Assembly assembly)
 		{
@@ -95,9 +95,9 @@ namespace SimpleContainer.Tests
 				var assemblyName = primaryAssembly.GetName().Name;
 
 				CopyAssemblyToTestDirectory(primaryAssembly);
-				CopyAssemblyToTestDirectory(typeof(IContainer).Assembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
-				CopyAssemblyToTestDirectory(typeof(Assert).Assembly);
+				CopyAssemblyToTestDirectory(typeof (Assert).Assembly);
 
 				GetInvoker().DoCallBack(assemblyName, delegate(string s)
 				{
@@ -109,8 +109,11 @@ namespace SimpleContainer.Tests
 					using (var c = f.Build())
 					{
 						var exception = Assert.Throws<SimpleContainerException>(() => c.Get(type));
-						var assemblies = new[] {"SimpleContainer", s}.Select(x => "\t" + x).JoinStrings("\r\n");
-						Assert.That(exception.Message, Is.EqualTo("no instances for [ISomeInterface]\r\n\r\n!ISomeInterface - has no implementations\r\nscanned assemblies\r\n" + assemblies));
+						var assemblies = new[] {"SimpleContainer", s}.OrderBy(x => x).Select(x => "\t" + x).JoinStrings("\r\n");
+						const string expectedMessage = "no instances for [ISomeInterface]\r\n\r\n!" +
+						                               "ISomeInterface - has no implementations\r\n" +
+						                               "scanned assemblies\r\n";
+						Assert.That(exception.Message, Is.EqualTo(expectedMessage + assemblies));
 					}
 				});
 			}

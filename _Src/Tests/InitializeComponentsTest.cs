@@ -545,7 +545,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
 				var resolvedA = container.Resolve<A>();
 				var exception = Assert.Throws<SimpleContainerException>(() => resolvedA.EnsureInitialized());
-				Assert.That(exception.Message, Is.EqualTo("exception initializing A[c1]"));
+				Assert.That(exception.Message, Is.EqualTo("exception initializing A[c1]\r\n\r\nA[c1], initializing ...\r\n\tparameter -> 42"));
 				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
 			}
 		}
@@ -632,6 +632,37 @@ namespace SimpleContainer.Tests
 						"ComponentB[my-contract] - initialize started ComponentB.Initialize\r\nComponentB[my-contract] - initialize finished";
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
+			}
+		}
+
+		public class EnsireInitializedMustShowServiceDependencies : InitializeComponentsTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A(B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B: IInitializable
+			{
+				public void Initialize()
+				{
+					throw new InvalidOperationException("test-crash");
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("exception initializing B\r\n\r\nA, initializing ...\r\n\tB, initializing ..."));
+				Assert.That(exception.InnerException.Message, Is.EqualTo("test-crash"));
 			}
 		}
 

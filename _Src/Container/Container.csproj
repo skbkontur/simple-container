@@ -48,6 +48,7 @@
     <Compile Include="Configuration\ServiceConfiguration.cs" />
     <Compile Include="Helpers\EmitHelpers.cs" />
     <Compile Include="Helpers\ValueWithType.cs" />
+    <Compile Include="Implementation\ContainerContext.cs" />
     <Compile Include="Implementation\CtorFactoryCreator.cs" />
     <Compile Include="Implementation\TypesList.cs" />
     <Compile Include="Implementation\LazyCreator.cs" />

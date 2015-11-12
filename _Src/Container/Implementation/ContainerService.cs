@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -11,6 +10,21 @@ namespace SimpleContainer.Implementation
 {
 	internal class ContainerService
 	{
+		private readonly object lockObject = new object();
+		private string comment;
+		private Exception constructionException;
+		private ServiceDependency[] dependencies;
+		internal volatile bool disposing;
+		private volatile bool initialized;
+		private volatile bool initializing;
+		private InstanceWrap[] instances;
+
+		private object[] typedArray;
+
+		private ContainerService()
+		{
+		}
+
 		public ServiceStatus Status { get; private set; }
 		public Type Type { get; private set; }
 		public string[] UsedContracts { get; private set; }
@@ -20,25 +34,9 @@ namespace SimpleContainer.Implementation
 			get { return new ServiceName(Type, UsedContracts); }
 		}
 
-		private readonly object lockObject = new object();
-
-		private object[] typedArray;
-		private volatile bool initialized;
-		private volatile bool initializing;
-		internal volatile bool disposing;
-		private string comment;
-		private Exception constructionException;
-		private ServiceDependency[] dependencies;
-		private InstanceWrap[] instances;
-		private SimpleContainer container;
-
-		private ContainerService()
+		public object GetSingleValue(ContainerContext containerContext, bool hasDefaultValue, object defaultValue)
 		{
-		}
-
-		public object GetSingleValue(bool hasDefaultValue, object defaultValue)
-		{
-			CheckStatusIsGood();
+			CheckStatusIsGood(containerContext);
 			if (instances.Length == 1)
 				return instances[0].Instance;
 			if (instances.Length == 0 && hasDefaultValue)
@@ -54,9 +52,11 @@ namespace SimpleContainer.Implementation
 			}
 			else
 				message = FormatManyImplementationsMessage();
-			var assemblies = container.typesList.GetAssemblies().Select(x => "\t" + x.GetName().Name).JoinStrings("\r\n");
+			var assemblies = containerContext.typesList.GetAssemblies()
+				.OrderBy(x => x.GetName().Name)
+				.Select(x => "\t" + x.GetName().Name).JoinStrings("\r\n");
 			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}\r\nscanned assemblies\r\n{2}",
-				message, GetConstructionLog(), assemblies));
+				message, GetConstructionLog(containerContext), assemblies));
 		}
 
 		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
@@ -70,13 +70,13 @@ namespace SimpleContainer.Implementation
 				: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
 		}
 
-		public IEnumerable<object> GetAllValues()
+		public IEnumerable<object> GetAllValues(ContainerContext containerContext)
 		{
-			CheckStatusIsGood();
+			CheckStatusIsGood(containerContext);
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
-		public void EnsureInitialized(LogInfo infoLogger)
+		public void EnsureInitialized(ContainerContext containerContext, ContainerService root)
 		{
 			if (Status != ServiceStatus.Ok)
 				return;
@@ -90,9 +90,9 @@ namespace SimpleContainer.Implementation
 							if (dependencies != null)
 								foreach (var dependency in dependencies)
 									if (dependency.ContainerService != null)
-										dependency.ContainerService.EnsureInitialized(infoLogger);
+										dependency.ContainerService.EnsureInitialized(containerContext, root);
 							foreach (var instance in instances)
-								instance.EnsureInitialized(this, infoLogger);
+								instance.EnsureInitialized(this, containerContext, root);
 							initialized = true;
 						}
 						finally
@@ -121,16 +121,16 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		public string GetConstructionLog()
+		public string GetConstructionLog(ContainerContext containerContext)
 		{
 			var writer = new SimpleTextLogWriter();
-			WriteConstructionLog(writer);
+			WriteConstructionLog(writer, containerContext);
 			return writer.GetText();
 		}
 
-		public void WriteConstructionLog(ISimpleLogWriter writer)
+		public void WriteConstructionLog(ISimpleLogWriter writer, ContainerContext containerContext)
 		{
-			WriteConstructionLog(new ConstructionLogContext(writer, container.valueFormatters));
+			WriteConstructionLog(new ConstructionLogContext(writer, containerContext.valueFormatters));
 		}
 
 		public void WriteConstructionLog(ConstructionLogContext context)
@@ -187,25 +187,19 @@ namespace SimpleContainer.Implementation
 				}
 		}
 
-		private void CheckStatusIsGood()
+		private void CheckStatusIsGood(ContainerContext containerContext)
 		{
 			if (Status.IsGood())
 				return;
 			var errorTarget = SearchForError();
 			if (errorTarget == null)
 				throw new InvalidOperationException("assertion failure: can't find error target");
-			var constructionLog = GetConstructionLog();
+			var constructionLog = GetConstructionLog(containerContext);
 			var currentConstructionException = errorTarget.service != null ? errorTarget.service.constructionException : null;
 			var message = currentConstructionException != null
 				? string.Format("service [{0}] construction exception", errorTarget.service.Type.FormatName())
 				: (errorTarget.service != null ? errorTarget.service.comment : errorTarget.dependency.Comment);
 			throw new SimpleContainerException(message + "\r\n\r\n" + constructionLog, currentConstructionException);
-		}
-
-		private class ErrorTarget
-		{
-			public ContainerService service;
-			public ServiceDependency dependency;
 		}
 
 		private ErrorTarget SearchForError()
@@ -243,10 +237,10 @@ namespace SimpleContainer.Implementation
 			return current;
 		}
 
-		private ServiceDependency GetLinkedDependency()
+		private ServiceDependency GetLinkedDependency(ContainerContext containerContext)
 		{
 			if (Status == ServiceStatus.Ok)
-				return ServiceDependency.Service(this, GetAllValues());
+				return ServiceDependency.Service(this, GetAllValues(containerContext));
 			if (Status == ServiceStatus.NotResolved)
 				return ServiceDependency.NotResolved(this);
 			return ServiceDependency.ServiceError(this);
@@ -258,17 +252,20 @@ namespace SimpleContainer.Implementation
 				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
+		private class ErrorTarget
+		{
+			public ServiceDependency dependency;
+			public ContainerService service;
+		}
+
 		public class Builder
 		{
-			public ServiceConfiguration Configuration { get; private set; }
-			private List<ServiceDependency> dependencies;
-			public IObjectAccessor Arguments { get; private set; }
-			public bool CreateNew { get; private set; }
+			[ThreadStatic] private static Builder current;
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
-			private List<string> usedContractNames;
-			private ContainerService target;
+			private List<ServiceDependency> dependencies;
 			private bool reused;
-			public ResolutionContext Context { get; private set; }
+			private ContainerService target;
+			private List<string> usedContractNames;
 
 			public Builder(Type type, ResolutionContext context, bool createNew, IObjectAccessor arguments)
 			{
@@ -296,10 +293,10 @@ namespace SimpleContainer.Implementation
 				}
 			}
 
-			public bool HasNoConfiguration()
-			{
-				return Configuration == ServiceConfiguration.empty;
-			}
+			public ServiceConfiguration Configuration { get; private set; }
+			public IObjectAccessor Arguments { get; private set; }
+			public bool CreateNew { get; private set; }
+			public ResolutionContext Context { get; private set; }
 
 			public Type Type
 			{
@@ -316,6 +313,16 @@ namespace SimpleContainer.Implementation
 			public string[] FinalUsedContracts
 			{
 				get { return target.UsedContracts; }
+			}
+
+			public static Builder Current
+			{
+				get { return current; }
+			}
+
+			public bool HasNoConfiguration()
+			{
+				return Configuration == ServiceConfiguration.empty;
 			}
 
 			public ServiceName GetName()
@@ -346,9 +353,9 @@ namespace SimpleContainer.Implementation
 				target.comment = value;
 			}
 
-			public void LinkTo(ContainerService childService, string comment)
+			public void LinkTo(ContainerContext containerContext, ContainerService childService, string comment)
 			{
-				var dependency = childService.GetLinkedDependency();
+				var dependency = childService.GetLinkedDependency(containerContext);
 				dependency.Comment = comment;
 				AddDependency(dependency, true);
 				UnionUsedContracts(childService);
@@ -374,13 +381,6 @@ namespace SimpleContainer.Implementation
 					.Where(x => DeclaredContracts.Any(x.EqualsIgnoringCase));
 				foreach (var n in contractsToAdd)
 					usedContractNames.Add(n);
-			}
-
-			public void UnionStatusFrom(ContainerService containerService)
-			{
-				target.Status = containerService.Status;
-				target.comment = containerService.comment;
-				target.constructionException = containerService.constructionException;
 			}
 
 			public void SetError(string newErrorMessage)
@@ -427,7 +427,6 @@ namespace SimpleContainer.Implementation
 				target.instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
-				target.container = Context.Container;
 				return target;
 			}
 
@@ -440,21 +439,9 @@ namespace SimpleContainer.Implementation
 				return dependencyStatus;
 			}
 
-			public bool IgnoredImplementation()
-			{
-				return Configuration.IgnoredImplementation || Type.IsDefined("IgnoredImplementationAttribute");
-			}
-
 			public bool DontUse()
 			{
 				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
-			}
-
-			[ThreadStatic] private static Builder current;
-
-			public static Builder Current
-			{
-				get { return current; }
 			}
 
 			public void CreateInstanceBy(Func<object> creator, bool owned)
