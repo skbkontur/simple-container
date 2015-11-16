@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -646,6 +647,31 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.BindDependency<A>("dto", new Dto()));
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
 					Is.EqualTo("A\r\n\tDto const"));
+			}
+		}
+
+		public class DontTryToDumpResource : ConstructionLogTest
+		{
+			public class ServiceWithResource
+			{
+				public string streamContent;
+
+				public ServiceWithResource([FromResource("testResource.txt")] Stream stream)
+				{
+					using (var reader = new StreamReader(stream))
+						streamContent = reader.ReadLine();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				string log = null;
+				var service = container.Resolve<ServiceWithResource>();
+				Assert.That(service.IsOk());
+				Assert.That(() =>{ log = service.GetConstructionLog(); }, Throws.Nothing);
+				Assert.That(log, Is.StringContaining("resource [testResource.txt]"));
 			}
 		}
 	}

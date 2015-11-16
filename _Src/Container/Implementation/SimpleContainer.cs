@@ -534,7 +534,7 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Error(null, formalParameter.Name,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
 						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
-				return ServiceDependency.Constant(formalParameter, resourceStream);
+				return ServiceDependency.Resource(formalParameter, resourceAttribute.Name, resourceStream);
 			}
 			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
 				InternalHelpers.ParseContracts(formalParameter));

@@ -1,6 +1,6 @@
 ﻿using NUnit.Framework;
 
-namespace SimpleContainer.Tests
+namespace SimpleContainer.Tests.Helpers
 {
 	[TestFixture]
 	public abstract class UnitTestBase
