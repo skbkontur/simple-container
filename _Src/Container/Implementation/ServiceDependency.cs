@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Reflection;
 using SimpleContainer.Helpers;
 
@@ -53,7 +54,8 @@ namespace SimpleContainer.Implementation
 				Comment = Comment,
 				Name = Name,
 				Status = Status,
-				isConstant = isConstant,
+				resourceName = resourceName,
+				constantKind = constantKind,
 				Value = value
 			};
 		}
@@ -64,8 +66,19 @@ namespace SimpleContainer.Implementation
 			{
 				Status = ServiceStatus.Ok,
 				Value = value,
-				isConstant = true
+				constantKind = ConstantKind.Value
 			}.WithName(formalParameter, null);
+		}
+
+		public static ServiceDependency Resource(ParameterInfo formalParameter, string resourceName, Stream value)
+		{
+			return new ServiceDependency
+			{
+				Status = ServiceStatus.Ok,
+				constantKind = ConstantKind.Resource,
+				resourceName = resourceName,
+				Value = value
+			}.WithName(null, formalParameter.Name);
 		}
 
 		public static ServiceDependency Service(ContainerService service, object value, string name = null)
@@ -124,15 +137,20 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteMeta(" - ");
 				context.Writer.WriteMeta(Comment);
 			}
-			if (Status == ServiceStatus.Ok && isConstant)
+			if (Status == ServiceStatus.Ok && constantKind.HasValue)
 			{
-				if (Value == null || Value.GetType().IsSimpleType())
-					context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
-				else
+				if (constantKind == ConstantKind.Value)
 				{
-					context.Writer.WriteMeta(" const");
-					WriteValue(context);
+					if (Value == null || Value.GetType().IsSimpleType())
+						context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
+					else
+					{
+						context.Writer.WriteMeta(" const");
+						WriteValue(context);
+					}
 				}
+				if (constantKind == ConstantKind.Resource)
+					context.Writer.WriteMeta(string.Format(" resource [{0}]", resourceName));
 			}
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
@@ -219,6 +237,13 @@ namespace SimpleContainer.Implementation
 			return null;
 		}
 
-		private bool isConstant;
+		private ConstantKind? constantKind;
+		private string resourceName;
+
+		private enum ConstantKind
+		{
+			Value,
+			Resource
+		}
 	}
 }
