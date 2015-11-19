@@ -265,7 +265,7 @@ namespace SimpleContainer.Implementation
 					var implementationService = builder.CreateNew
 						? builder.Context.Instantiate(implementationType.type, true, builder.Arguments)
 						: builder.Context.Resolve(ServiceName.Parse(implementationType.type, false));
-					builder.LinkTo(implementationService, implementationType.comment);
+					builder.LinkTo(containerContext, implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
 						if (factory == null)
