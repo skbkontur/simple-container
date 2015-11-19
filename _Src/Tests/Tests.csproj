@@ -82,6 +82,7 @@
     <Compile Include="Helpers\TestHelpers.cs" />
     <Compile Include="BuildUpTest.cs" />
     <Compile Include="Helpers\TestingParametersSource.cs" />
+    <Compile Include="IgnoreImplementationTest.cs" />
     <Compile Include="ImplicitDependenciesTest.cs" />
     <Compile Include="InstanceFilterTest.cs" />
     <Compile Include="LongRunning\CrashOnOneThreadDoNotAffectOtherThreads.cs" />

@@ -149,6 +149,12 @@ namespace SimpleContainer.Helpers
 			list.RemoveRange(list.Count - count, count);
 		}
 
+		public static void Replace<T>(this HashSet<T> hashSet, T item)
+		{
+			hashSet.Remove(item);
+			hashSet.Add(item);
+		}
+
 		public static T[] PopMany<T>(this List<T> list, int count = 1)
 		{
 			var result = new T[count];

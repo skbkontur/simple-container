@@ -226,20 +226,32 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
+		private void ApplySelectors(HashSet<ImplementationType> implementations, ContainerService.Builder builder)
+		{
+			if (builder.Configuration != ServiceConfiguration.empty)
+				return;
+			if (implementationSelectors.Count == 0)
+				return;
+			var selectorDecisions = new List<ImplementationSelectorDecision>();
+			var typesArray = implementations.Select(x => x.type).ToArray();
+			foreach (var s in implementationSelectors)
+				s(builder.Type, typesArray, selectorDecisions);
+			foreach (var decision in selectorDecisions)
+			{
+				var item = new ImplementationType
+				{
+					type = decision.target,
+					comment = decision.comment,
+					accepted = decision.action == ImplementationSelectorDecision.Action.Include
+				};
+				implementations.Replace(item);
+			}
+		}
+
 		private void InstantiateInterface(ContainerService.Builder builder)
 		{
-			var implementationTypes = GetInterfaceImplementationTypes(builder);
-			List<ImplementationSelectorDecision> selectorDecisions = null;
-			if (builder.HasNoConfiguration() && implementationSelectors.Count > 0)
-			{
-				selectorDecisions = new List<ImplementationSelectorDecision>();
-				var typesArray = implementationTypes.ToArray();
-				foreach (var s in implementationSelectors)
-					s(builder.Type, typesArray, selectorDecisions);
-				foreach (var decision in selectorDecisions)
-					if (decision.action == ImplementationSelectorDecision.Action.Include)
-						implementationTypes.Add(decision.target);
-			}
+			var implementationTypes = GetImplementationTypes(builder);
+			ApplySelectors(implementationTypes, builder);
 			if (implementationTypes.Count == 0)
 			{
 				builder.SetComment("has no implementations");
@@ -248,33 +260,12 @@ namespace SimpleContainer.Implementation
 			Func<object> factory = null;
 			var canUseFactory = true;
 			foreach (var implementationType in implementationTypes)
-			{
-				ContainerService implementationService = null;
-				string comment = null;
-
-				var configuration = GetConfiguration(implementationType, builder.Context);
-				if (configuration.IgnoredImplementation || implementationType.IsDefined("IgnoredImplementationAttribute"))
-					comment = "IgnoredImplementation";
-				else if (builder.CreateNew)
-					implementationService = builder.Context.Instantiate(implementationType, true, builder.Arguments);
-				else
+				if (implementationType.accepted)
 				{
-					ImplementationSelectorDecision? decision = null;
-					if (selectorDecisions != null)
-						foreach (var d in selectorDecisions)
-							if (d.target == implementationType)
-							{
-								decision = d;
-								break;
-							}
-					if (decision.HasValue)
-						comment = decision.Value.comment;
-					if (!decision.HasValue || decision.Value.action == ImplementationSelectorDecision.Action.Include)
-						implementationService = builder.Context.Resolve(ServiceName.Parse(implementationType, false));
-				}
-				if (implementationService != null)
-				{
-					builder.LinkTo(containerContext, implementationService, comment);
+					var implementationService = builder.CreateNew
+						? builder.Context.Instantiate(implementationType.type, true, builder.Arguments)
+						: builder.Context.Resolve(ServiceName.Parse(implementationType.type, false));
+					builder.LinkTo(implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
 						if (factory == null)
@@ -284,44 +275,51 @@ namespace SimpleContainer.Implementation
 						}
 						else
 							canUseFactory = false;
+					if (builder.Status.IsBad())
+						return;
 				}
 				else
 				{
-					var dependency = ServiceDependency.NotResolved(null, implementationType.FormatName());
-					dependency.Comment = comment;
+					var dependency = ServiceDependency.NotResolved(null, implementationType.type.FormatName());
+					dependency.Comment = implementationType.comment;
 					builder.AddDependency(dependency, true);
 				}
-				if (builder.Status.IsBad())
-					return;
-			}
 			builder.EndResolveDependencies();
 			if (factory != null && canUseFactory)
 				factoryCache.TryAdd(builder.GetName(), factory);
 		}
 
-		private HashSet<Type> GetInterfaceImplementationTypes(ContainerService.Builder builder)
+		private HashSet<ImplementationType> GetImplementationTypes(ContainerService.Builder builder)
 		{
-			var candidates = new List<Type>();
-			var result = new HashSet<Type>();
-			if (builder.Configuration.ImplementationTypes != null)
-				candidates.AddRange(builder.Configuration.ImplementationTypes);
-			if (builder.Configuration.ImplementationTypes == null)
-				candidates.AddRange(typesList.InheritorsOf(builder.Type.GetDefinition()));
+			var result = new HashSet<ImplementationType>();
+			var candidates = builder.Configuration.ImplementationTypes ?? typesList.InheritorsOf(builder.Type.GetDefinition());
+			var implementationTypesAreExplicitlyConfigured = builder.Configuration.ImplementationTypes != null;
 			foreach (var implType in candidates)
 			{
+				if (!implementationTypesAreExplicitlyConfigured)
+				{
+					var configuration = GetConfiguration(implType, builder.Context);
+					if (configuration.IgnoredImplementation || implType.IsDefined("IgnoredImplementationAttribute"))
+						result.Add(new ImplementationType
+						{
+							type = implType,
+							comment = "IgnoredImplementation",
+							accepted = false
+						});
+				}
 				if (!implType.IsGenericType)
 				{
 					if (!builder.Type.IsGenericType || builder.Type.IsAssignableFrom(implType))
-						result.Add(implType);
+						result.Add(ImplementationType.Accepted(implType));
 				}
 				else if (!implType.ContainsGenericParameters)
-					result.Add(implType);
+					result.Add(ImplementationType.Accepted(implType));
 				else
 				{
 					var mapped = genericsAutoCloser.AutoCloseDefinition(implType);
 					foreach (var type in mapped)
 						if (builder.Type.IsAssignableFrom(type))
-							result.Add(type);
+							result.Add(ImplementationType.Accepted(type));
 					if (builder.Type.IsGenericType)
 					{
 						var implInterfaces = implType.ImplementationsOf(builder.Type.GetGenericTypeDefinition());
@@ -329,7 +327,7 @@ namespace SimpleContainer.Implementation
 						{
 							var closed = implType.TryCloseByPattern(implInterface, builder.Type);
 							if (closed != null)
-								result.Add(closed);
+								result.Add(ImplementationType.Accepted(closed));
 						}
 					}
 					if (builder.Arguments == null)
@@ -352,7 +350,7 @@ namespace SimpleContainer.Implementation
 						{
 							var closedItem = implType.TryCloseByPattern(formalParameter.ParameterType, implInterface);
 							if (closedItem != null)
-								result.Add(closedItem);
+								result.Add(ImplementationType.Accepted(closedItem));
 						}
 					}
 				}

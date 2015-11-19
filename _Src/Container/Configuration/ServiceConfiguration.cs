@@ -16,7 +16,7 @@ namespace SimpleContainer.Configuration
 
 		private ImplentationDependencyConfiguration[] dependencies;
 		public List<string> Contracts { get; private set; }
-		public Type[] ImplementationTypes { get; private set; }
+		public List<Type> ImplementationTypes { get; private set; }
 		public object Implementation { get; private set; }
 		public bool ImplementationAssigned { get; private set; }
 		public Func<IContainer, object> Factory { get; set; }
@@ -58,7 +58,6 @@ namespace SimpleContainer.Configuration
 		internal class Builder
 		{
 			private readonly ServiceConfiguration target;
-			public List<Type> ImplementationTypes { get; private set; }
 			public List<ServiceName> ImplicitDependencies { get; private set; }
 
 			private readonly List<ImplentationDependencyConfiguration.Builder> dependencyBuilders =
@@ -85,12 +84,12 @@ namespace SimpleContainer.Configuration
 				    !interfaceType.IsAssignableFrom(implementationType))
 					throw new SimpleContainerException(string.Format("[{0}] is not assignable from [{1}]",
 						interfaceType.FormatName(), implementationType.FormatName()));
-				if (ImplementationTypes == null)
-					ImplementationTypes = new List<Type>();
+				if (target.ImplementationTypes == null)
+					target.ImplementationTypes = new List<Type>();
 				if (clearOld)
-					ImplementationTypes.Clear();
-				if (!ImplementationTypes.Contains(implementationType))
-					ImplementationTypes.Add(implementationType);
+					target.ImplementationTypes.Clear();
+				if (!target.ImplementationTypes.Contains(implementationType))
+					target.ImplementationTypes.Add(implementationType);
 			}
 
 			public void WithImplicitDependency(ServiceName name)
@@ -217,8 +216,6 @@ namespace SimpleContainer.Configuration
 			public ServiceConfiguration Build()
 			{
 				target.dependencies = dependencyBuilders.Select(x => x.Build()).ToArray();
-				if (ImplementationTypes != null)
-					target.ImplementationTypes = ImplementationTypes.ToArray();
 				target.ImplicitDependencies = ImplicitDependencies == null
 					? InternalHelpers.emptyServiceNames
 					: ImplicitDependencies.ToArray();

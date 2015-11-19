@@ -50,6 +50,7 @@
     <Compile Include="Helpers\ValueWithType.cs" />
     <Compile Include="Implementation\ContainerContext.cs" />
     <Compile Include="Implementation\CtorFactoryCreator.cs" />
+    <Compile Include="Implementation\ImplementationType.cs" />
     <Compile Include="Implementation\TypesList.cs" />
     <Compile Include="Implementation\LazyCreator.cs" />
     <Compile Include="Implementation\NestedFactoryCreator.cs" />

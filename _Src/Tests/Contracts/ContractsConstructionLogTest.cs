@@ -66,36 +66,6 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
-		public class CorrectConstructionLogForExplicitlyIgnoredImplementation : ContractsConstructionLogTest
-		{
-			public class A
-			{
-				public readonly IB b;
-
-				public A(IB b)
-				{
-					this.b = b;
-				}
-			}
-
-			public interface IB
-			{
-			}
-
-			[IgnoredImplementation]
-			public class B : IB
-			{
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("no instances for [A] because [IB] has no instances\r\n\r\n!A\r\n\t!IB\r\n\t\t!B - IgnoredImplementation" + defaultScannedAssemblies));
-			}
-		}
-
 		public class ConstructionLogForSpecificContract : ContractsConstructionLogTest
 		{
 			public class Wrap
