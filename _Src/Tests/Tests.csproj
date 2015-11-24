@@ -96,6 +96,7 @@
     <Compile Include="GetDependenciesTest.cs" />
     <Compile Include="Helpers\SimpleContainerTestBase.cs" />
     <Compile Include="Helpers\UnitTestBase.cs" />
+    <Compile Include="ReflectionHelpersTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Container\Container.csproj">
