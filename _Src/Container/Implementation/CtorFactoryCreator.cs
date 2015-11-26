@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -18,10 +19,18 @@ namespace SimpleContainer.Implementation
 			var invokeMethod = builder.Type.GetMethod("Invoke");
 			if (invokeMethod.ReturnType != builder.Type.DeclaringType)
 				return false;
-			var constructor = builder.Type.DeclaringType.GetConstructor();
-			if (!constructor.isOk)
+			const BindingFlags ctorBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+			var constructors = builder.Type.DeclaringType.GetConstructors(ctorBindingFlags)
+				.Where(x => Match(invokeMethod, x))
+				.ToArray();
+			if (constructors.Length == 0)
 			{
-				builder.SetError(constructor.errorMessage);
+				builder.SetError("can't find matching ctor");
+				return true;
+			}
+			if (constructors.Length > 1)
+			{
+				builder.SetError("more than one matched ctors found");
 				return true;
 			}
 			var delegateParameters = invokeMethod.GetParameters();
@@ -36,18 +45,9 @@ namespace SimpleContainer.Implementation
 
 			var dynamicMethod = new DynamicMethod("", invokeMethod.ReturnType,
 				dynamicMethodParameterTypes, typeof (ReflectionHelpers), true);
-			
+
 			var il = dynamicMethod.GetILGenerator();
-			var ctorParameters = constructor.value.GetParameters();
-			var notBoundCtorParameters = ctorParameters
-				.Where(x => x.ParameterType.IsSimpleType() && !delegateParameterNameToIndexMap.ContainsKey(x.Name))
-				.Select(x => x.Name)
-				.ToArray();
-			if (notBoundCtorParameters.Length > 0)
-			{
-				builder.SetError(string.Format("ctor has not bound parameters [{0}]", notBoundCtorParameters.JoinStrings(",")));
-				return true;
-			}
+			var ctorParameters = constructors[0].GetParameters();
 			var serviceTypeToIndex = new Dictionary<Type, int>();
 			var services = new List<object>();
 			foreach (var p in ctorParameters)
@@ -104,10 +104,29 @@ namespace SimpleContainer.Implementation
 			int serviceNameIndex;
 			if (serviceTypeToIndex.TryGetValue(typeof (ServiceName), out serviceNameIndex))
 				services[serviceNameIndex] = new ServiceName(builder.Type.DeclaringType, builder.FinalUsedContracts);
-			il.Emit(OpCodes.Newobj, constructor.value);
+			il.Emit(OpCodes.Newobj, constructors[0]);
 			il.Emit(OpCodes.Ret);
 			var context = serviceTypeToIndex.Count == 0 ? null : services.ToArray();
 			builder.AddInstance(dynamicMethod.CreateDelegate(builder.Type, context), true);
+			return true;
+		}
+
+		private static bool Match(MethodInfo method, ConstructorInfo ctor)
+		{
+			var methodParameters = new Dictionary<string, Type>();
+			foreach (var p in method.GetParameters())
+				methodParameters[p.Name] = p.ParameterType;
+			foreach (var p in ctor.GetParameters())
+			{
+				Type methodParameterType;
+				if (methodParameters.TryGetValue(p.Name, out methodParameterType))
+				{
+					if (!p.ParameterType.IsAssignableFrom(methodParameterType))
+						return false;
+				}
+				else if (p.ParameterType.IsSimpleType())
+					return false;
+			}
 			return true;
 		}
 	}

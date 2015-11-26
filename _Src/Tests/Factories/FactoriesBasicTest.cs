@@ -196,37 +196,36 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
+		public class CanUseCtorDelegate : FactoriesBasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+				public readonly int someParameter;
 
-		//public class CanUseCtorDelegate : FactoriesTest
-		//{
-		//	public class A
-		//	{
-		//		public readonly B b;
-		//		public readonly int someParameter;
+				private A(B b, int someParameter)
+				{
+					this.b = b;
+					this.someParameter = someParameter;
+				}
 
-		//		private A(B b, int someParameter)
-		//		{
-		//			this.b = b;
-		//			this.someParameter = someParameter;
-		//		}
+				public delegate A Ctor(int someParameter);
+			}
 
-		//		public delegate A Ctor(int someParameter);
-		//	}
+			public class B
+			{
+			}
 
-		//	public class B
-		//	{
-		//	}
-
-		//	[Test]
-		//	public void Test()
-		//	{
-		//		var container = Container();
-		//		var aCtor = container.Get<A.Ctor>();
-		//		var instance = aCtor(43);
-		//		Assert.That(instance.b, Is.Not.Null);
-		//		Assert.That(instance.someParameter, Is.EqualTo(43));
-		//	}
-		//}
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var aCtor = container.Get<A.Ctor>();
+				var instance = aCtor(43);
+				Assert.That(instance.b, Is.Not.Null);
+				Assert.That(instance.someParameter, Is.EqualTo(43));
+			}
+		}
 
 		public class FuncFromFunc : FactoriesBasicTest
 		{

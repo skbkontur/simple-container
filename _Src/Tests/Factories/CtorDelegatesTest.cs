@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using SimpleContainer.Annotations;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -22,6 +23,102 @@ namespace SimpleContainer.Tests.Factories
 				var factory = container.Get<A.Ctor>();
 				Assert.That(factory(), Is.Not.Null);
 				Assert.That(factory(), Is.Not.SameAs(factory()));
+			}
+		}
+
+		public class CanChooseCtorByDelegateArgumentTypes : CtorDelegatesTest
+		{
+			public class A
+			{
+				public readonly int a;
+				public readonly string b;
+				public readonly C c;
+
+				[UsedImplicitly]
+				private A(C c, int a)
+				{
+					this.c = c;
+					this.a = a;
+				}
+
+				[UsedImplicitly]
+				private A(string b, C c)
+				{
+					this.b = b;
+					this.c = c;
+				}
+
+				public delegate A ByInt(int a);
+
+				public delegate A ByString(string b);
+			}
+
+			public class C
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+
+				var byIntFactory = container.Get<A.ByInt>();
+				var instance1 = byIntFactory(42);
+				Assert.That(instance1.a, Is.EqualTo(42));
+				Assert.That(instance1.b, Is.Null);
+				Assert.That(instance1.c, Is.Not.Null);
+
+				var byStringFactory = container.Get<A.ByString>();
+				var instance2 = byStringFactory("test-string");
+				Assert.That(instance2.a, Is.EqualTo(0));
+				Assert.That(instance2.b, Is.EqualTo("test-string"));
+				Assert.That(instance2.c, Is.Not.Null);
+			}
+		}
+
+		public class CanChooseCtorWithNotExactEqualParameterType : CtorDelegatesTest
+		{
+			public class A
+			{
+				public readonly int a;
+				public readonly IX x;
+
+				public A(int a, IX x)
+				{
+					this.a = a;
+					this.x = x;
+				}
+
+				public A(int a, X2 x)
+				{
+					this.a = a;
+					this.x = x;
+				}
+
+				public delegate A Ctor(X1 x, int a);
+			}
+
+			public interface IX
+			{
+			}
+
+			public class X1 : IX
+			{
+			}
+
+			public class X2 : X1
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var factory = container.Get<A.Ctor>();
+				var x1 = new X1();
+				var a = factory(x1, 42);
+				Assert.That(a.x, Is.SameAs(x1));
+				Assert.That(a.a, Is.EqualTo(42));
 			}
 		}
 
@@ -139,7 +236,8 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<B.Ctor>());
 				Assert.That(exception.Message,
-					Is.EqualTo("no instances for [B] because [IA] has no instances\r\n\r\n!B.Ctor\r\n\t!IA - has no implementations" + defaultScannedAssemblies));
+					Is.EqualTo("no instances for [B] because [IA] has no instances\r\n\r\n!B.Ctor\r\n\t!IA - has no implementations" +
+					           defaultScannedAssemblies));
 			}
 		}
 
@@ -147,19 +245,27 @@ namespace SimpleContainer.Tests.Factories
 		{
 			public class A
 			{
+				public readonly int a;
+
 				private A()
+					: this(42)
 				{
 				}
 
-				public delegate A Ctor();
+				public A(int a)
+				{
+					this.a = a;
+				}
+
+				public delegate A Default();
 			}
 
 			[Test]
 			public void Test()
 			{
 				var container = Container();
-				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("no public ctors\r\n\r\n!A.Ctor <---------------"));
+				var factory = container.Get<A.Default>();
+				Assert.That(factory().a, Is.EqualTo(42));
 			}
 		}
 
@@ -182,7 +288,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("ctor has not bound parameters [p1,q]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("can't find matching ctor\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
 
@@ -198,10 +304,11 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("delegate has not used parameters [p1,p2]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message,
+					Is.EqualTo("delegate has not used parameters [p1,p2]\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
-		
+
 		public class InvalidDelegateParameterType : CtorDelegatesTest
 		{
 			public class A
@@ -221,10 +328,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("type mismatch for [testParameter], delegate type [string], ctor type [int]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("can't find matching ctor\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
-		
+
 		public class SkipDelegatesWithNotMatchingReturnType : CtorDelegatesTest
 		{
 			public class A
@@ -245,8 +352,8 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
-		
-		public class SkipPrivateDelegates: CtorDelegatesTest
+
+		public class SkipPrivateDelegates : CtorDelegatesTest
 		{
 			public class A
 			{
@@ -263,7 +370,7 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
-		public class CtorDeleateWithServiceNameInConstructor: CtorDelegatesTest
+		public class CtorDeleateWithServiceNameInConstructor : CtorDelegatesTest
 		{
 			public class A
 			{
@@ -288,8 +395,8 @@ namespace SimpleContainer.Tests.Factories
 				var factory = container.Get<A.Ctor>();
 				var instance = factory(42);
 				Assert.That(instance.a, Is.EqualTo(42));
-				Assert.That(instance.name1.Type, Is.EqualTo(typeof(A)));
-				Assert.That(instance.name2.Type, Is.EqualTo(typeof(A)));
+				Assert.That(instance.name1.Type, Is.EqualTo(typeof (A)));
+				Assert.That(instance.name2.Type, Is.EqualTo(typeof (A)));
 			}
 		}
 	}
