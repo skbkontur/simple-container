@@ -58,7 +58,12 @@ namespace SimpleContainer.Implementation
 			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
 			if (!id.TryGet(out result))
-				result = ResolveSingleton(name.Type, new ResolutionContext(this, name.Contracts));
+			{
+				var resolutionContext = ContainerService.Builder.Current != null
+					? ContainerService.Builder.Current.Context
+					: new ResolutionContext(this, name.Contracts);
+				result = ResolveSingleton(name.Type, resolutionContext);
+			}
 			return new ResolvedService(result, containerContext, name.Type != type);
 		}
 

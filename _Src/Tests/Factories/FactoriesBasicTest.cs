@@ -261,6 +261,27 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
+		public class DetectIndirectCycles : FactoriesBasicTest
+		{
+			public class A
+			{
+				public A(IContainer container)
+				{
+					container.Get<A>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer"));
+				Assert.That(exception.InnerException, Is.Not.Null);
+				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A -> A\r\n\r\n!A <---------------"));
+			}
+		}
+
 		public class FuncFromFuncWithCycle : FactoriesBasicTest
 		{
 			public class A
@@ -305,7 +326,7 @@ namespace SimpleContainer.Tests.Factories
 					this.createC = createC;
 				}
 			}
-			
+
 			public class B
 			{
 				public B(Func<C> createC)
@@ -363,7 +384,8 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container(b => b.Contract("x").BindDependency<C>("parameter", 42));
 				container.Resolve<A>("x");
-				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(), Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
+				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(),
+					Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
 			}
 		}
 
@@ -376,12 +398,12 @@ namespace SimpleContainer.Tests.Factories
 				public A(Func<object, B> createB)
 				{
 					this.createB = createB;
-					createB(new { context = "A.ctor" });
+					createB(new {context = "A.ctor"});
 				}
 
 				public void Init()
 				{
-					createB(new { context = "A.Init" });
+					createB(new {context = "A.Init"});
 				}
 			}
 
