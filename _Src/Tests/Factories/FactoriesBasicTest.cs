@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Infection;
@@ -258,6 +259,38 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				Assert.That(() => container.Get<A>(), Throws.Nothing);
+			}
+		}
+
+		public class CorrectErrorMessageForCyclesWithContracts : FactoriesBasicTest
+		{
+			public class A
+			{
+				public readonly B b;
+
+				public A([TestContract("x")] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public B(IContainer container)
+				{
+					container.Get<A>();
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<A>();
+				//var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				//Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer"));
+				//Assert.That(exception.InnerException, Is.Not.Null);
+				//Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A -> A\r\n\r\n!A <---------------"));
 			}
 		}
 

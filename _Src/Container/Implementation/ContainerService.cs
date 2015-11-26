@@ -263,15 +263,16 @@ namespace SimpleContainer.Implementation
 			[ThreadStatic] private static Builder current;
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
 			private List<ServiceDependency> dependencies;
-			private bool reused;
+			private bool built;
 			private ContainerService target;
 			private List<string> usedContractNames;
 
-			public Builder(Type type, ResolutionContext context, bool createNew, IObjectAccessor arguments)
+			public Builder(ServiceName name, ResolutionContext context, bool createNew, IObjectAccessor arguments)
 			{
 				Arguments = arguments;
 				CreateNew = createNew;
-				target = new ContainerService {Type = type};
+				target = new ContainerService { Type = name.Type};
+				SelfDeclaredContracts = name.Contracts;
 				Context = context;
 				DeclaredContracts = context.Contracts.ToArray();
 				try
@@ -297,6 +298,8 @@ namespace SimpleContainer.Implementation
 			public IObjectAccessor Arguments { get; private set; }
 			public bool CreateNew { get; private set; }
 			public ResolutionContext Context { get; private set; }
+			public string[] SelfDeclaredContracts { get; private set; }
+			public ExpandedUnions? ExpandedUnions { get; set; }
 
 			public Type Type
 			{
@@ -309,6 +312,7 @@ namespace SimpleContainer.Implementation
 			}
 
 			public string[] DeclaredContracts { get; private set; }
+			public string[] ContractsPoppedFor { get; set; }
 
 			public string[] FinalUsedContracts
 			{
@@ -408,12 +412,12 @@ namespace SimpleContainer.Implementation
 			public void Reuse(ContainerService containerService)
 			{
 				target = containerService;
-				reused = true;
+				built = true;
 			}
 
 			public ContainerService Build()
 			{
-				if (reused)
+				if (built)
 					return target;
 				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
@@ -427,6 +431,7 @@ namespace SimpleContainer.Implementation
 				target.instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
+				built = true;
 				return target;
 			}
 

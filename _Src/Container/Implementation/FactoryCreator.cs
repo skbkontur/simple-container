@@ -58,7 +58,9 @@ namespace SimpleContainer.Implementation
 			var factoryContracts = new List<string>(builder.DeclaredContracts);
 			var oldValue = builder.Context.AnalizeDependenciesOnly;
 			builder.Context.AnalizeDependenciesOnly = true;
-			var containerService = builder.Context.Instantiate(resultType, true, null);
+			var containerService =
+				builder.Context.Container.ResolveSingleton(new ServiceName(resultType, InternalHelpers.emptyStrings),
+					true, null, builder.Context);
 			builder.Context.AnalizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
 			return delegate(Type type, object arguments)

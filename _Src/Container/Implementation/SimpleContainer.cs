@@ -62,7 +62,7 @@ namespace SimpleContainer.Implementation
 				var resolutionContext = ContainerService.Builder.Current != null
 					? ContainerService.Builder.Current.Context
 					: new ResolutionContext(this, name.Contracts);
-				result = ResolveSingleton(name.Type, resolutionContext);
+				result = ResolveSingleton(name, false, null, resolutionContext);
 			}
 			return new ResolvedService(result, containerContext, name.Type != type);
 		}
@@ -175,16 +175,35 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		internal ContainerService ResolveSingleton(Type type, ResolutionContext context)
+		internal ContainerService ResolveSingleton(ServiceName requestedName, bool crearteNew,
+			IObjectAccessor arguments, ResolutionContext context)
 		{
-			var name = new ServiceName(type, context.Contracts.ToArray());
-			var id = instanceCache.GetOrAdd(name, createId);
-			ContainerService result;
-			if (!id.AcquireInstantiateLock(out result))
-				return result;
-			result = context.Instantiate(type, false, null);
-			id.ReleaseInstantiateLock(context.AnalizeDependenciesOnly ? null : result);
-			return result;
+			var builder = context.CreateBuilder(requestedName, crearteNew, arguments);
+			if (builder.Status.IsBad())
+				return builder.Build();
+			if (builder.ExpandedUnions.HasValue)
+			{
+				foreach (var c in builder.ExpandedUnions.Value.permutations.CartesianProduct())
+				{
+					var childService = ResolveSingleton(new ServiceName(requestedName.Type, c), false, null, context);
+					builder.LinkTo(containerContext, childService, null);
+					if (builder.Status.IsBad())
+						break;
+				}
+			}
+			else
+			{
+				var id = instanceCache.GetOrAdd(builder.GetDeclaredName(), createId);
+				ContainerService result;
+				if (id.AcquireInstantiateLock(out result))
+				{
+					Instantiate(builder);
+					id.ReleaseInstantiateLock(context.AnalizeDependenciesOnly ? null : builder.Build());
+				}
+				else
+					builder.Reuse(result);
+			}
+			return builder.Build();
 		}
 
 		internal void Instantiate(ContainerService.Builder builder)
@@ -267,9 +286,8 @@ namespace SimpleContainer.Implementation
 			foreach (var implementationType in implementationTypes)
 				if (implementationType.accepted)
 				{
-					var implementationService = builder.CreateNew
-						? builder.Context.Instantiate(implementationType.type, true, builder.Arguments)
-						: builder.Context.Resolve(ServiceName.Parse(implementationType.type, false));
+					var implementationService = ResolveSingleton(ServiceName.Parse(implementationType.type, false),
+						builder.CreateNew, builder.Arguments, builder.Context);
 					builder.LinkTo(containerContext, implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
@@ -448,7 +466,7 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = builder.Context.Resolve(d).AsSingleInstanceDependency(null);
+				var dependency = ResolveSingleton(d, false, null, builder.Context).AsSingleInstanceDependency(null);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -522,7 +540,9 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
 				{
-					var dependencyBuilder = new ContainerService.Builder(formalParameter.ParameterType, builder.Context, false, null);
+					var dependencyBuilder =
+						new ContainerService.Builder(new ServiceName(formalParameter.ParameterType, InternalHelpers.emptyStrings),
+							builder.Context, false, null);
 					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
 					return dependencyBuilder.Build().AsSingleInstanceDependency(formalParameter.Name);
 				}
@@ -549,7 +569,9 @@ namespace SimpleContainer.Implementation
 			}
 			catch (Exception e)
 			{
-				var dependencyService = new ContainerService.Builder(dependencyName.Type, builder.Context, false, null);
+				var dependencyService =
+					new ContainerService.Builder(new ServiceName(dependencyName.Type, InternalHelpers.emptyStrings),
+						builder.Context, false, null);
 				dependencyService.SetError(e);
 				return ServiceDependency.ServiceError(dependencyService.Build());
 			}
@@ -563,7 +585,7 @@ namespace SimpleContainer.Implementation
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
-			var resultService = builder.Context.Resolve(dependencyName);
+			var resultService = ResolveSingleton(dependencyName, false, null, builder.Context);
 			if (resultService.Status.IsBad())
 				return ServiceDependency.ServiceError(resultService);
 			var isEnumerable = dependencyName.Type != implementationType;

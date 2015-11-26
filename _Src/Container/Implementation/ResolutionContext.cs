@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 	internal class ResolutionContext
 	{
 		private readonly List<ContainerService.Builder> stack = new List<ContainerService.Builder>();
-		private readonly HashSet<ServiceName> constructingServices = new HashSet<ServiceName>();
+		private readonly HashSet<Type> constructingServices = new HashSet<Type>();
 
 		public List<string> Contracts { get; private set; }
 		public SimpleContainer Container { get; private set; }
@@ -30,51 +30,65 @@ namespace SimpleContainer.Implementation
 				oldContracts = Contracts;
 				Contracts = contracts;
 			}
-			var result = Instantiate(type, true, ObjectAccessor.Get(arguments));
+			var result = Container.ResolveSingleton(new ServiceName(type, InternalHelpers.emptyStrings), true,
+				ObjectAccessor.Get(arguments), this);
 			if (contracts != null)
 				Contracts = oldContracts;
 			return result;
 		}
 
-		public ContainerService Instantiate(Type type, bool crearteNew, IObjectAccessor arguments)
+		public ContainerService.Builder CreateBuilder(ServiceName name, bool crearteNew, IObjectAccessor arguments)
 		{
-			var builder = new ContainerService.Builder(type, this, crearteNew, arguments);
-			if (builder.Status != ServiceStatus.Ok)
-				return builder.Build();
-			var declaredName = builder.GetDeclaredName();
-			if (!constructingServices.Add(declaredName))
+			var result = new ContainerService.Builder(name, this, crearteNew, arguments);
+			if (!constructingServices.Add(name.Type))
 			{
 				var previous = GetTopBuilder();
 				if (previous == null)
-					throw new InvalidOperationException(string.Format("assertion failure, service [{0}]", declaredName));
+					throw new InvalidOperationException(string.Format("assertion failure, service [{0}]", name));
 				var message = string.Format("cyclic dependency {0}{1} -> {0}",
-					type.FormatName(), previous.Type == type ? "" : " ...-> " + previous.Type.FormatName());
-				var cycleBuilder = new ContainerService.Builder(type, this, false, null);
-				cycleBuilder.SetError(message);
-				return cycleBuilder.Build();
+					name.Type.FormatName(), previous.Type == name.Type ? "" : " ...-> " + previous.Type.FormatName());
+				result.SetError(message);
+				return result;
 			}
-			stack.Add(builder);
-			var expandResult = TryExpandUnions(Container.Configuration);
-			if (expandResult != null)
+			var pushedCount = 0;
+			foreach (var newContract in name.Contracts)
 			{
-				var poppedContracts = Contracts.PopMany(expandResult.Length);
-				foreach (var c in expandResult.CartesianProduct())
-				{
-					var childService = Resolve(new ServiceName(builder.Type, c));
-					builder.LinkTo(Container.containerContext, childService, null);
-					if (builder.Status.IsBad())
-						break;
-				}
-				Contracts.AddRange(poppedContracts);
+				foreach (var c in Contracts)
+					if (newContract.EqualsIgnoringCase(c))
+					{
+						constructingServices.Remove(name.Type);
+						Contracts.RemoveLast(pushedCount);
+						const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
+						var message = string.Format(messageFormat, newContract, InternalHelpers.FormatContractsKey(Contracts));
+						result.SetError(message);
+						return result;
+					}
+				Contracts.Add(newContract);
+				pushedCount++;
 			}
-			else
-				Container.Instantiate(builder);
+			var permutations = TryExpandUnions(Container.Configuration);
+			result.ExpandedUnions = permutations == null
+				? (ExpandedUnions?) null
+				: new ExpandedUnions
+				{
+					permutations = permutations,
+					poppedContracts = Contracts.PopMany(permutations.Length)
+				};
+			stack.Add(result);
+			return result;
+		}
+
+		public ContainerService Build(ContainerService.Builder builder)
+		{
+			if (builder.ExpandedUnions != null)
+				Contracts.AddRange(builder.ExpandedUnions.Value.poppedContracts);
 			stack.RemoveLast();
-			constructingServices.Remove(declaredName);
+			Contracts.RemoveLast(builder.SelfDeclaredContracts.Length);
+			constructingServices.Remove(builder.Type);
 			return builder.Build();
 		}
 
-		private string[][] TryExpandUnions(ConfigurationRegistry configuration)
+		public string[][] TryExpandUnions(ConfigurationRegistry configuration)
 		{
 			string[][] result = null;
 			var startIndex = 0;
@@ -108,30 +122,6 @@ namespace SimpleContainer.Implementation
 		public ContainerService.Builder GetPreviousBuilder()
 		{
 			return stack.Count <= 1 ? null : stack[stack.Count - 2];
-		}
-
-		public ContainerService Resolve(ServiceName name)
-		{
-			if (name.Contracts.Length == 0)
-				return Container.ResolveSingleton(name.Type, this);
-			var pushedCount = 0;
-			foreach (var newContract in name.Contracts)
-			{
-				foreach (var c in Contracts)
-					if (newContract.EqualsIgnoringCase(c))
-					{
-						var resultBuilder = new ContainerService.Builder(name.Type, this, false, null);
-						const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-						resultBuilder.SetError(string.Format(messageFormat, newContract, InternalHelpers.FormatContractsKey(Contracts)));
-						Contracts.RemoveLast(pushedCount);
-						return resultBuilder.Build();
-					}
-				Contracts.Add(newContract);
-				pushedCount++;
-			}
-			var result = Container.ResolveSingleton(name.Type, this);
-			Contracts.RemoveLast(name.Contracts.Length);
-			return result;
 		}
 	}
 }

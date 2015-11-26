@@ -1,4 +1,6 @@
 using System;
+using SimpleContainer.Helpers;
+using SimpleContainer.Interface;
 
 namespace SimpleContainer.Implementation
 {
@@ -12,7 +14,8 @@ namespace SimpleContainer.Implementation
 			var method = factoryType.GetMethod("Create", Type.EmptyTypes);
 			if (method == null)
 				return false;
-			var factory = builder.Context.Container.ResolveSingleton(method.DeclaringType, builder.Context);
+			var factory = builder.Context.Container.ResolveSingleton(new ServiceName(method.DeclaringType, InternalHelpers.emptyStrings),
+					false, null, builder.Context);
 			var dependency = factory.AsSingleInstanceDependency(null);
 			builder.AddDependency(dependency, false);
 			if (dependency.Status == ServiceStatus.Ok)
