@@ -49,7 +49,7 @@
     <Compile Include="Helpers\EmitHelpers.cs" />
     <Compile Include="Helpers\ValueWithType.cs" />
     <Compile Include="Implementation\ContainerContext.cs" />
-    <Compile Include="Implementation\ExpandedUnions.cs" />
+    <Compile Include="Implementation\ContractsList.cs" />
     <Compile Include="Implementation\CtorFactoryCreator.cs" />
     <Compile Include="Implementation\ImplementationType.cs" />
     <Compile Include="Implementation\TypesList.cs" />
@@ -59,7 +59,7 @@
     <Compile Include="Helpers\AssemblyHelpers.cs" />
     <Compile Include="Implementation\ConstructionLogContext.cs" />
     <Compile Include="Implementation\ContainerServiceId.cs" />
-    <Compile Include="Implementation\ValueOrError.cs" />
+    <Compile Include="Implementation\Result.cs" />
     <Compile Include="Implementation\InstanceWrap.cs" />
     <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />

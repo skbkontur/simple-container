@@ -39,7 +39,7 @@ namespace SimpleContainer.Helpers
 			return new[] {attributes[0].ContractName};
 		}
 
-		public static ValueOrError<ConstructorInfo> GetConstructor(this Type target)
+		public static FuncResult<ConstructorInfo> GetConstructor(this Type target)
 		{
 			var allConstructors = target.GetConstructors();
 			ConstructorInfo publicConstructor = null;
@@ -56,17 +56,17 @@ namespace SimpleContainer.Helpers
 				if (constructor.IsDefined("ContainerConstructorAttribute"))
 				{
 					if (containerConstructor != null)
-						return ValueOrError.Fail<ConstructorInfo>("many ctors with [ContainerConstructor] attribute");
+						return Result.Fail<ConstructorInfo>("many ctors with [ContainerConstructor] attribute");
 					containerConstructor = constructor;
 				}
 			}
 			if (containerConstructor != null)
-				return ValueOrError.Ok(containerConstructor);
+				return Result.Ok(containerConstructor);
 			if (hasManyPublicConstructors)
-				return ValueOrError.Fail<ConstructorInfo>("many public ctors");
+				return Result.Fail<ConstructorInfo>("many public ctors");
 			return publicConstructor == null
-				? ValueOrError.Fail<ConstructorInfo>("no public ctors")
-				: ValueOrError.Ok(publicConstructor);
+				? Result.Fail<ConstructorInfo>("no public ctors")
+				: Result.Ok(publicConstructor);
 		}
 
 		public static readonly string[] emptyStrings = new string[0];

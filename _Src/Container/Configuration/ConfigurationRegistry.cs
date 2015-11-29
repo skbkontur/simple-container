@@ -29,7 +29,7 @@ namespace SimpleContainer.Configuration
 			this.implementationSelectors = implementationSelectors;
 		}
 
-		public ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
+		public ServiceConfiguration GetConfigurationOrNull(Type type, ContractsList contracts)
 		{
 			var configurationSet = configurations.Get(type);
 			return configurationSet == null ? null : configurationSet.GetConfiguration(contracts);

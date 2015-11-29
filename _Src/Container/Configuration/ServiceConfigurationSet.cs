@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -29,19 +29,19 @@ namespace SimpleContainer.Configuration
 					b.SetComment(defaultComment);
 		}
 
-		public ServiceConfiguration GetConfiguration(List<string> contracts)
+		public ServiceConfiguration GetConfiguration(ContractsList contracts)
 		{
 			EnsureBuilt();
 			if (exception != null)
 				throw new SimpleContainerException(errorMessage, exception);
 			ServiceConfiguration result = null;
-			var maxIndex = -1;
+			var maxWeight = -1;
 			foreach (var c in configurations)
 			{
-				var index = c.Contracts.GetSubsequenceLastIndex(contracts, StringComparer.OrdinalIgnoreCase);
-				if (index > maxIndex)
+				var weight = contracts.Match(c.Contracts);
+				if (weight > maxWeight)
 				{
-					maxIndex = index;
+					maxWeight = weight;
 					result = c;
 				}
 			}

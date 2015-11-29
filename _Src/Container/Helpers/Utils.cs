@@ -31,21 +31,6 @@ namespace SimpleContainer.Helpers
 			return true;
 		}
 
-		public static int GetSubsequenceLastIndex<T>(this List<T> sequence, List<T> other, IEqualityComparer<T> comparer)
-		{
-			int i = 0, j = 0;
-			while (true)
-			{
-				if (i >= sequence.Count)
-					return j;
-				if (j >= other.Count)
-					return -1;
-				if (comparer.Equals(sequence[i], other[j]))
-					i++;
-				j++;
-			}
-		}
-
 		private static string ExcludeTrailingSlash(string p)
 		{
 			if (string.IsNullOrEmpty(p))

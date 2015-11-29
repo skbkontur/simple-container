@@ -7,22 +7,23 @@ namespace SimpleContainer.Implementation
 		private readonly object lockObject = new object();
 		private ContainerService value;
 
-		public bool AcquireInstantiateLock(out ContainerService service)
+		public AcquireResult AcquireInstantiateLock()
 		{
 			if (value != null)
-			{
-				service = value;
-				return false;
-			}
+				return new AcquireResult {acquired = false, alreadyConstructedService = value};
 			Monitor.Enter(lockObject);
 			if (value != null)
 			{
 				Monitor.Exit(lockObject);
-				service = value;
-				return false;
+				return new AcquireResult {acquired = false, alreadyConstructedService = value};
 			}
-			service = null;
-			return true;
+			return new AcquireResult {acquired = true};
+		}
+
+		public struct AcquireResult
+		{
+			public bool acquired;
+			public ContainerService alreadyConstructedService;
 		}
 
 		public void ReleaseInstantiateLock(ContainerService result)

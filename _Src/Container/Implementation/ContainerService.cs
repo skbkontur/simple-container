@@ -258,48 +258,35 @@ namespace SimpleContainer.Implementation
 			public ContainerService service;
 		}
 
+		public static ContainerService Error(ServiceName name, string message)
+		{
+			var result = new Builder(name);
+			result.SetError(message);
+			return result.GetService();
+		}
+
 		public class Builder
 		{
-			[ThreadStatic] private static Builder current;
+			[ThreadStatic]
+			private static Builder current;
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
 			private List<ServiceDependency> dependencies;
 			private bool built;
 			private ContainerService target;
 			private List<string> usedContractNames;
 
-			public Builder(ServiceName name, ResolutionContext context, bool createNew, IObjectAccessor arguments)
+			public Builder(ServiceName name)
 			{
-				Arguments = arguments;
-				CreateNew = createNew;
-				target = new ContainerService { Type = name.Type};
-				SelfDeclaredContracts = name.Contracts;
-				Context = context;
-				DeclaredContracts = context.Contracts.ToArray();
-				try
-				{
-					Configuration = context.Container.GetConfiguration(Type, context);
-				}
-				catch (Exception e)
-				{
-					SetError(e);
-					return;
-				}
-				SetComment(Configuration.Comment);
-				foreach (var contract in Configuration.Contracts)
-				{
-					if (usedContractNames == null)
-						usedContractNames = new List<string>();
-					if (!usedContractNames.Contains(contract, StringComparer.OrdinalIgnoreCase))
-						usedContractNames.Add(contract);
-				}
+				Name = name;
+				target = new ContainerService {Type = name.Type};
 			}
 
 			public ServiceConfiguration Configuration { get; private set; }
-			public IObjectAccessor Arguments { get; private set; }
-			public bool CreateNew { get; private set; }
-			public ResolutionContext Context { get; private set; }
-			public string[] SelfDeclaredContracts { get; private set; }
-			public ExpandedUnions? ExpandedUnions { get; set; }
+			public ResolutionContext Context { get; set; }
+			public string[] DeclaredContracts { get; set; }
+			public IObjectAccessor Arguments { get; set; }
+			public bool CreateNew { get; set; }
+			public ServiceName Name { get; private set; }
 
 			public Type Type
 			{
@@ -311,12 +298,22 @@ namespace SimpleContainer.Implementation
 				get { return target.Status; }
 			}
 
-			public string[] DeclaredContracts { get; private set; }
-			public string[] ContractsPoppedFor { get; set; }
-
 			public string[] FinalUsedContracts
 			{
 				get { return target.UsedContracts; }
+			}
+
+			public void SetConfiguration(ServiceConfiguration newConfiguration)
+			{
+				Configuration = newConfiguration;
+				SetComment(Configuration.Comment);
+				foreach (var contract in Configuration.Contracts)
+				{
+					if (usedContractNames == null)
+						usedContractNames = new List<string>();
+					if (!usedContractNames.Contains(contract, StringComparer.OrdinalIgnoreCase))
+						usedContractNames.Add(contract);
+				}
 			}
 
 			public static Builder Current
@@ -324,12 +321,7 @@ namespace SimpleContainer.Implementation
 				get { return current; }
 			}
 
-			public bool HasNoConfiguration()
-			{
-				return Configuration == ServiceConfiguration.empty;
-			}
-
-			public ServiceName GetName()
+			public ServiceName GetFinalName()
 			{
 				return new ServiceName(Type, FinalUsedContracts);
 			}
@@ -402,7 +394,7 @@ namespace SimpleContainer.Implementation
 			public void EndResolveDependencies()
 			{
 				if (target.UsedContracts == null)
-					target.UsedContracts = usedContractNames == null
+					target.UsedContracts = usedContractNames == null || DeclaredContracts == null
 						? InternalHelpers.emptyStrings
 						: DeclaredContracts
 							.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
@@ -415,7 +407,7 @@ namespace SimpleContainer.Implementation
 				built = true;
 			}
 
-			public ContainerService Build()
+			public ContainerService GetService()
 			{
 				if (built)
 					return target;

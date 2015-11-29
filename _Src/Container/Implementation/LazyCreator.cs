@@ -14,15 +14,15 @@ namespace SimpleContainer.Implementation
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return null;
 			var resultType = builder.Type.GetGenericArguments()[0];
-			var oldValue = builder.Context.AnalizeDependenciesOnly;
-			builder.Context.AnalizeDependenciesOnly = true;
+			var oldValue = builder.Context.analizeDependenciesOnly;
+			builder.Context.analizeDependenciesOnly = true;
 			var containerService =
-				builder.Context.Container.ResolveSingleton(new ServiceName(resultType, InternalHelpers.emptyStrings),
+				builder.Context.container.ResolveSingleton(new ServiceName(resultType, InternalHelpers.emptyStrings),
 					true, null, builder.Context);
-			builder.Context.AnalizeDependenciesOnly = oldValue;
+			builder.Context.analizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(resultType).GetConstructors().Single();
-			var lazyFactory = (ILazyFactory) lazyFactoryCtor.Compile()(null, new object[] {builder.Context.Container});
+			var lazyFactory = (ILazyFactory) lazyFactoryCtor.Compile()(null, new object[] {builder.Context.container});
 			return lazyFactory.CreateLazy();
 		}
 
@@ -47,7 +47,7 @@ namespace SimpleContainer.Implementation
 					var current = ContainerService.Builder.Current;
 					if (current == null)
 						return container.Get<T>();
-					var result = current.Context.Container.ResolveSingleton(ServiceName.Parse(typeof (T), false), false, null,
+					var result = current.Context.container.ResolveSingleton(ServiceName.Parse(typeof (T), false), false, null,
 						current.Context);
 					var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 					current.AddDependency(resultDependency, false);

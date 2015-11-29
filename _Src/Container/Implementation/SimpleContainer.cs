@@ -61,7 +61,7 @@ namespace SimpleContainer.Implementation
 			{
 				var resolutionContext = ContainerService.Builder.Current != null
 					? ContainerService.Builder.Current.Context
-					: new ResolutionContext(this, name.Contracts);
+					: new ResolutionContext {container = this};
 				result = ResolveSingleton(name, false, null, resolutionContext);
 			}
 			return new ResolvedService(result, containerContext, name.Type != type);
@@ -76,23 +76,23 @@ namespace SimpleContainer.Implementation
 			Func<object> compiledFactory;
 			if (arguments == null && factoryCache.TryGetValue(name, out compiledFactory))
 				return compiledFactory();
-			var context = new ResolutionContext(this, name.Contracts);
-			var result = context.Create(type, null, arguments);
+			var context = new ResolutionContext {container = this};
+			var result = ResolveSingleton(name, true, ObjectAccessor.Get(arguments), context);
 			result.EnsureInitialized(containerContext, result);
 			return result.GetSingleValue(containerContext, false, null);
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
 		{
-			return GetConfigurationOrNull(type, new List<string>());
+			return GetConfigurationOrNull(type, new ContractsList());
 		}
 
 		internal ServiceConfiguration GetConfiguration(Type type, ResolutionContext context)
 		{
-			return GetConfigurationOrNull(type, context.Contracts) ?? ServiceConfiguration.empty;
+			return GetConfigurationOrNull(type, context.contracts) ?? ServiceConfiguration.empty;
 		}
 
-		private ServiceConfiguration GetConfigurationOrNull(Type type, List<string> contracts)
+		private ServiceConfiguration GetConfigurationOrNull(Type type, ContractsList contracts)
 		{
 			var result = Configuration.GetConfigurationOrNull(type, contracts);
 			if (result == null && type.IsGenericType)
@@ -175,35 +175,75 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		internal ContainerService ResolveSingleton(ServiceName requestedName, bool crearteNew,
+		internal ContainerService ResolveSingleton(ServiceName name, bool createNew,
 			IObjectAccessor arguments, ResolutionContext context)
 		{
-			var builder = context.CreateBuilder(requestedName, crearteNew, arguments);
-			if (builder.Status.IsBad())
-				return builder.Build();
-			if (builder.ExpandedUnions.HasValue)
+			if (!context.constructingServices.Add(name))
 			{
-				foreach (var c in builder.ExpandedUnions.Value.permutations.CartesianProduct())
-				{
-					var childService = ResolveSingleton(new ServiceName(requestedName.Type, c), false, null, context);
-					builder.LinkTo(containerContext, childService, null);
-					if (builder.Status.IsBad())
-						break;
-				}
+				var previous = context.stack.Count == 0 ? null : context.stack[context.stack.Count - 1];
+				if (previous == null)
+					throw new InvalidOperationException(string.Format("assertion failure, service [{0}]", name));
+				var message = string.Format("cyclic dependency {0}{1} -> {0}",
+					name.Type.FormatName(), previous.Type == name.Type ? "" : " ...-> " + previous.Type.FormatName());
+				return ContainerService.Error(name, message);
 			}
-			else
+			var pushedContracts = context.contracts.Push(name.Contracts);
+			if (pushedContracts.errorMessage != null)
 			{
-				var id = instanceCache.GetOrAdd(builder.GetDeclaredName(), createId);
-				ContainerService result;
-				if (id.AcquireInstantiateLock(out result))
+				context.constructingServices.Remove(name);
+				return ContainerService.Error(name, pushedContracts.errorMessage);
+			}
+			var declaredName = new ServiceName(name.Type, context.contracts.Snapshot());
+			var id = instanceCache.GetOrAdd(declaredName, createId);
+			var acquireResult = id.AcquireInstantiateLock();
+			if (!acquireResult.acquired)
+			{
+				context.constructingServices.Remove(name);
+				context.contracts.RemoveLast(name.Contracts.Length);
+				return acquireResult.alreadyConstructedService;
+			}
+			var builder = new ContainerService.Builder(name);
+			context.stack.Add(builder);
+			builder.Context = context;
+			builder.DeclaredContracts = declaredName.Contracts;
+			ServiceConfiguration configuration = null;
+			try
+			{
+				configuration = GetConfiguration(name.Type, context);
+			}
+			catch (Exception e)
+			{
+				builder.SetError(e);
+			}
+			if (configuration != null)
+			{
+				builder.SetConfiguration(configuration);
+				var expandedUnions = context.contracts.TryExpandUnions(Configuration);
+				if (expandedUnions != null)
 				{
-					Instantiate(builder);
-					id.ReleaseInstantiateLock(context.AnalizeDependenciesOnly ? null : builder.Build());
+					var poppedContracts = context.contracts.PopMany(expandedUnions.Length);
+					foreach (var c in expandedUnions.CartesianProduct())
+					{
+						var childService = ResolveSingleton(new ServiceName(name.Type, c), createNew, arguments, context);
+						builder.LinkTo(containerContext, childService, null);
+						if (builder.Status.IsBad())
+							break;
+					}
+					context.contracts.PushNoCheck(poppedContracts);
 				}
 				else
-					builder.Reuse(result);
+				{
+					builder.CreateNew = createNew;
+					builder.Arguments = arguments;
+					Instantiate(builder);
+				}
 			}
-			return builder.Build();
+			context.constructingServices.Remove(name);
+			context.contracts.RemoveLast(name.Contracts.Length);
+			context.stack.RemoveLast();
+			var result = builder.GetService();
+			id.ReleaseInstantiateLock(builder.Context.analizeDependenciesOnly ? null : result);
+			return result;
 		}
 
 		internal void Instantiate(ContainerService.Builder builder)
@@ -219,9 +259,10 @@ namespace SimpleContainer.Implementation
 				builder.CreateInstanceBy(() => builder.Configuration.Factory(this), builder.Configuration.ContainerOwnsInstance);
 			else if (builder.Configuration.FactoryWithTarget != null)
 			{
-				if (!builder.Context.AnalizeDependenciesOnly)
+				if (!builder.Context.analizeDependenciesOnly)
 				{
-					var previousService = builder.Context.GetPreviousBuilder();
+					var stack = builder.Context.stack;
+					var previousService = stack.Count <= 1 ? null : stack[stack.Count - 2];
 					var target = previousService == null ? null : previousService.Type;
 					builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
 						builder.Configuration.ContainerOwnsInstance);
@@ -309,7 +350,7 @@ namespace SimpleContainer.Implementation
 				}
 			builder.EndResolveDependencies();
 			if (factory != null && canUseFactory)
-				factoryCache.TryAdd(builder.GetName(), factory);
+				factoryCache.TryAdd(builder.GetFinalName(), factory);
 		}
 
 		private HashSet<ImplementationType> GetImplementationTypes(ContainerService.Builder builder)
@@ -460,7 +501,7 @@ namespace SimpleContainer.Implementation
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
 					builder.UnionUsedContracts(dependency.ContainerService);
-				if (builder.Status != ServiceStatus.Ok && !builder.Context.AnalizeDependenciesOnly)
+				if (builder.Status != ServiceStatus.Ok && !builder.Context.analizeDependenciesOnly)
 					return;
 				actualArguments[i] = dependency.Value;
 			}
@@ -475,7 +516,7 @@ namespace SimpleContainer.Implementation
 					return;
 			}
 			builder.EndResolveDependencies();
-			if (builder.Context.AnalizeDependenciesOnly)
+			if (builder.Context.analizeDependenciesOnly)
 				return;
 			var dependenciesResolvedByArguments = builder.Arguments == null
 				? InternalHelpers.emptyStrings
@@ -491,14 +532,14 @@ namespace SimpleContainer.Implementation
 			if (hasServiceNameParameters)
 				for (var i = 0; i < formalParameters.Length; i++)
 					if (formalParameters[i].ParameterType == typeof (ServiceName))
-						actualArguments[i] = builder.GetName();
+						actualArguments[i] = builder.GetFinalName();
 			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
 				if (builder.CreateNew && builder.Arguments == null)
 				{
 					var compiledConstructor = constructor.value.Compile();
-					factoryCache.TryAdd(builder.GetName(), () =>
+					factoryCache.TryAdd(builder.GetFinalName(), () =>
 					{
 						var instance = compiledConstructor(null, actualArguments);
 						var component = instance as IInitializable;
@@ -509,18 +550,17 @@ namespace SimpleContainer.Implementation
 				}
 				return;
 			}
-			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetName(), createId);
-			ContainerService serviceForUsedContracts;
-			if (serviceForUsedContractsId.AcquireInstantiateLock(out serviceForUsedContracts))
+			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetFinalName(), createId);
+			var acquireResult = serviceForUsedContractsId.AcquireInstantiateLock();
+			if (acquireResult.acquired)
 			{
 				builder.CreateInstance(constructor.value, null, actualArguments);
-				serviceForUsedContracts = builder.Build();
-				serviceForUsedContractsId.ReleaseInstantiateLock(builder.Context.AnalizeDependenciesOnly
+				serviceForUsedContractsId.ReleaseInstantiateLock(builder.Context.analizeDependenciesOnly
 					? null
-					: serviceForUsedContracts);
+					: builder.GetService());
 			}
 			else
-				builder.Reuse(serviceForUsedContracts);
+				builder.Reuse(acquireResult.alreadyConstructedService);
 		}
 
 		internal ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)
@@ -540,11 +580,9 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
 				{
-					var dependencyBuilder =
-						new ContainerService.Builder(new ServiceName(formalParameter.ParameterType, InternalHelpers.emptyStrings),
-							builder.Context, false, null);
+					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType));
 					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
-					return dependencyBuilder.Build().AsSingleInstanceDependency(formalParameter.Name);
+					return builder.GetService().AsSingleInstanceDependency(formalParameter.Name);
 				}
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
@@ -561,22 +599,6 @@ namespace SimpleContainer.Implementation
 			}
 			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
 				InternalHelpers.ParseContracts(formalParameter));
-
-			ServiceConfiguration interfaceConfiguration;
-			try
-			{
-				interfaceConfiguration = GetConfiguration(dependencyName.Type, builder.Context);
-			}
-			catch (Exception e)
-			{
-				var dependencyService =
-					new ContainerService.Builder(new ServiceName(dependencyName.Type, InternalHelpers.emptyStrings),
-						builder.Context, false, null);
-				dependencyService.SetError(e);
-				return ServiceDependency.ServiceError(dependencyService.Build());
-			}
-			if (interfaceConfiguration.FactoryWithTarget != null)
-				dependencyName = dependencyName.AddContracts(builder.Type.FormatName());
 			if (dependencyName.Type.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)

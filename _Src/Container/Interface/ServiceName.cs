@@ -8,10 +8,10 @@ namespace SimpleContainer.Interface
 		private readonly Type type;
 		private readonly string[] contracts;
 
-		public ServiceName(Type type, string[] contracts)
+		public ServiceName(Type type, string[] contracts = null)
 		{
 			this.type = type;
-			this.contracts = contracts;
+			this.contracts = contracts ?? InternalHelpers.emptyStrings;
 		}
 
 		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, params string[] contracts)

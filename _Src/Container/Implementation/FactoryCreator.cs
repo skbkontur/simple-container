@@ -54,21 +54,23 @@ namespace SimpleContainer.Implementation
 
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
-			var container = builder.Context.Container;
+			var container = builder.Context.container;
 			var factoryContracts = new List<string>(builder.DeclaredContracts);
-			var oldValue = builder.Context.AnalizeDependenciesOnly;
-			builder.Context.AnalizeDependenciesOnly = true;
-			var containerService =
-				builder.Context.Container.ResolveSingleton(new ServiceName(resultType, InternalHelpers.emptyStrings),
-					true, null, builder.Context);
-			builder.Context.AnalizeDependenciesOnly = oldValue;
+			var oldValue = builder.Context.analizeDependenciesOnly;
+			builder.Context.analizeDependenciesOnly = true;
+			var containerService = builder.Context.container.ResolveSingleton(new ServiceName(resultType), true, null,
+				builder.Context);
+			builder.Context.analizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
 			return delegate(Type type, object arguments)
 			{
 				var current = ContainerService.Builder.Current;
 				if (current == null)
 					return container.Create(type, factoryContracts, arguments);
-				var result = current.Context.Create(type, factoryContracts, arguments);
+				var oldContracts = current.Context.contracts.Replace(factoryContracts);
+				var result = current.Context.container.ResolveSingleton(new ServiceName(type), true,
+					ObjectAccessor.Get(arguments), current.Context);
+				current.Context.contracts.Restore(oldContracts);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 				current.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)
