@@ -14,14 +14,27 @@ namespace SimpleContainer.Interface
 			this.contracts = contracts ?? InternalHelpers.emptyStrings;
 		}
 
-		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, params string[] contracts)
+		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, string contract, string[] contracts)
 		{
-			var typeContracts = InternalHelpers.ParseContracts(type);
-			var contractsToUse = excludeTypeContractIfDuplicates && contracts.Length > 0 && typeContracts.Length == 1 &&
-			                     contracts[contracts.Length - 1].EqualsIgnoringCase(typeContracts[0])
-				? contracts
-				: contracts.Concat(typeContracts);
-			return new ServiceName(type, contractsToUse);
+			if (contract != null && contracts != null)
+				throw new InvalidOperationException("assertion failure");
+			var typeContract = InternalHelpers.ParseContracts(type);
+			if (typeContract == null && contract == null && contracts == null)
+				return new ServiceName(type);
+			if (contracts != null)
+			{
+				if (typeContract == null)
+					return new ServiceName(type, contracts);
+				if (excludeTypeContractIfDuplicates && contracts.Length > 0 &&
+				    typeContract.EqualsIgnoringCase(contracts[contracts.Length - 1]))
+					return new ServiceName(type, contracts);
+				return new ServiceName(type, contracts.ConcatIfNotNull(typeContract));
+			}
+			if (typeContract == null || contract == null)
+				return new ServiceName(type, new[] {typeContract ?? contract});
+			if (excludeTypeContractIfDuplicates && typeContract.EqualsIgnoringCase(contract))
+				return new ServiceName(type, new[] {typeContract});
+			return new ServiceName(type, new[] {contract, typeContract});
 		}
 
 		public Type Type

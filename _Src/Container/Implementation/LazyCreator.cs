@@ -45,7 +45,7 @@ namespace SimpleContainer.Implementation
 					var current = ContainerService.Builder.Current;
 					if (current == null)
 						return container.Get<T>();
-					var result = current.Context.container.ResolveCore(ServiceName.Parse(typeof (T), false), false, null,
+					var result = current.Context.container.ResolveCore(ServiceName.Parse(typeof (T), false, null, null), false, null,
 						current.Context);
 					var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 					current.AddDependency(resultDependency, false);

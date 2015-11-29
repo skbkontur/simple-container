@@ -145,7 +145,7 @@ namespace SimpleContainer.Implementation
 						throw new SimpleContainerException(message);
 					}
 			}
-			return ServiceName.Parse(type, true, contractsArray);
+			return ServiceName.Parse(type, true, null, contractsArray);
 		}
 
 		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
@@ -343,7 +343,7 @@ namespace SimpleContainer.Implementation
 			foreach (var implementationType in implementationTypes)
 				if (implementationType.accepted)
 				{
-					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, false),
+					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, false, null, null),
 						builder.CreateNew, builder.Arguments, builder.Context);
 					builder.LinkTo(containerContext, implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
@@ -624,7 +624,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.Resource(formalParameter, resourceAttribute.Name, resourceStream);
 			}
 			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
-				InternalHelpers.ParseContracts(formalParameter));
+				InternalHelpers.ParseContracts(formalParameter), null);
 			if (dependencyName.Type.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)

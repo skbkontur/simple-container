@@ -29,14 +29,14 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
-		public static string[] ParseContracts(ICustomAttributeProvider provider)
+		public static string ParseContracts(ICustomAttributeProvider provider)
 		{
 			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
 			if (attributes.Length == 0)
-				return emptyStrings;
+				return null;
 			if (attributes.Length > 1)
 				throw new SimpleContainerException("assertion failure");
-			return new[] {attributes[0].ContractName};
+			return attributes[0].ContractName;
 		}
 
 		public static FuncResult<ConstructorInfo> GetConstructor(this Type target)

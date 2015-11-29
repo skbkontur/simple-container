@@ -56,7 +56,7 @@ namespace SimpleContainer.Implementation
 				try
 				{
 					result[i].value = container.Resolve(member.MemberType(),
-						name.Contracts.Concat(InternalHelpers.ParseContracts(member)));
+						name.Contracts.ConcatIfNotNull(InternalHelpers.ParseContracts(member)));
 					result[i].value.CheckSingleInstance();
 				}
 				catch (SimpleContainerException e)

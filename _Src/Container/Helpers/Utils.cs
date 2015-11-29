@@ -67,6 +67,17 @@ namespace SimpleContainer.Helpers
 			Array.Copy(second, 0, result, first.Length, second.Length);
 			return result;
 		}
+		
+		public static T[] ConcatIfNotNull<T>(this T[] first, T second)
+			where T: class
+		{
+			if (second == null)
+				return first;
+			var result = new T[first.Length + 1];
+			Array.Copy(first, result, first.Length);
+			result[result.Length - 1] = second;
+			return result;
+		}
 
 		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
 		{

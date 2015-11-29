@@ -55,7 +55,8 @@ namespace SimpleContainer.Implementation
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
 			var container = builder.Context.container;
-			var factoryContracts = new List<string>(builder.DeclaredContracts);
+			var factoryContractsArray = builder.DeclaredContracts;
+			var factoryContracts = new List<string>(factoryContractsArray);
 			var oldValue = builder.Context.analizeDependenciesOnly;
 			builder.Context.analizeDependenciesOnly = true;
 			var containerService = builder.Context.container.ResolveCore(new ServiceName(resultType), true, null,
@@ -66,7 +67,7 @@ namespace SimpleContainer.Implementation
 			{
 				var current = ContainerService.Builder.Current;
 				if (current == null)
-					return container.Create(type, factoryContracts, arguments);
+					return container.Create(type, factoryContractsArray, arguments);
 				var oldContracts = current.Context.contracts.Replace(factoryContracts);
 				var result = current.Context.container.ResolveCore(new ServiceName(type), true,
 					ObjectAccessor.Get(arguments), current.Context);
