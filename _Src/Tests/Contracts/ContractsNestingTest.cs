@@ -210,12 +210,9 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
-
-				container.Get<A>();
-
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo("contract [c2] already declared, all declared contracts [c1->c2]\r\n\r\n!A[c1]\r\n\t!B[c1->c2] <---------------"));
+					Is.EqualTo("contract [c2] already declared, stack\r\n\tA[c1]\r\n\tB[c2->c2]\r\n\r\n!A\r\n\t!B <---------------"));
 			}
 		}
 	}

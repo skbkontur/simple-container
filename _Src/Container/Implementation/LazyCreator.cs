@@ -17,7 +17,7 @@ namespace SimpleContainer.Implementation
 			var oldValue = builder.Context.analizeDependenciesOnly;
 			builder.Context.analizeDependenciesOnly = true;
 			var containerService =
-				builder.Context.container.ResolveSingleton(new ServiceName(resultType, InternalHelpers.emptyStrings),
+				builder.Context.container.ResolveCore(new ServiceName(resultType, InternalHelpers.emptyStrings),
 					true, null, builder.Context);
 			builder.Context.analizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
@@ -47,7 +47,7 @@ namespace SimpleContainer.Implementation
 					var current = ContainerService.Builder.Current;
 					if (current == null)
 						return container.Get<T>();
-					var result = current.Context.container.ResolveSingleton(ServiceName.Parse(typeof (T), false), false, null,
+					var result = current.Context.container.ResolveCore(ServiceName.Parse(typeof (T), false), false, null,
 						current.Context);
 					var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
 					current.AddDependency(resultDependency, false);

@@ -58,7 +58,7 @@ namespace SimpleContainer.Implementation
 			var factoryContracts = new List<string>(builder.DeclaredContracts);
 			var oldValue = builder.Context.analizeDependenciesOnly;
 			builder.Context.analizeDependenciesOnly = true;
-			var containerService = builder.Context.container.ResolveSingleton(new ServiceName(resultType), true, null,
+			var containerService = builder.Context.container.ResolveCore(new ServiceName(resultType), true, null,
 				builder.Context);
 			builder.Context.analizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
@@ -68,7 +68,7 @@ namespace SimpleContainer.Implementation
 				if (current == null)
 					return container.Create(type, factoryContracts, arguments);
 				var oldContracts = current.Context.contracts.Replace(factoryContracts);
-				var result = current.Context.container.ResolveSingleton(new ServiceName(type), true,
+				var result = current.Context.container.ResolveCore(new ServiceName(type), true,
 					ObjectAccessor.Get(arguments), current.Context);
 				current.Context.contracts.Restore(oldContracts);
 				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());

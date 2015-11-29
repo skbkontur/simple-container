@@ -286,11 +286,10 @@ namespace SimpleContainer.Tests.Factories
 			public void Test()
 			{
 				var container = Container();
-				container.Get<A>();
-				//var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				//Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer"));
-				//Assert.That(exception.InnerException, Is.Not.Null);
-				//Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A -> A\r\n\r\n!A <---------------"));
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("service [B] construction exception\r\n\r\n!A\r\n\t!B <---------------\r\n\t\tIContainer"));
+				Assert.That(exception.InnerException, Is.Not.Null);
+				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A ...-> B -> A\r\n\r\n!A <---------------"));
 			}
 		}
 

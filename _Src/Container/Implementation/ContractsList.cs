@@ -43,25 +43,27 @@ namespace SimpleContainer.Implementation
 			contractsArray = null;
 		}
 
-		public ActionResult Push(string[] newContracts)
+		public PushResult Push(string[] newContracts)
 		{
 			var pushedCount = 0;
 			foreach (var newContract in newContracts)
 			{
 				foreach (var c in contracts)
 					if (newContract.EqualsIgnoringCase(c))
-					{
-						const string messageFormat = "contract [{0}] already declared, all declared contracts [{1}]";
-						var message = string.Format(messageFormat, newContract, InternalHelpers.FormatContractsKey(contracts));
-						contracts.RemoveLast(pushedCount);
-						return Result.Fail(message);
-					}
+						return new PushResult {isOk = false, duplicatedContractName = newContract, pushedContractsCount = pushedCount};
 				contracts.Add(newContract);
 				pushedCount++;
 			}
 			if (pushedCount > 0)
 				contractsArray = null;
-			return Result.Ok();
+			return new PushResult {isOk = true, pushedContractsCount = pushedCount};
+		}
+
+		public struct PushResult
+		{
+			public bool isOk;
+			public int pushedContractsCount;
+			public string duplicatedContractName;
 		}
 
 		public void PushNoCheck(string[] newContracts)

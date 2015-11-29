@@ -821,7 +821,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.EqualTo("contract [x] already declared, all declared contracts [x]\r\n\r\n!A\r\n\t!B <---------------"));
+					Is.EqualTo("contract [x] already declared, stack\r\n\tA\r\n\tB[x->x]\r\n\r\n!A\r\n\t!B <---------------"));
 			}
 		}
 	}

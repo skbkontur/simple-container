@@ -47,14 +47,6 @@ namespace SimpleContainer.Tests
 
 		public class FactoryDependantOnServiceType : FactoryConfiguration
 		{
-			[Test]
-			public void Test()
-			{
-				var container = Container(builder => builder.Bind((c, t) => new ChildService(t)));
-				Assert.That(container.Get<SomeService>().ChildService.ParentService, Is.EqualTo(typeof(SomeService)));
-				Assert.That(container.Get<ChildService>().ParentService, Is.Null);
-			}
-
 			public class ChildService
 			{
 				public ChildService(Type parentService)
@@ -73,6 +65,14 @@ namespace SimpleContainer.Tests
 				}
 
 				public ChildService ChildService { get; private set; }
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Bind((c, t) => new ChildService(t)));
+				Assert.That(container.Get<SomeService>().ChildService.ParentService, Is.EqualTo(typeof (SomeService)));
+				Assert.That(container.Get<ChildService>().ParentService, Is.Null);
 			}
 		}
 

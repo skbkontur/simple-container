@@ -62,7 +62,7 @@ namespace SimpleContainer.Implementation
 				var resolutionContext = ContainerService.Builder.Current != null
 					? ContainerService.Builder.Current.Context
 					: new ResolutionContext {container = this};
-				result = ResolveSingleton(name, false, null, resolutionContext);
+				result = ResolveCore(name, false, null, resolutionContext);
 			}
 			return new ResolvedService(result, containerContext, name.Type != type);
 		}
@@ -77,7 +77,7 @@ namespace SimpleContainer.Implementation
 			if (arguments == null && factoryCache.TryGetValue(name, out compiledFactory))
 				return compiledFactory();
 			var context = new ResolutionContext {container = this};
-			var result = ResolveSingleton(name, true, ObjectAccessor.Get(arguments), context);
+			var result = ResolveCore(name, true, ObjectAccessor.Get(arguments), context);
 			result.EnsureInitialized(containerContext, result);
 			return result.GetSingleValue(containerContext, false, null);
 		}
@@ -175,7 +175,7 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
-		internal ContainerService ResolveSingleton(ServiceName name, bool createNew,
+		internal ContainerService ResolveCore(ServiceName name, bool createNew,
 			IObjectAccessor arguments, ResolutionContext context)
 		{
 			if (!context.constructingServices.Add(name))
@@ -188,19 +188,27 @@ namespace SimpleContainer.Implementation
 				return ContainerService.Error(name, message);
 			}
 			var pushedContracts = context.contracts.Push(name.Contracts);
-			if (pushedContracts.errorMessage != null)
+			if (!pushedContracts.isOk)
 			{
+				const string messageFormat = "contract [{0}] already declared, stack\r\n{1}";
+				var message = string.Format(messageFormat, pushedContracts.duplicatedContractName,
+					context.stack.Select(x => x.Name).Concat(name).Select(x => "\t" + x.ToString()).JoinStrings("\r\n"));
+				context.contracts.RemoveLast(pushedContracts.pushedContractsCount);
 				context.constructingServices.Remove(name);
-				return ContainerService.Error(name, pushedContracts.errorMessage);
+				return ContainerService.Error(name, message);
 			}
 			var declaredName = new ServiceName(name.Type, context.contracts.Snapshot());
-			var id = instanceCache.GetOrAdd(declaredName, createId);
-			var acquireResult = id.AcquireInstantiateLock();
-			if (!acquireResult.acquired)
+			ContainerServiceId id = null;
+			if (!createNew)
 			{
-				context.constructingServices.Remove(name);
-				context.contracts.RemoveLast(name.Contracts.Length);
-				return acquireResult.alreadyConstructedService;
+				id = instanceCache.GetOrAdd(declaredName, createId);
+				var acquireResult = id.AcquireInstantiateLock();
+				if (!acquireResult.acquired)
+				{
+					context.constructingServices.Remove(name);
+					context.contracts.RemoveLast(pushedContracts.pushedContractsCount);
+					return acquireResult.alreadyConstructedService;
+				}
 			}
 			var builder = new ContainerService.Builder(name);
 			context.stack.Add(builder);
@@ -224,7 +232,7 @@ namespace SimpleContainer.Implementation
 					var poppedContracts = context.contracts.PopMany(expandedUnions.Length);
 					foreach (var c in expandedUnions.CartesianProduct())
 					{
-						var childService = ResolveSingleton(new ServiceName(name.Type, c), createNew, arguments, context);
+						var childService = ResolveCore(new ServiceName(name.Type, c), createNew, arguments, context);
 						builder.LinkTo(containerContext, childService, null);
 						if (builder.Status.IsBad())
 							break;
@@ -239,10 +247,11 @@ namespace SimpleContainer.Implementation
 				}
 			}
 			context.constructingServices.Remove(name);
-			context.contracts.RemoveLast(name.Contracts.Length);
+			context.contracts.RemoveLast(pushedContracts.pushedContractsCount);
 			context.stack.RemoveLast();
 			var result = builder.GetService();
-			id.ReleaseInstantiateLock(builder.Context.analizeDependenciesOnly ? null : result);
+			if (id != null)
+				id.ReleaseInstantiateLock(builder.Context.analizeDependenciesOnly ? null : result);
 			return result;
 		}
 
@@ -327,7 +336,7 @@ namespace SimpleContainer.Implementation
 			foreach (var implementationType in implementationTypes)
 				if (implementationType.accepted)
 				{
-					var implementationService = ResolveSingleton(ServiceName.Parse(implementationType.type, false),
+					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, false),
 						builder.CreateNew, builder.Arguments, builder.Context);
 					builder.LinkTo(containerContext, implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
@@ -507,7 +516,7 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = ResolveSingleton(d, false, null, builder.Context).AsSingleInstanceDependency(null);
+				var dependency = ResolveCore(d, false, null, builder.Context).AsSingleInstanceDependency(null);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -582,7 +591,7 @@ namespace SimpleContainer.Implementation
 				{
 					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType));
 					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
-					return builder.GetService().AsSingleInstanceDependency(formalParameter.Name);
+					return dependencyBuilder.GetService().AsSingleInstanceDependency(formalParameter.Name);
 				}
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
@@ -607,7 +616,7 @@ namespace SimpleContainer.Implementation
 						formalParameter.Name, builder.Type.FormatName());
 				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
 			}
-			var resultService = ResolveSingleton(dependencyName, false, null, builder.Context);
+			var resultService = ResolveCore(dependencyName, false, null, builder.Context);
 			if (resultService.Status.IsBad())
 				return ServiceDependency.ServiceError(resultService);
 			var isEnumerable = dependencyName.Type != implementationType;
