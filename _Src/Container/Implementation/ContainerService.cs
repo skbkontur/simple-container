@@ -59,15 +59,22 @@ namespace SimpleContainer.Implementation
 				message, GetConstructionLog(containerContext), assemblies));
 		}
 
-		public ServiceDependency AsSingleInstanceDependency(string dependencyName)
+		public ServiceDependency AsImplicitDependency(ContainerContext containerContext, bool isEnumerable)
+		{
+			return AsDependency(containerContext, "() => " + Type.FormatName(), isEnumerable);
+		}
+
+		public ServiceDependency AsDependency(ContainerContext containerContext, string dependencyName, bool isEnumerable)
 		{
 			if (Status.IsBad())
 				return ServiceDependency.ServiceError(this, dependencyName);
 			if (Status == ServiceStatus.NotResolved)
 				return ServiceDependency.NotResolved(this, dependencyName);
-			return instances.Length > 1
-				? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
-				: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
+			if (!isEnumerable)
+				return instances.Length > 1
+					? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
+					: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
+			return ServiceDependency.Service(this, GetAllValues(containerContext), dependencyName);
 		}
 
 		public IEnumerable<object> GetAllValues(ContainerContext containerContext)

@@ -45,9 +45,10 @@ namespace SimpleContainer.Implementation
 					var current = ContainerService.Builder.Current;
 					if (current == null)
 						return container.Get<T>();
-					var result = current.Context.container.ResolveCore(ServiceName.Parse(typeof (T), false, null, null), false, null,
-						current.Context);
-					var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
+					var name = ServiceName.Parse(typeof (T).UnwrapEnumerable(), false, null, null);
+					var result = current.Context.container.ResolveCore(name, false, null, current.Context);
+					var resultDependency = result.AsImplicitDependency(current.Context.container.containerContext,
+						name.Type != typeof (T));
 					current.AddDependency(resultDependency, false);
 					if (resultDependency.Status != ServiceStatus.Ok)
 						throw new ServiceCouldNotBeCreatedException();

@@ -666,6 +666,70 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class InvokeInitializeOnGetOnlyIfItIsTopmost : InitializeComponentsTest
+		{
+			public class A
+			{
+				public B b;
+
+				public A(IContainer container)
+				{
+					b = container.Get<B>();
+					Assert.That(B.initializeCalled, Is.False);
+				}
+			}
+
+			public class B : IInitializable
+			{
+				public static bool initializeCalled;
+
+				public void Initialize()
+				{
+					initializeCalled = true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<A>();
+				Assert.That(B.initializeCalled, Is.True);
+			}
+		}
+		
+		public class InvokeInitializeOnGetAllOnlyIfItIsTopmost : InitializeComponentsTest
+		{
+			public class A
+			{
+				public IEnumerable<B> b;
+
+				public A(IContainer container)
+				{
+					b = container.GetAll<B>();
+					Assert.That(B.initializeCalled, Is.False);
+				}
+			}
+
+			public class B : IInitializable
+			{
+				public static bool initializeCalled;
+
+				public void Initialize()
+				{
+					initializeCalled = true;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				container.Get<A>();
+				Assert.That(B.initializeCalled, Is.True);
+			}
+		}
+
 		public class GetAllCallsInitializeOnAllInstances : InitializeComponentsTest
 		{
 			public interface IService : IInitializable

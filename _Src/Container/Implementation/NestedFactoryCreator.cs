@@ -16,7 +16,7 @@ namespace SimpleContainer.Implementation
 				return false;
 			var factory = builder.Context.container.ResolveCore(new ServiceName(method.DeclaringType), false, null,
 				builder.Context);
-			var dependency = factory.AsSingleInstanceDependency(null);
+			var dependency = factory.AsDependency(builder.Context.container.containerContext, null, false);
 			builder.AddDependency(dependency, false);
 			if (dependency.Status == ServiceStatus.Ok)
 				builder.CreateInstance(method, dependency.Value, new object[0]);

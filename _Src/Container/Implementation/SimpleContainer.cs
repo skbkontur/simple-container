@@ -59,10 +59,14 @@ namespace SimpleContainer.Implementation
 			ContainerService result;
 			if (!id.TryGet(out result))
 			{
-				var resolutionContext = ContainerService.Builder.Current != null
-					? ContainerService.Builder.Current.Context
-					: new ResolutionContext {container = this};
+				var current = ContainerService.Builder.Current;
+				var resolutionContext = current == null ? new ResolutionContext {container = this} : current.Context;
 				result = ResolveCore(name, false, null, resolutionContext);
+				if (current != null)
+				{
+					var resultDependency = result.AsImplicitDependency(containerContext, true);
+					current.AddDependency(resultDependency, false);
+				}
 			}
 			return new ResolvedService(result, containerContext, name.Type != type);
 		}
@@ -72,14 +76,17 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (type == null)
 				throw new ArgumentNullException("type");
-			var name = CreateServiceName(type, contracts);
+			var name = CreateServiceName(type.UnwrapEnumerable(), contracts);
 			Func<object> compiledFactory;
 			if (arguments == null && factoryCache.TryGetValue(name, out compiledFactory))
 				return compiledFactory();
 			var context = new ResolutionContext {container = this};
 			var result = ResolveCore(name, true, ObjectAccessor.Get(arguments), context);
 			result.EnsureInitialized(containerContext, result);
-			return result.GetSingleValue(containerContext, false, null);
+			var isEnumerable = name.Type != type;
+			return isEnumerable
+				? result.GetAllValues(containerContext)
+				: result.GetSingleValue(containerContext, false, null);
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
@@ -523,7 +530,7 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = ResolveCore(d, false, null, builder.Context).AsSingleInstanceDependency(null);
+				var dependency = ResolveCore(d, false, null, builder.Context).AsDependency(containerContext, null, false);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -608,7 +615,7 @@ namespace SimpleContainer.Implementation
 						Context = builder.Context
 					};
 					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
-					return dependencyBuilder.GetService().AsSingleInstanceDependency(formalParameter.Name);
+					return dependencyBuilder.GetService().AsDependency(containerContext, formalParameter.Name, false);
 				}
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
@@ -647,7 +654,7 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Service(resultService, null);
 				return ServiceDependency.NotResolved(resultService);
 			}
-			return resultService.AsSingleInstanceDependency(null);
+			return resultService.AsDependency(containerContext, null, false);
 		}
 
 		public void Dispose()

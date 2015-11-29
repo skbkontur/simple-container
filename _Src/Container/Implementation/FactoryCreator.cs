@@ -69,10 +69,10 @@ namespace SimpleContainer.Implementation
 				if (current == null)
 					return container.Create(type, factoryContractsArray, arguments);
 				var oldContracts = current.Context.contracts.Replace(factoryContracts);
-				var result = current.Context.container.ResolveCore(new ServiceName(type), true,
+				var result = current.Context.container.ResolveCore(new ServiceName(type.UnwrapEnumerable()), true,
 					ObjectAccessor.Get(arguments), current.Context);
 				current.Context.contracts.Restore(oldContracts);
-				var resultDependency = result.AsSingleInstanceDependency("() => " + result.Type.FormatName());
+				var resultDependency = result.AsImplicitDependency(current.Context.container.containerContext, result.Type != type);
 				current.AddDependency(resultDependency, false);
 				if (resultDependency.Status != ServiceStatus.Ok)
 					throw new ServiceCouldNotBeCreatedException();

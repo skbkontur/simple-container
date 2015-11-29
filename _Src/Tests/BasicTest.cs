@@ -477,14 +477,6 @@ namespace SimpleContainer.Tests
 
 		public class CannotResolveServiceFactory_NoFallback : BasicTest
 		{
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("parameter [unresolved] of service [Factory] is not configured\r\n\r\n!A\r\n\t!Factory\r\n\t\t!unresolved <---------------"));
-			}
-
 			private class A
 			{
 				public class Factory
@@ -498,6 +490,14 @@ namespace SimpleContainer.Tests
 						return new A();
 					}
 				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(error.Message, Is.EqualTo("parameter [unresolved] of service [Factory] is not configured\r\n\r\n!A\r\n\t!Factory\r\n\t\t!unresolved <---------------"));
 			}
 		}
 

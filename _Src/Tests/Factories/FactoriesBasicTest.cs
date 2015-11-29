@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using NUnit.Framework;
@@ -287,7 +289,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("service [B] construction exception\r\n\r\n!A\r\n\t!B <---------------\r\n\t\tIContainer"));
+				Assert.That(exception.Message, Is.EqualTo("service [B] construction exception\r\n\r\n!A\r\n\t!B <---------------\r\n\t\tIContainer\r\n\t\t!() => A <---------------"));
 				Assert.That(exception.InnerException, Is.Not.Null);
 				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A ...-> B -> A\r\n\r\n!A <---------------"));
 			}
@@ -308,7 +310,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer"));
+				Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer\r\n\t!() => A <---------------"));
 				Assert.That(exception.InnerException, Is.Not.Null);
 				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A -> A\r\n\r\n!A <---------------"));
 			}
@@ -418,6 +420,79 @@ namespace SimpleContainer.Tests.Factories
 				container.Resolve<A>("x");
 				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(),
 					Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
+			}
+		}
+
+		public class FactoryCreatesManyInstances : FactoriesBasicTest
+		{
+			public class A
+			{
+				public readonly IB[] allB;
+
+				public A(Func<IEnumerable<IB>> createAllB)
+				{
+					allB = createAllB().ToArray();
+				}
+			}
+
+			public interface IB
+			{
+			}
+			
+			public class B1: IB
+			{
+			}
+			
+			public class B2: IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Resolve<A>();
+				Assert.That(a.Single().allB.Length, Is.EqualTo(2));
+				Assert.That(a.Single().allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
+				Assert.That(a.Single().allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<IEnumerable<IB>>\r\n\t() => IB++\r\n\t\tB1\r\n\t\tB2"));
+			}
+		}
+
+		public class NotAttachedFactoryCreatesManyInstances : FactoriesBasicTest
+		{
+			public class A
+			{
+				public readonly Func<IEnumerable<IB>> createAllB;
+
+				public A(Func<IEnumerable<IB>> createAllB)
+				{
+					this.createAllB = createAllB;
+				}
+			}
+
+			public interface IB
+			{
+			}
+
+			public class B1 : IB
+			{
+			}
+
+			public class B2 : IB
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var a = container.Resolve<A>();
+				var allB = a.Single().createAllB().ToArray();
+				Assert.That(allB.Length, Is.EqualTo(2));
+				Assert.That(allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
+				Assert.That(allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<IEnumerable<IB>>"));
 			}
 		}
 

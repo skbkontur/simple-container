@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer
@@ -27,7 +28,8 @@ namespace SimpleContainer
 		{
 			var contracts = string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract};
 			var resolvedService = container.Resolve(type, contracts);
-			resolvedService.EnsureInitialized();
+			if (ContainerService.Builder.Current == null)
+				resolvedService.EnsureInitialized();
 			return resolvedService.Single();
 		}
 
@@ -52,14 +54,16 @@ namespace SimpleContainer
 		public static IEnumerable<object> GetAll(this IContainer container, Type type, params string[] contracts)
 		{
 			var resolvedService = container.Resolve(type, contracts);
-			resolvedService.EnsureInitialized();
+			if (ContainerService.Builder.Current == null)
+				resolvedService.EnsureInitialized();
 			return resolvedService.All();
 		}
 
 		public static IEnumerable<T> GetAll<T>(this IContainer container, params string[] contracts)
 		{
 			var containerService = container.Resolve<T>(contracts);
-			containerService.EnsureInitialized();
+			if (ContainerService.Builder.Current == null)
+				containerService.EnsureInitialized();
 			return containerService.All();
 		}
 
