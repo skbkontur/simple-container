@@ -127,7 +127,9 @@ namespace SimpleContainer.Implementation
 
 		private static ServiceName CreateServiceName(Type type, IEnumerable<string> contracts)
 		{
-			var contractsArray = contracts == null ? InternalHelpers.emptyStrings : contracts.ToArray();
+			var contractsArray = contracts == null
+				? InternalHelpers.emptyStrings
+				: (contracts is string[] ? (string[]) contracts : contracts.ToArray());
 			for (var i = 0; i < contractsArray.Length; i++)
 			{
 				var contract = contractsArray[i];
