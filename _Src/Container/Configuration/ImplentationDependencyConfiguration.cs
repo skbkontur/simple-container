@@ -9,8 +9,6 @@ namespace SimpleContainer.Configuration
 		}
 
 		public bool Used { get; set; }
-
-		public string Key { get; private set; }
 		public object Value { get; private set; }
 		public bool ValueAssigned { get; private set; }
 		public Type ImplementationType { get; private set; }
@@ -19,16 +17,6 @@ namespace SimpleContainer.Configuration
 		public class Builder
 		{
 			private readonly ImplentationDependencyConfiguration target = new ImplentationDependencyConfiguration();
-
-			public string Key
-			{
-				get { return target.Key; }
-			}
-
-			public Builder(string key)
-			{
-				target.Key = key;
-			}
 
 			public void UseValue(object o)
 			{

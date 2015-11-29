@@ -6,6 +6,6 @@ namespace SimpleContainer.Helpers
 	{
 		bool TryGet(string name, out ValueWithType value);
 		IEnumerable<string> GetUnused();
-		IEnumerable<string> GetUsed();
+		HashSet<string> GetUsed();
 	}
 }

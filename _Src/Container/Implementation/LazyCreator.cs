@@ -16,9 +16,7 @@ namespace SimpleContainer.Implementation
 			var resultType = builder.Type.GetGenericArguments()[0];
 			var oldValue = builder.Context.analizeDependenciesOnly;
 			builder.Context.analizeDependenciesOnly = true;
-			var containerService =
-				builder.Context.container.ResolveCore(new ServiceName(resultType, InternalHelpers.emptyStrings),
-					true, null, builder.Context);
+			var containerService = builder.Context.container.ResolveCore(new ServiceName(resultType), true, null, builder.Context);
 			builder.Context.analizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(resultType).GetConstructors().Single();

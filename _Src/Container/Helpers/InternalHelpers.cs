@@ -80,15 +80,5 @@ namespace SimpleContainer.Helpers
 			var result = value.ToString();
 			return value is bool ? result.ToLower() : result;
 		}
-
-		public static string ByNameDependencyKey(string name)
-		{
-			return "name=" + name;
-		}
-
-		public static string ByTypeDependencyKey(Type type)
-		{
-			return "type=" + type.FormatName();
-		}
 	}
 }

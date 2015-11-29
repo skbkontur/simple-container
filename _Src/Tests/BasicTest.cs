@@ -1400,16 +1400,6 @@ namespace SimpleContainer.Tests
 
 		public class UseValueCreatedBy : BasicTest
 		{
-			[Test]
-			public void Test()
-			{
-				var container =
-					Container(c => c.BindDependencyFactory<SomeService>("serviceA", x => new ServiceA(42, x.Get<ServiceB>())));
-				var serviceA = container.Get<SomeService>().ServiceA;
-				Assert.That(serviceA.Argument, Is.EqualTo(42));
-				Assert.That(serviceA.ServiceB, Is.Not.Null);
-			}
-
 			public class ServiceA
 			{
 				public ServiceA(int argument, ServiceB serviceB)
@@ -1434,6 +1424,16 @@ namespace SimpleContainer.Tests
 				}
 
 				public ServiceA ServiceA { get; private set; }
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container =
+					Container(c => c.BindDependencyFactory<SomeService>("serviceA", x => new ServiceA(42, x.Get<ServiceB>())));
+				var serviceA = container.Get<SomeService>().ServiceA;
+				Assert.That(serviceA.Argument, Is.EqualTo(42));
+				Assert.That(serviceA.ServiceB, Is.Not.Null);
 			}
 		}
 

@@ -52,7 +52,7 @@ namespace SimpleContainer.Helpers
 				return true;
 			}
 
-			public IEnumerable<string> GetUsed()
+			public HashSet<string> GetUsed()
 			{
 				return used;
 			}

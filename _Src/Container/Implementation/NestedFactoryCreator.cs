@@ -14,8 +14,8 @@ namespace SimpleContainer.Implementation
 			var method = factoryType.GetMethod("Create", Type.EmptyTypes);
 			if (method == null)
 				return false;
-			var factory = builder.Context.container.ResolveCore(new ServiceName(method.DeclaringType, InternalHelpers.emptyStrings),
-					false, null, builder.Context);
+			var factory = builder.Context.container.ResolveCore(new ServiceName(method.DeclaringType), false, null,
+				builder.Context);
 			var dependency = factory.AsSingleInstanceDependency(null);
 			builder.AddDependency(dependency, false);
 			if (dependency.Status == ServiceStatus.Ok)

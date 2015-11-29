@@ -14,7 +14,7 @@ namespace SimpleContainer.Configuration
 			Contracts = contracts;
 		}
 
-		private ImplentationDependencyConfiguration[] dependencies;
+		private Dictionary<DependencyKey, ImplentationDependencyConfiguration> dependencies;
 		public List<string> Contracts { get; private set; }
 		public List<Type> ImplementationTypes { get; private set; }
 		public object Implementation { get; private set; }
@@ -32,27 +32,34 @@ namespace SimpleContainer.Configuration
 		internal static readonly ServiceConfiguration empty = new ServiceConfiguration(new List<string>())
 		{
 			ContainerOwnsInstance = true,
-			dependencies = new ImplentationDependencyConfiguration[0],
+			dependencies = new Dictionary<DependencyKey, ImplentationDependencyConfiguration>(),
 			ImplicitDependencies = InternalHelpers.emptyServiceNames
 		};
 
-		public ImplentationDependencyConfiguration GetByKeyOrNull(string key)
+		public ImplentationDependencyConfiguration GetByKeyOrNull(DependencyKey key)
 		{
-			return dependencies.SingleOrDefault(x => x.Key == key);
+			ImplentationDependencyConfiguration result;
+			return dependencies.TryGetValue(key, out result) ? result : null;
 		}
 
 		public ImplentationDependencyConfiguration GetOrNull(ParameterInfo parameter)
 		{
-			var result = GetByKeyOrNull(InternalHelpers.ByNameDependencyKey(parameter.Name)) ??
-			             GetByKeyOrNull(InternalHelpers.ByTypeDependencyKey(parameter.ParameterType));
+			var result = GetByKeyOrNull(new DependencyKey(parameter.Name)) ??
+			             GetByKeyOrNull(new DependencyKey(parameter.ParameterType));
 			if (result != null)
 				result.Used = true;
 			return result;
 		}
 
-		public IEnumerable<string> GetUnusedDependencyConfigurationKeys()
+		public List<DependencyKey> GetUnusedDependencyKeys()
 		{
-			return dependencies.Where(x => !x.Used).Select(x => x.Key);
+			var result = new List<DependencyKey>();
+			foreach (var d in dependencies)
+			{
+				if (!d.Value.Used)
+					result.Add(d.Key);
+			}
+			return result;
 		}
 
 		internal class Builder
@@ -60,8 +67,8 @@ namespace SimpleContainer.Configuration
 			private readonly ServiceConfiguration target;
 			public List<ServiceName> ImplicitDependencies { get; private set; }
 
-			private readonly List<ImplentationDependencyConfiguration.Builder> dependencyBuilders =
-				new List<ImplentationDependencyConfiguration.Builder>();
+			private readonly Dictionary<DependencyKey, ImplentationDependencyConfiguration.Builder> dependencyBuilders =
+				new Dictionary<DependencyKey, ImplentationDependencyConfiguration.Builder>();
 
 			public Builder(List<string> contracts)
 			{
@@ -168,17 +175,17 @@ namespace SimpleContainer.Configuration
 
 			public void BindDependency(string dependencyName, object value)
 			{
-				GetDependencyBuilderByName(dependencyName).UseValue(value);
+				GetDependencyBuilder(new DependencyKey(dependencyName)).UseValue(value);
 			}
 
 			public void BindDependencyValue(Type dependencyType, object value)
 			{
-				GetDependencyBuilderByType(dependencyType).UseValue(value);
+				GetDependencyBuilder(new DependencyKey(dependencyType)).UseValue(value);
 			}
 
 			public void BindDependency(Type dependencyType, Func<IContainer, object> creator)
 			{
-				GetDependencyBuilderByType(dependencyType).UseFactory(creator);
+				GetDependencyBuilder(new DependencyKey(dependencyType)).UseFactory(creator);
 			}
 
 			public void BindDependency<T, TDependency>(object value)
@@ -189,33 +196,34 @@ namespace SimpleContainer.Configuration
 							DumpValue(value),
 							typeof (T).FormatName(),
 							typeof (TDependency).FormatName()));
-				GetDependencyBuilderByType(typeof (TDependency)).UseValue(value);
+				GetDependencyBuilder(new DependencyKey(typeof (TDependency))).UseValue(value);
 			}
 
 			public void BindDependency<TDependency, TDependencyValue>()
 				where TDependencyValue : TDependency
 			{
-				GetDependencyBuilderByType(typeof (TDependency)).UseImplementation(typeof (TDependencyValue));
+				GetDependencyBuilder(new DependencyKey(typeof (TDependency))).UseImplementation(typeof (TDependencyValue));
 			}
 
 			public void BindDependencyFactory(string dependencyName, Func<IContainer, object> creator)
 			{
-				GetDependencyBuilderByName(dependencyName).UseFactory(creator);
+				GetDependencyBuilder(new DependencyKey(dependencyName)).UseFactory(creator);
 			}
 
 			public void BindDependencyImplementation<TDependencyValue>(string dependencyName)
 			{
-				GetDependencyBuilderByName(dependencyName).UseImplementation(typeof (TDependencyValue));
+				GetDependencyBuilder(new DependencyKey(dependencyName)).UseImplementation(typeof (TDependencyValue));
 			}
 
 			public void BindDependencyImplementation<TDependencyInterface, TDependencyImplementation>()
 			{
-				GetDependencyBuilderByType(typeof (TDependencyInterface)).UseImplementation(typeof (TDependencyImplementation));
+				GetDependencyBuilder(new DependencyKey(typeof (TDependencyInterface)))
+					.UseImplementation(typeof (TDependencyImplementation));
 			}
 
 			public ServiceConfiguration Build()
 			{
-				target.dependencies = dependencyBuilders.Select(x => x.Build()).ToArray();
+				target.dependencies = dependencyBuilders.ToDictionary(x => x.Key, x => x.Value.Build());
 				target.ImplicitDependencies = ImplicitDependencies == null
 					? InternalHelpers.emptyServiceNames
 					: ImplicitDependencies.ToArray();
@@ -230,22 +238,12 @@ namespace SimpleContainer.Configuration
 				target.ContainerOwnsInstance = containerOwnsInstance;
 			}
 
-			private ImplentationDependencyConfiguration.Builder GetDependencyBuilder(string key)
+			private ImplentationDependencyConfiguration.Builder GetDependencyBuilder(DependencyKey key)
 			{
-				var result = dependencyBuilders.SingleOrDefault(x => x.Key == key);
-				if (result == null)
-					dependencyBuilders.Add(result = new ImplentationDependencyConfiguration.Builder(key));
-				return result;
-			}
-
-			private ImplentationDependencyConfiguration.Builder GetDependencyBuilderByType(Type dependencyType)
-			{
-				return GetDependencyBuilder(InternalHelpers.ByTypeDependencyKey(dependencyType));
-			}
-
-			private ImplentationDependencyConfiguration.Builder GetDependencyBuilderByName(string dependencyName)
-			{
-				return GetDependencyBuilder(InternalHelpers.ByNameDependencyKey(dependencyName));
+				ImplentationDependencyConfiguration.Builder builder;
+				if (!dependencyBuilders.TryGetValue(key, out builder))
+					dependencyBuilders.Add(key, builder = new ImplentationDependencyConfiguration.Builder());
+				return builder;
 			}
 
 			private static string DumpValue(object value)

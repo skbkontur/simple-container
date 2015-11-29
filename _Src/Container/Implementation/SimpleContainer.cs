@@ -197,7 +197,19 @@ namespace SimpleContainer.Implementation
 				context.constructingServices.Remove(name);
 				return ContainerService.Error(name, message);
 			}
+			ServiceConfiguration configuration = null;
+			Exception configurationException = null;
+			try
+			{
+				configuration = GetConfiguration(name.Type, context);
+			}
+			catch (Exception e)
+			{
+				configurationException = e; 
+			}
 			var declaredName = new ServiceName(name.Type, context.contracts.Snapshot());
+			if (configuration != null && configuration.FactoryWithTarget != null && context.stack.Count > 0)
+				declaredName = declaredName.AddContracts(context.stack[context.stack.Count - 1].Type.FormatName());
 			ContainerServiceId id = null;
 			if (!createNew)
 			{
@@ -214,16 +226,9 @@ namespace SimpleContainer.Implementation
 			context.stack.Add(builder);
 			builder.Context = context;
 			builder.DeclaredContracts = declaredName.Contracts;
-			ServiceConfiguration configuration = null;
-			try
-			{
-				configuration = GetConfiguration(name.Type, context);
-			}
-			catch (Exception e)
-			{
-				builder.SetError(e);
-			}
-			if (configuration != null)
+			if (configuration == null)
+				builder.SetError(configurationException);
+			else
 			{
 				builder.SetConfiguration(configuration);
 				var expandedUnions = context.contracts.TryExpandUnions(Configuration);
@@ -527,13 +532,20 @@ namespace SimpleContainer.Implementation
 			builder.EndResolveDependencies();
 			if (builder.Context.analizeDependenciesOnly)
 				return;
-			var dependenciesResolvedByArguments = builder.Arguments == null
-				? InternalHelpers.emptyStrings
-				: builder.Arguments.GetUsed().Select(InternalHelpers.ByNameDependencyKey);
-			var unusedConfigurationKeys = builder.Configuration.GetUnusedDependencyConfigurationKeys()
-				.Except(dependenciesResolvedByArguments)
-				.ToArray();
-			if (unusedConfigurationKeys.Length > 0)
+			var dependenciesResolvedByArguments = builder.Arguments == null ? null : builder.Arguments.GetUsed();
+			List<string> unusedConfigurationKeys = null;
+			foreach (var k in builder.Configuration.GetUnusedDependencyKeys())
+			{
+				var resolvedByArguments = dependenciesResolvedByArguments != null &&
+				                          k.name != null &&
+				                          dependenciesResolvedByArguments.Contains(k.name);
+				if (resolvedByArguments)
+					continue;
+				if (unusedConfigurationKeys == null)
+					unusedConfigurationKeys = new List<string>();
+				unusedConfigurationKeys.Add(k.ToString());
+			}
+			if (unusedConfigurationKeys != null)
 			{
 				builder.SetError(string.Format("unused dependency configurations [{0}]", unusedConfigurationKeys.JoinStrings(",")));
 				return;
@@ -589,7 +601,10 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
 				{
-					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType));
+					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType))
+					{
+						Context = builder.Context
+					};
 					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
 					return dependencyBuilder.GetService().AsSingleInstanceDependency(formalParameter.Name);
 				}

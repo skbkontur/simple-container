@@ -26,7 +26,7 @@ namespace SimpleContainer.Helpers
 			return cache.GetOrAdd(new Key(attributeProvider, attributeType, inherit), createDelegate);
 		}
 
-		private struct Key
+		private struct Key : IEquatable<Key>
 		{
 			public readonly ICustomAttributeProvider attributeProvider;
 			public readonly Type attributeType;
@@ -39,7 +39,7 @@ namespace SimpleContainer.Helpers
 				this.inherit = inherit;
 			}
 
-			private bool Equals(Key other)
+			public bool Equals(Key other)
 			{
 				var localInherit = inherit;
 				return attributeProvider.Equals(other.attributeProvider) && attributeType == other.attributeType &&
