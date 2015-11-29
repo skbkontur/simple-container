@@ -155,9 +155,6 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
 			if (!context.Seen.Add(new ServiceName(Type, usedContracts)))
 			{
-				//todo refactor this shit
-				if (Status == ServiceStatus.Error && comment.Contains("cyclic dependency"))
-					context.Writer.WriteMeta(" <---------------");
 				context.Writer.WriteNewLine();
 				return;
 			}
@@ -461,6 +458,10 @@ namespace SimpleContainer.Implementation
 				{
 					if (!string.IsNullOrEmpty(e.Message))
 						SetComment(e.Message);
+					return;
+				}
+				catch (SimpleContainerException)
+				{
 					return;
 				}
 				catch (Exception e)

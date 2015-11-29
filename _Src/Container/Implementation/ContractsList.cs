@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 		private List<string> contracts = new List<string>();
 		private string[] contractsArray = InternalHelpers.emptyStrings;
 
-		public int Match(List<string> chain)
+		public int WeightOf(List<string> chain)
 		{
 			int i = 0, j = 0;
 			while (true)
@@ -18,7 +18,7 @@ namespace SimpleContainer.Implementation
 					return j;
 				if (j >= contracts.Count)
 					return -1;
-				if (Equals(chain[i], contracts[j]))
+				if (chain[i].EqualsIgnoringCase(contracts[j]))
 					i++;
 				j++;
 			}

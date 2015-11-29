@@ -9,6 +9,6 @@ todo
 
 	used unioned contracts in construction log
 
-	merge construction log when IContainer injected in ctor
-
 	get rid of stupid AnalizeDependenciesOnly
+
+	reduce memory traffix (remove LINQ, use List, etc)

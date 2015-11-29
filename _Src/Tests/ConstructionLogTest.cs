@@ -714,6 +714,37 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class CycleSpanningContainerDependency : ConstructionLogTest
+		{
+			public class A
+			{
+				public A(IContainer container)
+				{
+					container.Get<B>();
+				}
+			}
+
+			public class B
+			{
+				public readonly A a;
+
+				public B(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB\r\n\tA\r\n\r\n!A\r\n\tIContainer\r\n\t!() => B\r\n\t\t!A"));
+				Assert.That(exception.InnerException, Is.Null);
+			}
+		}
+
+
 		public class DontTryToDumpResource : ConstructionLogTest
 		{
 			public class ServiceWithResource

@@ -289,9 +289,8 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("service [B] construction exception\r\n\r\n!A\r\n\t!B <---------------\r\n\t\tIContainer\r\n\t\t!() => A <---------------"));
-				Assert.That(exception.InnerException, Is.Not.Null);
-				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A ...-> B -> A\r\n\r\n!A <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB[x]\r\n\tA\r\n\r\n!A\r\n\t!B\r\n\t\tIContainer\r\n\t\t!() => A"));
+				Assert.That(exception.InnerException, Is.Null);
 			}
 		}
 
@@ -310,9 +309,8 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!A <---------------\r\n\tIContainer\r\n\t!() => A <---------------"));
-				Assert.That(exception.InnerException, Is.Not.Null);
-				Assert.That(exception.InnerException.Message, Is.EqualTo("cyclic dependency A -> A\r\n\r\n!A <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tA\r\n\r\n!A\r\n\tIContainer\r\n\t!() => A"));
+				Assert.That(exception.InnerException, Is.Null);
 			}
 		}
 
@@ -344,8 +342,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo(
-						"cyclic dependency A ...-> B -> A\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A <---------------"));
+					Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB\r\n\tA\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A"));
 			}
 		}
 

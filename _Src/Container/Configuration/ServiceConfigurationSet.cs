@@ -38,7 +38,7 @@ namespace SimpleContainer.Configuration
 			var maxWeight = -1;
 			foreach (var c in configurations)
 			{
-				var weight = contracts.Match(c.Contracts);
+				var weight = contracts.WeightOf(c.Contracts);
 				if (weight > maxWeight)
 				{
 					maxWeight = weight;

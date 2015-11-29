@@ -189,19 +189,15 @@ namespace SimpleContainer.Implementation
 		{
 			if (!context.constructingServices.Add(name))
 			{
-				var previous = context.stack.Count == 0 ? null : context.stack[context.stack.Count - 1];
-				if (previous == null)
-					throw new InvalidOperationException(string.Format("assertion failure, service [{0}]", name));
-				var message = string.Format("cyclic dependency {0}{1} -> {0}",
-					name.Type.FormatName(), previous.Type == name.Type ? "" : " ...-> " + previous.Type.FormatName());
+				var message = string.Format("cyclic dependency for service [{0}], stack\r\n{1}",
+					name.Type.FormatName(), FormatStack(context, name));
 				return ContainerService.Error(name, message);
 			}
 			var pushedContracts = context.contracts.Push(name.Contracts);
 			if (!pushedContracts.isOk)
 			{
 				const string messageFormat = "contract [{0}] already declared, stack\r\n{1}";
-				var message = string.Format(messageFormat, pushedContracts.duplicatedContractName,
-					context.stack.Select(x => x.Name).Concat(name).Select(x => "\t" + x.ToString()).JoinStrings("\r\n"));
+				var message = string.Format(messageFormat, pushedContracts.duplicatedContractName, FormatStack(context, name));
 				context.contracts.RemoveLast(pushedContracts.pushedContractsCount);
 				context.constructingServices.Remove(name);
 				return ContainerService.Error(name, message);
@@ -267,6 +263,11 @@ namespace SimpleContainer.Implementation
 			if (id != null)
 				id.ReleaseInstantiateLock(builder.Context.analizeDependenciesOnly ? null : result);
 			return result;
+		}
+
+		private static string FormatStack(ResolutionContext resolutionContext, ServiceName name)
+		{
+			return resolutionContext.stack.Select(x => x.Name).Concat(name).Select(x => "\t" + x.ToString()).JoinStrings("\r\n");
 		}
 
 		internal void Instantiate(ContainerService.Builder builder)

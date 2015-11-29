@@ -598,7 +598,7 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"cyclic dependency ClassA ...-> ClassB -> ClassA\r\n\r\n!OuterService\r\n\t!ClassA\r\n\t\t!Intermediate\r\n\t\t\t!ClassB\r\n\t\t\t\t!ClassA <---------------"));
+						"cyclic dependency for service [ClassA], stack\r\n\tOuterService\r\n\tClassA\r\n\tIntermediate\r\n\tClassB\r\n\tClassA\r\n\r\n!OuterService\r\n\t!ClassA\r\n\t\t!Intermediate\r\n\t\t\t!ClassB\r\n\t\t\t\t!ClassA"));
 			}
 
 			public class ClassA
@@ -1724,8 +1724,8 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.InnerException.Message,
-					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead\r\n\r\n!B <---------------"));
+				Assert.That(error.Message,
+					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead\r\n\r\n!A\r\n\tIContainer\r\n\t!() => B <---------------"));
 			}
 		}
 
