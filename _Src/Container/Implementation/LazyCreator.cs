@@ -14,13 +14,13 @@ namespace SimpleContainer.Implementation
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return null;
 			var resultType = builder.Type.GetGenericArguments()[0];
-			var oldValue = builder.Context.analizeDependenciesOnly;
-			builder.Context.analizeDependenciesOnly = true;
-			var containerService = builder.Context.container.ResolveCore(new ServiceName(resultType), true, null, builder.Context);
-			builder.Context.analizeDependenciesOnly = oldValue;
+			var oldValue = builder.Context.AnalizeDependenciesOnly;
+			builder.Context.AnalizeDependenciesOnly = true;
+			var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true, null, builder.Context);
+			builder.Context.AnalizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(resultType).GetConstructors().Single();
-			var lazyFactory = (ILazyFactory) lazyFactoryCtor.Compile()(null, new object[] {builder.Context.container});
+			var lazyFactory = (ILazyFactory) lazyFactoryCtor.Compile()(null, new object[] {builder.Context.Container});
 			return lazyFactory.CreateLazy();
 		}
 
@@ -40,20 +40,7 @@ namespace SimpleContainer.Implementation
 
 			public object CreateLazy()
 			{
-				return new Lazy<T>(() =>
-				{
-					var current = ContainerService.Builder.Current;
-					if (current == null)
-						return container.Get<T>();
-					var name = ServiceName.Parse(typeof (T).UnwrapEnumerable(), false, null, null);
-					var result = current.Context.container.ResolveCore(name, false, null, current.Context);
-					var resultDependency = result.AsImplicitDependency(current.Context.container.containerContext,
-						name.Type != typeof (T));
-					current.AddDependency(resultDependency, false);
-					if (resultDependency.Status != ServiceStatus.Ok)
-						throw new ServiceCouldNotBeCreatedException();
-					return (T) resultDependency.Value;
-				});
+				return new Lazy<T>(() => container.Get<T>());
 			}
 		}
 	}

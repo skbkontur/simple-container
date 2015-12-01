@@ -9,6 +9,7 @@ namespace SimpleContainer.Implementation
 		public Dictionary<Type, Func<object, string>> ValueFormatters { get; private set; }
 		public ISimpleLogWriter Writer { get; private set; }
 		public ServiceDependency UsedFromDependency { get; set; }
+		public ContainerService UsedFromService { get; set; }
 		public int Indent { get; set; }
 		public ISet<ServiceName> Seen { get; private set; }
 

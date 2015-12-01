@@ -28,7 +28,7 @@ namespace SimpleContainer
 		{
 			var contracts = string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract};
 			var resolvedService = container.Resolve(type, contracts);
-			if (ContainerService.Builder.Current == null)
+			if (!ResolutionContext.HasPendingResolutionContext)
 				resolvedService.EnsureInitialized();
 			return resolvedService.Single();
 		}
@@ -54,7 +54,7 @@ namespace SimpleContainer
 		public static IEnumerable<object> GetAll(this IContainer container, Type type, params string[] contracts)
 		{
 			var resolvedService = container.Resolve(type, contracts);
-			if (ContainerService.Builder.Current == null)
+			if (!ResolutionContext.HasPendingResolutionContext)
 				resolvedService.EnsureInitialized();
 			return resolvedService.All();
 		}
@@ -62,7 +62,7 @@ namespace SimpleContainer
 		public static IEnumerable<T> GetAll<T>(this IContainer container, params string[] contracts)
 		{
 			var containerService = container.Resolve<T>(contracts);
-			if (ContainerService.Builder.Current == null)
+			if (!ResolutionContext.HasPendingResolutionContext)
 				containerService.EnsureInitialized();
 			return containerService.All();
 		}

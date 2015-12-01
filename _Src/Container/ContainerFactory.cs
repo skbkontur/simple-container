@@ -188,8 +188,13 @@ namespace SimpleContainer
 
 		private IContainer CreateContainer(TypesContext currentTypesContext, ConfigurationRegistry configuration)
 		{
-			return new Implementation.SimpleContainer(currentTypesContext.genericsAutoCloser, configuration,
-				currentTypesContext.typesList, errorLogger, infoLogger, valueFormatters);
+			return new Implementation.SimpleContainer(configuration, new ContainerContext
+			{
+				infoLogger = infoLogger,
+				genericsAutoCloser = currentTypesContext.genericsAutoCloser,
+				typesList = currentTypesContext.typesList,
+				valueFormatters = valueFormatters
+			}, errorLogger);
 		}
 
 		private static string GetBinDirectory()

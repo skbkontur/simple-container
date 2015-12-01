@@ -76,7 +76,7 @@ namespace SimpleContainer.Implementation
 							value = null;
 						else
 						{
-							var dependency = builder.Context.container.InstantiateDependency(p, builder).CastTo(p.ParameterType);
+							var dependency = builder.Context.Container.InstantiateDependency(p, builder).CastTo(p.ParameterType);
 							builder.AddDependency(dependency, false);
 							if (dependency.ContainerService != null)
 								builder.UnionUsedContracts(dependency.ContainerService);

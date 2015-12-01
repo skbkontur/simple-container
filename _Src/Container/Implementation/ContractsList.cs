@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 
@@ -29,11 +30,11 @@ namespace SimpleContainer.Implementation
 			return contractsArray ?? (contractsArray = contracts.ToArray());
 		}
 
-		public List<string> Replace(List<string> newContracts)
+		public List<string> Replace(string[] newContracts)
 		{
 			var result = contracts;
-			contracts = newContracts;
-			contractsArray = null;
+			contracts = newContracts.ToList();
+			contractsArray = newContracts;
 			return result;
 		}
 

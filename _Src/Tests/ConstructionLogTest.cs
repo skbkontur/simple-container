@@ -71,6 +71,35 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+		public class MergeConstructionLogFromDifferentContainerInstances : ConstructionLogTest
+		{
+			public class A
+			{
+			}
+
+			public class B
+			{
+				public readonly A a;
+
+				public B(A a)
+				{
+					this.a = a;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var c1 = Container();
+				using (var c2 = c1.Clone(b => b.Bind(c => c1.Get<A>())))
+				{
+					var b = c2.Resolve<B>();
+					Assert.That(b.Single().a, Is.SameAs(c1.Get<A>()));
+					Assert.That(b.GetConstructionLog(), Is.EqualTo("B\r\n\tA\r\n\t\t() => A - container boundary"));
+				}
+			}
+		}
+
 		public class MergeConstructionLogFromInjectedContainer : ConstructionLogTest
 		{
 			public class A

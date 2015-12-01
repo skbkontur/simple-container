@@ -59,11 +59,6 @@ namespace SimpleContainer.Implementation
 				message, GetConstructionLog(containerContext), assemblies));
 		}
 
-		public ServiceDependency AsImplicitDependency(ContainerContext containerContext, bool isEnumerable)
-		{
-			return AsDependency(containerContext, "() => " + Type.FormatName(), isEnumerable);
-		}
-
 		public ServiceDependency AsDependency(ContainerContext containerContext, string dependencyName, bool isEnumerable)
 		{
 			if (Status.IsBad())
@@ -153,8 +148,15 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteName(formattedName);
 			if (usedContracts != null && usedContracts.Length > 0)
 				context.Writer.WriteUsedContract(InternalHelpers.FormatContractsKey(usedContracts));
-			if (!context.Seen.Add(new ServiceName(Type, usedContracts)))
+			var name = new ServiceName(Type, usedContracts);
+			if (!context.Seen.Add(name))
 			{
+				if (context.UsedFromService != null && context.UsedFromService.Name.Equals(name) &&
+				    context.UsedFromDependency != null && context.UsedFromDependency.Comment != null)
+				{
+					context.Writer.WriteMeta(" - ");
+					context.Writer.WriteMeta(context.UsedFromDependency.Comment);
+				}
 				context.Writer.WriteNewLine();
 				return;
 			}
@@ -186,6 +188,7 @@ namespace SimpleContainer.Implementation
 				foreach (var d in dependencies)
 				{
 					context.Indent++;
+					context.UsedFromService = this;
 					d.WriteConstructionLog(context);
 					context.Indent--;
 				}
@@ -271,8 +274,6 @@ namespace SimpleContainer.Implementation
 
 		public class Builder
 		{
-			[ThreadStatic]
-			private static Builder current;
 			private readonly List<InstanceWrap> instances = new List<InstanceWrap>();
 			private List<ServiceDependency> dependencies;
 			private bool built;
@@ -318,11 +319,6 @@ namespace SimpleContainer.Implementation
 					if (!usedContractNames.Contains(contract, StringComparer.OrdinalIgnoreCase))
 						usedContractNames.Add(contract);
 				}
-			}
-
-			public static Builder Current
-			{
-				get { return current; }
 			}
 
 			public ServiceName GetFinalName()
@@ -448,10 +444,8 @@ namespace SimpleContainer.Implementation
 			public void CreateInstanceBy(Func<object> creator, bool owned)
 			{
 				object instance;
-				var prev = current;
 				try
 				{
-					current = this;
 					instance = creator();
 				}
 				catch (ServiceCouldNotBeCreatedException e)
@@ -468,10 +462,6 @@ namespace SimpleContainer.Implementation
 				{
 					SetError(e);
 					return;
-				}
-				finally
-				{
-					current = prev;
 				}
 				AddInstance(instance, owned);
 			}

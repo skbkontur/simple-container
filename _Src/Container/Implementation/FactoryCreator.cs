@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Annotations;
@@ -54,29 +53,19 @@ namespace SimpleContainer.Implementation
 
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
-			var container = builder.Context.container;
-			var factoryContractsArray = builder.DeclaredContracts;
-			var factoryContracts = new List<string>(factoryContractsArray);
-			var oldValue = builder.Context.analizeDependenciesOnly;
-			builder.Context.analizeDependenciesOnly = true;
-			var containerService = builder.Context.container.ResolveCore(new ServiceName(resultType), true, null,
+			var container = builder.Context.Container;
+			var oldValue = builder.Context.AnalizeDependenciesOnly;
+			builder.Context.AnalizeDependenciesOnly = true;
+			var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true, null,
 				builder.Context);
-			builder.Context.analizeDependenciesOnly = oldValue;
+			builder.Context.AnalizeDependenciesOnly = oldValue;
 			builder.UnionUsedContracts(containerService);
-			return delegate(Type type, object arguments)
+			builder.EndResolveDependencies();
+			var factoryContractsArray = builder.FinalUsedContracts;
+			return (type, arguments) =>
 			{
-				var current = ContainerService.Builder.Current;
-				if (current == null)
-					return container.Create(type, factoryContractsArray, arguments);
-				var oldContracts = current.Context.contracts.Replace(factoryContracts);
-				var result = current.Context.container.ResolveCore(new ServiceName(type.UnwrapEnumerable()), true,
-					ObjectAccessor.Get(arguments), current.Context);
-				current.Context.contracts.Restore(oldContracts);
-				var resultDependency = result.AsImplicitDependency(current.Context.container.containerContext, result.Type != type);
-				current.AddDependency(resultDependency, false);
-				if (resultDependency.Status != ServiceStatus.Ok)
-					throw new ServiceCouldNotBeCreatedException();
-				return resultDependency.Value;
+				var name = new ServiceName(type.UnwrapEnumerable(), factoryContractsArray);
+				return container.Create(name, name.Type != type, arguments);
 			};
 		}
 
