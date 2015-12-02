@@ -42,7 +42,9 @@
     <Compile Include="AssembliesLoadTest.cs" />
     <Compile Include="BasicTest.cs" />
     <Compile Include="ConfigurationBuilderValidationsTest.cs" />
-    <Compile Include="ConstructionLogTest.cs" />
+    <Compile Include="ConstructionLog\ConstructionLogGroupingByStackTest.cs" />
+    <Compile Include="ConstructionLog\ConstructionLogTest.cs" />
+    <Compile Include="ConstructionLog\ConstructionLogValueFormattingTest.cs" />
     <Compile Include="ContainerFactoryTest.cs" />
     <Compile Include="Contracts\ContractsBasicTest.cs" />
     <Compile Include="Contracts\ContractsConstructionLogTest.cs" />
@@ -51,6 +53,7 @@
     <Compile Include="Contracts\ContractsUnionTest.cs" />
     <Compile Include="Contracts\ContractsWithFactoriesTest.cs" />
     <Compile Include="DynamicConfigurationTest.cs" />
+    <Compile Include="EnforeWindowsLineEndings.cs" />
     <Compile Include="ExceptionHandlingTest.cs" />
     <Compile Include="Factories\CtorDelegatesTest.cs" />
     <Compile Include="FactoryConfiguration.cs" />
@@ -106,7 +109,9 @@
   <ItemGroup>
     <EmbeddedResource Include="testResource.txt" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="ConstructionLog\test-resource-for-construction-log-test.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

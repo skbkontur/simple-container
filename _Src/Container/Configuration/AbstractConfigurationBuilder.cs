@@ -70,7 +70,7 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance = true)
 		{
-			GetServiceBuilder(typeof (T)).Bind(creator, containerOwnsInstance);
+			GetServiceBuilder(typeof (T)).Bind(c => creator(c), containerOwnsInstance);
 			return Self;
 		}
 
@@ -82,7 +82,7 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind<T>(Func<IContainer, Type, T> creator, bool containerOwnsInstance = true)
 		{
-			GetServiceBuilder(typeof (T)).Bind(creator, containerOwnsInstance);
+			GetServiceBuilder(typeof (T)).Bind((c, t) => creator(c, t), containerOwnsInstance);
 			return Self;
 		}
 

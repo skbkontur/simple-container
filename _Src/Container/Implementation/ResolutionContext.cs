@@ -88,7 +88,9 @@ namespace SimpleContainer.Implementation
 			var result = new StringBuilder();
 			for (var i = contexts.Count - 1; i >= 0; i--)
 			{
-				var stackItems = contexts[i].Stack.Select(y => "\t" + y.Name.ToString()).ToArray();
+				var stackItems = contexts[i].Stack
+					.Select(y => "\t" + (y.Type.IsSimpleType() && y.DependencyName != null ? y.DependencyName : y.Name.ToString()))
+					.ToArray();
 				if (i != contexts.Count - 1)
 				{
 					result.AppendLine();

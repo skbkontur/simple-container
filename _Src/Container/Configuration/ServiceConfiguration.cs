@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using SimpleContainer.Helpers;
+using SimpleContainer.Implementation;
 using SimpleContainer.Interface;
 
 namespace SimpleContainer.Configuration
@@ -19,8 +20,8 @@ namespace SimpleContainer.Configuration
 		public List<Type> ImplementationTypes { get; private set; }
 		public object Implementation { get; private set; }
 		public bool ImplementationAssigned { get; private set; }
-		public Func<IContainer, object> Factory { get; set; }
-		public Func<IContainer, Type, object> FactoryWithTarget { get; set; }
+		public bool FactoryDependsOnTarget { get; private set; }
+		public Func<ContainerService.Builder, object> Factory { get; private set; }
 		public bool ContainerOwnsInstance { get; private set; }
 		public bool DontUseIt { get; private set; }
 		public bool IgnoredImplementation { get; private set; }
@@ -123,32 +124,27 @@ namespace SimpleContainer.Configuration
 				target.InstanceFilter = o => filter((T) o);
 			}
 
-			public void Bind(Func<IContainer, object> creator, bool containerOwnsInstance)
-			{
-				target.Factory = creator;
-				target.ContainerOwnsInstance = containerOwnsInstance;
-			}
-
 			public void SetComment(string comment)
 			{
 				target.Comment = comment;
 			}
 
-			public void Bind<T>(Func<IContainer, T> creator, bool containerOwnsInstance)
+			public void Bind(Func<IContainer, object> creator, bool containerOwnsInstance)
 			{
-				target.Factory = c => creator(c);
+				target.Factory = b => creator(b.Context.Container);
 				target.ContainerOwnsInstance = containerOwnsInstance;
 			}
 
 			public void Bind(Func<IContainer, Type, object> creator, bool containerOwnsInstance)
 			{
-				target.FactoryWithTarget = creator;
-				target.ContainerOwnsInstance = containerOwnsInstance;
-			}
-
-			public void Bind<T>(Func<IContainer, Type, T> creator, bool containerOwnsInstance)
-			{
-				target.FactoryWithTarget = (c, t) => creator(c, t);
+				target.Factory = delegate(ContainerService.Builder b)
+				{
+					var stack = b.Context.Stack;
+					var previousService = stack.Count <= 1 ? null : stack[stack.Count - 2];
+					var targetType = previousService == null ? null : previousService.Type;
+					return creator(b.Context.Container, targetType);
+				};
+				target.FactoryDependsOnTarget = true;
 				target.ContainerOwnsInstance = containerOwnsInstance;
 			}
 

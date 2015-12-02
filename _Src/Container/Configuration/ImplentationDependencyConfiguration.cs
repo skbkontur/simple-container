@@ -1,4 +1,5 @@
 using System;
+using SimpleContainer.Implementation;
 
 namespace SimpleContainer.Configuration
 {
@@ -12,7 +13,7 @@ namespace SimpleContainer.Configuration
 		public object Value { get; private set; }
 		public bool ValueAssigned { get; private set; }
 		public Type ImplementationType { get; private set; }
-		public Func<IContainer, object> Factory { get; private set; }
+		public Func<ContainerService.Builder, object> Factory { get; private set; }
 
 		public class Builder
 		{
@@ -26,9 +27,9 @@ namespace SimpleContainer.Configuration
 
 			public void UseFactory(Func<IContainer, object> creator)
 			{
-				target.Factory = creator;
+				target.Factory = b => creator(b.Context.Container);
 			}
-			
+
 			public void UseImplementation(Type type)
 			{
 				target.ImplementationType = type;

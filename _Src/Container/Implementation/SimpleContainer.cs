@@ -232,7 +232,7 @@ namespace SimpleContainer.Implementation
 				configurationException = e;
 			}
 			var declaredName = new ServiceName(name.Type, context.Contracts.Snapshot());
-			if (configuration != null && configuration.FactoryWithTarget != null && context.Stack.Count > 0)
+			if (configuration != null && configuration.FactoryDependsOnTarget && context.Stack.Count > 0)
 				declaredName = declaredName.AddContracts(context.TopBuilder.Type.FormatName());
 			ContainerServiceId id = null;
 			if (!createNew)
@@ -294,17 +294,9 @@ namespace SimpleContainer.Implementation
 			else if (builder.Configuration.ImplementationAssigned)
 				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance);
 			else if (builder.Configuration.Factory != null)
-				builder.CreateInstanceBy(() => builder.Configuration.Factory(this), builder.Configuration.ContainerOwnsInstance);
-			else if (builder.Configuration.FactoryWithTarget != null)
 			{
 				if (!builder.Context.AnalizeDependenciesOnly)
-				{
-					var stack = builder.Context.Stack;
-					var previousService = stack.Count <= 1 ? null : stack[stack.Count - 2];
-					var target = previousService == null ? null : previousService.Type;
-					builder.CreateInstanceBy(() => builder.Configuration.FactoryWithTarget(this, target),
-						builder.Configuration.ContainerOwnsInstance);
-				}
+					builder.CreateInstanceBy(CallTarget.F(builder.Configuration.Factory), builder.Configuration.ContainerOwnsInstance);
 			}
 			else if (builder.Type.IsValueType)
 				builder.SetError("can't create value type");
@@ -581,7 +573,7 @@ namespace SimpleContainer.Implementation
 						actualArguments[i] = builder.GetFinalName();
 			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
 			{
-				builder.CreateInstance(constructor.value, null, actualArguments);
+				builder.CreateInstanceBy(CallTarget.M(constructor.value, null, actualArguments), true);
 				if (builder.CreateNew && builder.Arguments == null)
 				{
 					var compiledConstructor = constructor.value.Compile();
@@ -600,7 +592,7 @@ namespace SimpleContainer.Implementation
 			var acquireResult = serviceForUsedContractsId.AcquireInstantiateLock();
 			if (acquireResult.acquired)
 			{
-				builder.CreateInstance(constructor.value, null, actualArguments);
+				builder.CreateInstanceBy(CallTarget.M(constructor.value, null, actualArguments), true);
 				serviceForUsedContractsId.ReleaseInstantiateLock(builder.Context.AnalizeDependenciesOnly
 					? null
 					: builder.GetService());
@@ -628,9 +620,12 @@ namespace SimpleContainer.Implementation
 				{
 					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType))
 					{
-						Context = builder.Context
+						Context = builder.Context,
+						DependencyName = formalParameter.Name
 					};
-					dependencyBuilder.CreateInstanceBy(() => dependencyConfiguration.Factory(this), true);
+					builder.Context.Stack.Add(dependencyBuilder);
+					dependencyBuilder.CreateInstanceBy(CallTarget.F(dependencyConfiguration.Factory), true);
+					builder.Context.Stack.RemoveLast();
 					return dependencyBuilder.GetService().AsDependency(containerContext, formalParameter.Name, false);
 				}
 				implementationType = dependencyConfiguration.ImplementationType;

@@ -49,6 +49,7 @@
     <Compile Include="Configuration\ServiceConfiguration.cs" />
     <Compile Include="Helpers\EmitHelpers.cs" />
     <Compile Include="Helpers\ValueWithType.cs" />
+    <Compile Include="Implementation\CallTarget.cs" />
     <Compile Include="Implementation\ContainerContext.cs" />
     <Compile Include="Implementation\ContractsList.cs" />
     <Compile Include="Implementation\CtorFactoryCreator.cs" />

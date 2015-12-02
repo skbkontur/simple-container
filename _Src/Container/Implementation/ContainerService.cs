@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using SimpleContainer.Configuration;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -290,6 +289,7 @@ namespace SimpleContainer.Implementation
 			public ResolutionContext Context { get; set; }
 			public string[] DeclaredContracts { get; set; }
 			public IObjectAccessor Arguments { get; set; }
+			public string DependencyName { get; set; }
 			public bool CreateNew { get; set; }
 			public ServiceName Name { get; private set; }
 
@@ -441,12 +441,14 @@ namespace SimpleContainer.Implementation
 				return Configuration.DontUseIt || Type.IsDefined("DontUseAttribute");
 			}
 
-			public void CreateInstanceBy(Func<object> creator, bool owned)
+			public void CreateInstanceBy(CallTarget callTarget, bool owned)
 			{
 				object instance;
 				try
 				{
-					instance = creator();
+					instance = callTarget.method == null
+						? callTarget.factory(this)
+						: callTarget.method.Compile()(callTarget.self, callTarget.actualArguments);
 				}
 				catch (ServiceCouldNotBeCreatedException e)
 				{
@@ -464,11 +466,6 @@ namespace SimpleContainer.Implementation
 					return;
 				}
 				AddInstance(instance, owned);
-			}
-
-			public void CreateInstance(MethodBase method, object self, object[] actualArguments)
-			{
-				CreateInstanceBy(() => method.Compile()(self, actualArguments), true);
 			}
 		}
 	}

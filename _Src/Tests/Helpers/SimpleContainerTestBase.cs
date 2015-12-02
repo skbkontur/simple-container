@@ -46,5 +46,11 @@ namespace SimpleContainer.Tests.Helpers
 			disposables.Add(result);
 			return result;
 		}
+
+		protected static string FormatExpectedMessage(string s)
+		{
+			const string crlf = "\r\n";
+			return s.Substring(crlf.Length);
+		}
 	}
 }

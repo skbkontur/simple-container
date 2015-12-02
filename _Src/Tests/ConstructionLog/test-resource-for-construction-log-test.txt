@@ -1,0 +1,1 @@
+the test resource for construction log test

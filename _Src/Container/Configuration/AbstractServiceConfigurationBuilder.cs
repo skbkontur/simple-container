@@ -65,13 +65,13 @@ namespace SimpleContainer.Configuration
 
 		public TSelf Bind(Func<IContainer, TService> factory, bool containerOwnsInstance = true)
 		{
-			GetServiceBuilder().Bind(factory, containerOwnsInstance);
+			GetServiceBuilder().Bind(c => factory(c), containerOwnsInstance);
 			return Self;
 		}
 		
 		public TSelf Bind(Func<IContainer, Type, TService> factory, bool containerOwnsInstance = true)
 		{
-			GetServiceBuilder().Bind(factory, containerOwnsInstance);
+			GetServiceBuilder().Bind((c, t) => factory(c, t), containerOwnsInstance);
 			return Self;
 		}
 
