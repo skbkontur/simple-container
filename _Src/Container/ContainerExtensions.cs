@@ -27,7 +27,9 @@ namespace SimpleContainer
 		public static object Get(this IContainer container, Type type, string contract = null)
 		{
 			var contracts = string.IsNullOrEmpty(contract) ? InternalHelpers.emptyStrings : new[] {contract};
-			var resolvedService = container.Resolve(type, contracts);
+			//todo remove this ugly hack 
+			var simpleContainer = (Implementation.SimpleContainer) container;
+			var resolvedService = simpleContainer.Resolve(type, contracts, false);
 			if (!ResolutionContext.HasPendingResolutionContext)
 				resolvedService.EnsureInitialized();
 			return resolvedService.Single();
@@ -53,7 +55,9 @@ namespace SimpleContainer
 
 		public static IEnumerable<object> GetAll(this IContainer container, Type type, params string[] contracts)
 		{
-			var resolvedService = container.Resolve(type, contracts);
+			//todo remove this ugly hack 
+			var simpleContainer = (Implementation.SimpleContainer) container;
+			var resolvedService = simpleContainer.Resolve(type, contracts, true);
 			if (!ResolutionContext.HasPendingResolutionContext)
 				resolvedService.EnsureInitialized();
 			return resolvedService.All();
@@ -61,10 +65,12 @@ namespace SimpleContainer
 
 		public static IEnumerable<T> GetAll<T>(this IContainer container, params string[] contracts)
 		{
-			var containerService = container.Resolve<T>(contracts);
+			//todo remove this ugly hack 
+			var simpleContainer = (Implementation.SimpleContainer) container;
+			var resolvedService = simpleContainer.Resolve(typeof (T), contracts, true);
 			if (!ResolutionContext.HasPendingResolutionContext)
-				containerService.EnsureInitialized();
-			return containerService.All();
+				resolvedService.EnsureInitialized();
+			return new ResolvedService<T>(resolvedService).All();
 		}
 
 		public static bool TryGet<T>(this IContainer container, out T result)

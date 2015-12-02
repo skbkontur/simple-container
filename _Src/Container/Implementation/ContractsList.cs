@@ -32,15 +32,18 @@ namespace SimpleContainer.Implementation
 
 		public List<string> Replace(string[] newContracts)
 		{
-			var result = contracts;
-			contracts = newContracts.ToList();
-			contractsArray = newContracts;
-			return result;
+			var oldContracts = contracts;
+			if (newContracts.Length > 0 || contracts.Count > 0)
+			{
+				contracts = newContracts.ToList();
+				contractsArray = newContracts;
+			}
+			return oldContracts;
 		}
 
-		public void Restore(List<string> newContracts)
+		public void Restore(List<string> oldContracts)
 		{
-			contracts = newContracts;
+			contracts = oldContracts;
 			contractsArray = null;
 		}
 

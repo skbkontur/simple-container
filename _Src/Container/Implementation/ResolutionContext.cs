@@ -92,8 +92,7 @@ namespace SimpleContainer.Implementation
 				if (i != contexts.Count - 1)
 				{
 					result.AppendLine();
-					if (contexts[i + 1].Container != contexts[i].Container)
-						stackItems[0] = stackItems[0] + "[container boundary]";
+					stackItems[0] = stackItems[0] + "[container boundary]";
 				}
 				result.Append(stackItems.JoinStrings("\r\n"));
 			}

@@ -43,8 +43,17 @@ namespace SimpleContainer.Implementation
 			EnsureNotDisposed();
 			if (type == null)
 				throw new ArgumentNullException("type");
-			var name = CreateServiceName(type.UnwrapEnumerable(), contracts);
-			var isEnumerable = name.Type != type;
+			var t = type.UnwrapEnumerable();
+			return Resolve(t, contracts, t != type);
+		}
+		
+		//todo remove this ugly hack
+		internal ResolvedService Resolve(Type type, IEnumerable<string> contracts, bool isEnumerable)
+		{
+			EnsureNotDisposed();
+			if (type == null)
+				throw new ArgumentNullException("type");
+			var name = CreateServiceName(type, contracts);
 			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
 			if (!id.TryGet(out result))
@@ -63,10 +72,10 @@ namespace SimpleContainer.Implementation
 			if (activation.previous == null)
 				return;
 			var resultDependency = containerService.AsDependency(containerContext,
-				"() => " + containerService.Type.FormatName(), true);
+				"() => " + containerService.Type.FormatName(), isEnumerable);
 			if (activation.activated.Container != activation.previous.Container)
 				resultDependency.Comment = "container boundary";
-			activation.previous.TopBuilder.AddDependency(resultDependency, isEnumerable);
+			activation.previous.TopBuilder.AddDependency(resultDependency, false);
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
