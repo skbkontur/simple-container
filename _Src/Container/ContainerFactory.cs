@@ -21,6 +21,7 @@ namespace SimpleContainer
 		private LogInfo infoLogger;
 		private Type[] priorities;
 		private Action<ContainerConfigurationBuilder> configure;
+		private Action<ContainerConfigurationBuilder> staticConfigure;
 		private TypesContext typesContextCache;
 		private Func<Type[]> types;
 		private IParametersSource parameters;
@@ -114,6 +115,14 @@ namespace SimpleContainer
 			return this;
 		}
 
+		public ContainerFactory WithStaticConfigurator(Action<ContainerConfigurationBuilder> newConfigure)
+		{
+			staticConfigure = newConfigure;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
 		public ContainerFactory WithTypesFromDefaultBinDirectory(bool withExecutables)
 		{
 			return WithTypesFromDirectory(GetBinDirectory(), withExecutables);
@@ -168,7 +177,16 @@ namespace SimpleContainer
 				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
 				if (configFileName != null && File.Exists(configFileName))
 					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);
-				var configurationContainer = CreateContainer(typesContext, ConfigurationRegistry.Empty);
+				ConfigurationRegistry staticConfiguration;
+				if (staticConfigure == null)
+					staticConfiguration = ConfigurationRegistry.Empty;
+				else
+				{
+					var builder = new ContainerConfigurationBuilder();
+					staticConfigure(builder);
+					staticConfiguration = builder.RegistryBuilder.Build(typesContext.typesList, null);
+				}
+				var configurationContainer = CreateContainer(typesContext, staticConfiguration);
 				typesContext.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
 				typesContextCache = typesContext;
 			}
