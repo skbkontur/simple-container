@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
@@ -37,9 +40,9 @@ namespace SimpleContainer.Implementation
 			var underlyingType = Nullable.GetUnderlyingType(targetType);
 			if (underlyingType != null)
 				targetType = underlyingType;
-			if (source is int && targetType == typeof(long))
+			if (source is int && targetType == typeof (long))
 			{
-				value = (long)(int)source;
+				value = (long) (int) source;
 				return true;
 			}
 			value = null;
@@ -140,15 +143,7 @@ namespace SimpleContainer.Implementation
 			if (Status == ServiceStatus.Ok && constantKind.HasValue)
 			{
 				if (constantKind == ConstantKind.Value)
-				{
-					if (Value == null || Value.GetType().IsSimpleType())
-						context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(Value));
-					else
-					{
-						context.Writer.WriteMeta(" const");
-						WriteValue(context);
-					}
-				}
+					WriteValue(context, Value, true);
 				if (constantKind == ConstantKind.Resource)
 					context.Writer.WriteMeta(string.Format(" resource [{0}]", resourceName));
 			}
@@ -157,61 +152,78 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteNewLine();
 		}
 
-		private void WriteValue(ConstructionLogContext context)
+		private static void WriteValue(ConstructionLogContext context, object value, bool isTop)
 		{
-			string formattedValue;
-
-			if (TryFormat(Value, context, out formattedValue))
+			var formattedValue = FormatAsSimpleType(value, context);
+			if (formattedValue != null)
 			{
+				if (isTop && value != null && context.ValueFormatters.ContainsKey(value.GetType()))
+					context.Writer.WriteMeta(" const");
 				context.Writer.WriteMeta(" -> " + formattedValue);
 				return;
 			}
-			var enumerable = Value as IEnumerable;
-			if (enumerable != null)
+			if (isTop)
+				context.Writer.WriteMeta(" const");
+			context.Indent++;
+			var enumerable = value as IEnumerable;
+			if (enumerable == null)
 			{
-				context.Indent++;
+				var properties = value.GetType()
+					.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+					.Where(x => x.CanRead && (x.CanWrite || IsAutoProperty(x)))
+					.ToArray();
+				if (properties.Length > 0)
+					WriteMembers(context, properties, value);
+				else
+					WriteMembers(context, value.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance), value);
+			}
+			else
 				foreach (var item in enumerable)
 				{
-					if (!TryFormat(item, context, out formattedValue))
-						formattedValue = "?";
 					context.Writer.WriteNewLine();
 					context.WriteIndent();
-					context.Writer.WriteMeta(formattedValue);
+					formattedValue = FormatAsSimpleType(item, context);
+					if (formattedValue == null)
+					{
+						context.Writer.WriteName("item");
+						WriteValue(context, item, false);
+					}
+					else
+						context.Writer.WriteMeta(formattedValue);
 				}
-				context.Indent--;
-				return;
-			}
-			context.Indent++;
-			foreach (var prop in Value.GetType().GetProperties())
-			{
-				if (!prop.CanRead)
-					continue;
-				var propVal = prop.GetValue(Value, null);
-				if (!TryFormat(propVal, context, out formattedValue))
-					continue;
-				context.Writer.WriteNewLine();
-				context.WriteIndent();
-				context.Writer.WriteName(prop.Name);
-				context.Writer.WriteMeta(" -> " + formattedValue);
-			}
 			context.Indent--;
 		}
 
-		private static bool TryFormat(object value, ConstructionLogContext context, out string formattedValue)
+		private static bool IsAutoProperty(PropertyInfo propertyInfo)
+		{
+			var getMethod = propertyInfo.GetGetMethod(true);
+			var setMethod = propertyInfo.GetSetMethod(true);
+			return getMethod != null &&
+				   setMethod != null &&
+				   getMethod.IsDefined<CompilerGeneratedAttribute>() &&
+				   setMethod.IsDefined<CompilerGeneratedAttribute>();
+		}
+
+		private static void WriteMembers(ConstructionLogContext context, IEnumerable<MemberInfo> members, object value)
+		{
+			foreach (var m in members)
+			{
+				var propVal = m is FieldInfo ? ((FieldInfo) m).GetValue(value) : ((PropertyInfo) m).GetValue(value);
+				context.Writer.WriteNewLine();
+				context.WriteIndent();
+				context.Writer.WriteName(m.Name);
+				WriteValue(context, propVal, false);
+			}
+		}
+
+		private static string FormatAsSimpleType(object value, ConstructionLogContext context)
 		{
 			Func<object, string> formatter;
-			if (value != null && context.ValueFormatters.TryGetValue(value.GetType(), out formatter))
-			{
-				formattedValue = formatter(value);
-				return true;
-			}
-			if (value == null || value.GetType().IsSimpleType())
-			{
-				formattedValue = InternalHelpers.DumpValue(value);
-				return true;
-			}
-			formattedValue = null;
-			return false;
+			return value == null || value.GetType().IsSimpleType()
+				? InternalHelpers.DumpValue(value)
+				: context.ValueFormatters.TryGetValue(value.GetType(), out formatter)
+					? formatter(value)
+					: null;
 		}
 
 		private ServiceDependency WithName(ParameterInfo parameter, string name)
