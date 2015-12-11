@@ -333,7 +333,15 @@ namespace SimpleContainer.Implementation
 
 			public void AddInstance(object instance, bool owned)
 			{
-				instances.Add(new InstanceWrap(instance, owned));
+				AddInstance(new InstanceWrap(instance, owned));
+			}
+
+			private void AddInstance(InstanceWrap wrap)
+			{
+				if (Configuration != null && Configuration.InstanceFilter != null && !Configuration.InstanceFilter(wrap.Instance))
+					SetComment("instance filter");
+				else
+					instances.Add(wrap);
 			}
 
 			public void AddDependency(ServiceDependency dependency, bool isUnion)
@@ -358,12 +366,7 @@ namespace SimpleContainer.Implementation
 				if (target.Status.IsGood())
 					foreach (var instance in childService.instances)
 						if (!instances.Contains(instance))
-							instances.Add(instance);
-			}
-
-			public int FilterInstances(Func<object, bool> filter)
-			{
-				return instances.RemoveAll(o => !filter(o.Instance));
+							AddInstance(instance);
 			}
 
 			public void UnionUsedContracts(ContainerService dependency)

@@ -312,13 +312,6 @@ namespace SimpleContainer.Implementation
 				InstantiateInterface(builder);
 			else
 				InstantiateImplementation(builder);
-
-			if (builder.Configuration.InstanceFilter != null)
-			{
-				var filteredOutCount = builder.FilterInstances(builder.Configuration.InstanceFilter);
-				if (filteredOutCount > 0)
-					builder.SetComment("instance filter");
-			}
 		}
 
 		private void ApplySelectors(HashSet<ImplementationType> implementations, ContainerService.Builder builder)
