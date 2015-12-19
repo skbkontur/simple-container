@@ -242,17 +242,55 @@ namespace SimpleContainer.Helpers
 			string result;
 			if (typeNames.TryGetValue(type, out result))
 				return result;
-			result = type.Name;
 			if (type.IsArray)
 				return type.GetElementType().FormatName() + "[]";
 			if (type.IsDelegate() && type.IsNested)
 				return type.DeclaringType.FormatName() + "." + type.Name;
-			if (type.IsGenericType)
+
+			if (!type.IsNested || !type.DeclaringType.IsGenericType || type.IsGenericParameter)
+				return FormatGenericType(type, type.GetGenericArguments());
+
+			var declaringHierarchy = DeclaringHierarchy(type)
+				.TakeWhile(t => t.IsGenericType)
+				.Reverse();
+			
+			var knownGenericArguments = type.GetGenericTypeDefinition().GetGenericArguments()
+				.Zip(type.GetGenericArguments(), (definition, closed) => new {definition, closed})
+				.ToDictionary(x => x.definition.GenericParameterPosition, x => x.closed);
+				
+			var hierarchyNames = new List<string>();
+
+			foreach (var t in declaringHierarchy)
 			{
-				result = result.Substring(0, result.IndexOf("`", StringComparison.InvariantCulture));
-				result += "<" + type.GetGenericArguments().Select(FormatName).JoinStrings(",") + ">";
+				var tArguments = t.GetGenericTypeDefinition()
+					.GetGenericArguments()
+					.Where(x => knownGenericArguments.ContainsKey(x.GenericParameterPosition))
+					.ToArray();
+
+				hierarchyNames.Add(FormatGenericType(t, tArguments.Select(x => knownGenericArguments[x.GenericParameterPosition]).ToArray()));
+
+				foreach (var tArgument in tArguments)
+					knownGenericArguments.Remove(tArgument.GenericParameterPosition);
 			}
-			return result;
+			return string.Join(".", hierarchyNames.ToArray());
+		}
+
+		private static IEnumerable<Type> DeclaringHierarchy(Type type)
+		{
+			yield return type;
+			while (type.DeclaringType != null)
+			{
+				yield return type.DeclaringType;
+				type = type.DeclaringType;
+			}
+		}
+
+		private static string FormatGenericType(Type type, Type[] arguments)
+		{
+			var genericMarkerIndex = type.Name.IndexOf("`", StringComparison.InvariantCulture);
+			return genericMarkerIndex > 0
+				? string.Format("{0}<{1}>", type.Name.Substring(0, genericMarkerIndex), arguments.Select(FormatName).JoinStrings(","))
+				: type.Name;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
