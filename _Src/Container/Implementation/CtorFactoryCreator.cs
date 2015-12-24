@@ -12,13 +12,19 @@ namespace SimpleContainer.Implementation
 	{
 		public static bool TryCreate(ContainerService.Builder builder)
 		{
-			if (!builder.Type.IsDelegate())
-				return false;
-			if (!builder.Type.IsNestedPublic)
+			if (!builder.Type.IsDelegate() || builder.Type.FullName.StartsWith("System.Func`"))
 				return false;
 			var invokeMethod = builder.Type.GetMethod("Invoke");
+			if (!builder.Type.IsNestedPublic)
+			{
+				builder.SetError(string.Format("can't create delegate [{0}]. must be nested public", builder.Type.FormatName()));
+				return true;
+			}
 			if (invokeMethod.ReturnType != builder.Type.DeclaringType)
-				return false;
+			{
+				builder.SetError(string.Format("can't create delegate [{0}]. return type must match declaring", builder.Type.FormatName()));
+				return true;
+			}
 			const BindingFlags ctorBindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 			var constructors = builder.Type.DeclaringType.GetConstructors(ctorBindingFlags)
 				.Where(x => Match(invokeMethod, x))

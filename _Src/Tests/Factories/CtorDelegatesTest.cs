@@ -349,7 +349,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]. return type must match declaring\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
 
@@ -366,7 +366,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var ctorType = typeof (A).GetNestedTypes(BindingFlags.NonPublic).Single(x => x.Name == "Ctor");
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get(ctorType));
-				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]. must be nested public\r\n\r\n!A.Ctor <---------------"));
 			}
 		}
 
@@ -399,5 +399,28 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(instance.name2.Type, Is.EqualTo(typeof (A)));
 			}
 		}
+
+		public class SkipNonNestedDelegate : CtorDelegatesTest
+		{
+			public class Service
+			{
+				public int Value { get; set; }
+
+				public Service(int value)
+				{
+					Value = value;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceCtor>());
+				Assert.That(exception.Message, Is.EqualTo("can't create delegate [ServiceCtor]. must be nested public\r\n\r\n!ServiceCtor <---------------"));
+			}
+		}
 	}
+
+	public delegate CtorDelegatesTest.SkipNonNestedDelegate.Service ServiceCtor(int value);
 }
