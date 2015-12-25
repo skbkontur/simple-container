@@ -46,7 +46,7 @@ namespace SimpleContainer.Implementation
 			var t = type.UnwrapEnumerable();
 			return Resolve(t, contracts, t != type);
 		}
-		
+
 		//todo remove this ugly hack
 		internal ResolvedService Resolve(Type type, IEnumerable<string> contracts, bool isEnumerable)
 		{
@@ -54,13 +54,22 @@ namespace SimpleContainer.Implementation
 			if (type == null)
 				throw new ArgumentNullException("type");
 			var name = CreateServiceName(type, contracts);
-			var id = instanceCache.GetOrAdd(name, createId);
 			ContainerService result;
-			if (!id.TryGet(out result))
+			if (ContainerService.ThreadInitializing)
 			{
-				var activation = ResolutionContext.Push(this);
-				result = ResolveCore(name, false, null, activation.activated);
-				PopResolutionContext(activation, result, isEnumerable);
+				const string formatMessage = "attempt to resolve [{0}] is prohibited to prevent possible deadlocks";
+				var message = string.Format(formatMessage, name.Type.FormatName());
+				result = ContainerService.Error(name, message);
+			}
+			else
+			{
+				var id = instanceCache.GetOrAdd(name, createId);
+				if (!id.TryGet(out result))
+				{
+					var activation = ResolutionContext.Push(this);
+					result = ResolveCore(name, false, null, activation.activated);
+					PopResolutionContext(activation, result, isEnumerable);
+				}
 			}
 			return new ResolvedService(result, containerContext, isEnumerable);
 		}

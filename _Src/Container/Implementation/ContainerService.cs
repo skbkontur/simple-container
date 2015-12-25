@@ -77,6 +77,14 @@ namespace SimpleContainer.Implementation
 			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
+		[ThreadStatic]
+		private static bool threadInitializing;
+
+		public static bool ThreadInitializing
+		{
+			get { return threadInitializing; }
+		}
+
 		public void EnsureInitialized(ContainerContext containerContext, ContainerService root)
 		{
 			if (Status != ServiceStatus.Ok)
@@ -86,6 +94,8 @@ namespace SimpleContainer.Implementation
 					if (!initialized)
 					{
 						initializing = true;
+						var oldInitializintService = threadInitializing;
+						threadInitializing = true;
 						try
 						{
 							if (dependencies != null)
@@ -99,6 +109,7 @@ namespace SimpleContainer.Implementation
 						finally
 						{
 							initializing = false;
+							threadInitializing = oldInitializintService;
 						}
 					}
 		}

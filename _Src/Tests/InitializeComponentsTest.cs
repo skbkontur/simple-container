@@ -544,7 +544,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
 				var resolvedA = container.Resolve<A>();
-				var exception = Assert.Throws<SimpleContainerException>(() => resolvedA.EnsureInitialized());
+				var exception = Assert.Throws<SimpleContainerException>(resolvedA.EnsureInitialized);
 				Assert.That(exception.Message, Is.EqualTo("exception initializing A[c1]\r\n\r\nA[c1], initializing ...\r\n\tparameter -> 42"));
 				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
 			}
@@ -764,6 +764,48 @@ namespace SimpleContainer.Tests
 				Assert.That(services.Length, Is.EqualTo(2));
 				foreach (var service in services)
 					Assert.That(service.Initialized, Is.True);
+			}
+		}
+
+		public class ResolutionsInInitializeAreProhibited : InitializeComponentsTest
+		{
+			public class A : IInitializable
+			{
+				private readonly Lazy<B> lazyB;
+
+				public A(Lazy<B> lazyB)
+				{
+					this.lazyB = lazyB;
+				}
+
+				public B b;
+
+				public void Initialize()
+				{
+					b = lazyB.Value;
+				}
+			}
+
+			public class B
+			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
+				const string expectedTopMessage = @"
+exception initializing A
+
+A, initializing ...
+	Lazy<B>";
+				const string expectedNestedMessage = @"
+attempt to resolve [B] is prohibited to prevent possible deadlocks
+
+!B <---------------";
+				Assert.That(exception.Message, Is.EqualTo(FormatExpectedMessage(expectedTopMessage)));
+				Assert.That(exception.InnerException.Message, Is.EqualTo(FormatExpectedMessage(expectedNestedMessage)));
 			}
 		}
 	}

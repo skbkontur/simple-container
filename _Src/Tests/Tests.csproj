@@ -103,16 +103,16 @@
     <Compile Include="ReflectionHelpersTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Container\Container.csproj">
-      <Project>{8eb9cdb1-206d-4769-a113-a019c7460590}</Project>
-      <Name>Container</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="testResource.txt" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="ConstructionLog\test-resource-for-construction-log-test.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Container\Container.csproj">
+      <Project>{8eb9cdb1-206d-4769-a113-a019c7460590}</Project>
+      <Name>Container</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
