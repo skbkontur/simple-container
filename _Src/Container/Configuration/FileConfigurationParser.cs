@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -57,7 +58,7 @@ namespace SimpleContainer.Configuration
 				throw new SimpleContainerException(string.Format(message, type.FormatName(), dependencyName,
 					dependencyText, formalParameter.ParameterType.FormatName()), e);
 			}
-			parseContext.GetServiceBuilder(type).BindDependency(dependencyName, parsedValue);
+			parseContext.Configure(type, b => b.BindDependency(dependencyName, parsedValue));
 		}
 
 		private static Action<ParseContext> Parse(string line)
@@ -70,7 +71,7 @@ namespace SimpleContainer.Configuration
 				return c => c.SetContract(contractName);
 			}
 			if (items.Length == 1)
-				return c => c.GetServiceBuilder(c.ParseType(fromToken)).DontUse();
+				return c => c.Configure(c.ParseType(fromToken), b => b.DontUse());
 			var toToken = items[1];
 			var fromTokenItems = SplitWithTrim(fromToken, ".");
 			if (fromTokenItems.Length > 1)
@@ -78,7 +79,7 @@ namespace SimpleContainer.Configuration
 			return c =>
 			{
 				var type = c.ParseType(fromToken);
-				c.GetServiceBuilder(type).Bind(type, c.ParseType(toToken), true);
+				c.Configure(type, b => b.Bind(type, c.ParseType(toToken), true));
 			};
 		}
 
@@ -99,12 +100,13 @@ namespace SimpleContainer.Configuration
 				contractName = name;
 			}
 
-			public ServiceConfiguration.Builder GetServiceBuilder(Type type)
+			public void Configure(Type type, Action<ServiceConfiguration.Builder> configure)
 			{
 				var contracts = new List<string>();
 				if (!string.IsNullOrEmpty(contractName))
 					contracts.Add(contractName);
-				return builder.GetConfigurationSet(type).GetBuilder(contracts);
+				var configurationSet = builder.GetConfigurationSet(type);
+				configurationSet.RegisterLazyConfigurator(() => configure(configurationSet.GetBuilder(contracts)));
 			}
 
 			public Type ParseType(string name)

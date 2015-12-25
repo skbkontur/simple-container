@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -23,6 +24,36 @@ namespace SimpleContainer.Tests
 
 			public class A2 : IA
 			{
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container("IA -> A2");
+				Assert.That(container.Get<IA>(), Is.SameAs(container.Get<A2>()));
+			}
+		}
+		
+		public class CanOverrideLazyConfigurators : FileConfigurationTest
+		{
+			public interface IA
+			{
+			}
+
+			public class A1 : IA
+			{
+			}
+
+			public class A2 : IA
+			{
+			}
+
+			public class AConfigurator : IServiceConfigurator<IA>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<IA> builder)
+				{
+					builder.Bind<A1>();
+				}
 			}
 
 			[Test]
