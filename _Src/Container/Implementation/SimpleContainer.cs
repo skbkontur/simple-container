@@ -74,14 +74,13 @@ namespace SimpleContainer.Implementation
 			return new ResolvedService(result, containerContext, isEnumerable);
 		}
 
-		private void PopResolutionContext(ResolutionContext.ResolutionContextActivation activation,
+		private static void PopResolutionContext(ResolutionContext.ResolutionContextActivation activation,
 			ContainerService containerService, bool isEnumerable)
 		{
 			ResolutionContext.Pop(activation);
 			if (activation.previous == null)
 				return;
-			var resultDependency = containerService.AsDependency(containerContext,
-				"() => " + containerService.Type.FormatName(), isEnumerable);
+			var resultDependency = containerService.AsDependency("() => " + containerService.Type.FormatName(), isEnumerable);
 			if (activation.activated.Container != activation.previous.Container)
 				resultDependency.Comment = "container boundary";
 			activation.previous.TopBuilder.AddDependency(resultDependency, false);
@@ -115,9 +114,11 @@ namespace SimpleContainer.Implementation
 			PopResolutionContext(activation, result, isEnumerable);
 			if (!hasPendingResolutionContext)
 				result.EnsureInitialized(containerContext, result);
-			return isEnumerable
-				? result.GetAllValues(containerContext)
-				: result.GetSingleValue(containerContext, false, null);
+			result.CheckStatusIsGood(containerContext);
+			if (isEnumerable)
+				return result.GetAllValues();
+			result.CheckSingleValue(containerContext);
+			return result.Instances[0].Instance;
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
@@ -271,7 +272,7 @@ namespace SimpleContainer.Implementation
 					foreach (var c in expandedUnions.CartesianProduct())
 					{
 						var childService = ResolveCore(new ServiceName(name.Type, c), createNew, arguments, context);
-						builder.LinkTo(containerContext, childService, null);
+						builder.LinkTo(childService, null);
 						if (builder.Status.IsBad())
 							break;
 					}
@@ -361,7 +362,7 @@ namespace SimpleContainer.Implementation
 				{
 					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, false, null, null),
 						builder.CreateNew, builder.Arguments, builder.Context);
-					builder.LinkTo(containerContext, implementationService, implementationType.comment);
+					builder.LinkTo(implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
 					    implementationService.Status == ServiceStatus.Ok && canUseFactory)
 						if (factory == null)
@@ -540,7 +541,7 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = ResolveCore(d, false, null, builder.Context).AsDependency(containerContext, null, false);
+				var dependency = ResolveCore(d, false, null, builder.Context).AsDependency(null, false);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -628,7 +629,7 @@ namespace SimpleContainer.Implementation
 					builder.Context.Stack.Add(dependencyBuilder);
 					dependencyBuilder.CreateInstanceBy(CallTarget.F(dependencyConfiguration.Factory), true);
 					builder.Context.Stack.RemoveLast();
-					return dependencyBuilder.GetService().AsDependency(containerContext, formalParameter.Name, false);
+					return dependencyBuilder.GetService().AsDependency(formalParameter.Name, false);
 				}
 				implementationType = dependencyConfiguration.ImplementationType;
 			}
@@ -658,7 +659,7 @@ namespace SimpleContainer.Implementation
 				return ServiceDependency.ServiceError(resultService);
 			var isEnumerable = dependencyName.Type != implementationType;
 			if (isEnumerable)
-				return ServiceDependency.Service(resultService, resultService.GetAllValues(containerContext));
+				return ServiceDependency.Service(resultService, resultService.GetAllValues());
 			if (resultService.Status == ServiceStatus.NotResolved)
 			{
 				if (formalParameter.HasDefaultValue)
@@ -667,7 +668,7 @@ namespace SimpleContainer.Implementation
 					return ServiceDependency.Service(resultService, null);
 				return ServiceDependency.NotResolved(resultService);
 			}
-			return resultService.AsDependency(containerContext, null, false);
+			return resultService.AsDependency(null, false);
 		}
 
 		public void Dispose()

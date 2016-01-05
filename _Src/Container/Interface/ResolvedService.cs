@@ -40,7 +40,7 @@ namespace SimpleContainer.Interface
 
 		public T SingleOrDefault(T defaultValue = default(T))
 		{
-			return (T) resolvedService.SingleODefault(defaultValue);
+			return (T) resolvedService.SingleOrDefault(defaultValue);
 		}
 
 		public IEnumerable<T> All()
@@ -85,12 +85,22 @@ namespace SimpleContainer.Interface
 
 		public object Single()
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue(containerContext, false, null);
+			containerService.CheckStatusIsGood(containerContext);
+			if (isEnumerable)
+				return containerService.GetAllValues();
+			containerService.CheckSingleValue(containerContext);
+			return containerService.Instances[0].Instance;
 		}
 
-		public object SingleODefault(object defaultValue)
+		public object SingleOrDefault(object defaultValue)
 		{
-			return isEnumerable ? All() : containerService.GetSingleValue(containerContext, true, defaultValue);
+			containerService.CheckStatusIsGood(containerContext);
+			if (isEnumerable)
+				return containerService.GetAllValues();
+			if (containerService.Instances.Length == 0)
+				return defaultValue;
+			containerService.CheckSingleValue(containerContext);
+			return containerService.Instances[0].Instance;
 		}
 
 		public bool IsOk()
@@ -100,7 +110,8 @@ namespace SimpleContainer.Interface
 
 		public IEnumerable<object> All()
 		{
-			return containerService.GetAllValues(containerContext);
+			containerService.CheckStatusIsGood(containerContext);
+			return containerService.GetAllValues();
 		}
 
 		public void DumpConstructionLog(ISimpleLogWriter writer)
