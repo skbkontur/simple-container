@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using NUnit.Framework;
@@ -785,6 +786,58 @@ namespace SimpleContainer.Tests
 					.WithPriorities(typeof (ILowPriorityConfigurator<>), typeof (IServiceConfigurator<>))
 					.Build();
 				Assert.That(container.GetImplementationsOf<IService>(), Is.EqualTo(new[] {typeof (ImplTwo)}));
+			}
+		}
+
+		public class ServiceConfiguratorForGenericDefinition : SimpleContainerTestBase
+		{
+			public class G<T>
+				where T : IConstraint
+			{
+				public readonly int parameter;
+
+				public G(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			public interface IConstraint
+			{
+			}
+
+			public class A : IConstraint
+			{
+			}
+
+			public class B : IConstraint
+			{
+			}
+
+			public class GConfigurator : IServiceConfigurator<DefinitionOf<G<IConstraint>>>
+			{
+				public void Configure(ConfigurationContext context,
+					ServiceConfigurationBuilder<DefinitionOf<G<IConstraint>>> builder)
+				{
+					builder.Dependencies(new {parameter = 42});
+				}
+			}
+
+			public class GBConfigurator : IServiceConfigurator<G<B>>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<G<B>> builder)
+				{
+					builder.Dependencies(new {parameter = 43});
+				}
+			}
+
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				Assert.That(container.Get<G<A>>().parameter, Is.EqualTo(42));
+				Assert.That(container.Get<G<B>>().parameter, Is.EqualTo(43));
 			}
 		}
 

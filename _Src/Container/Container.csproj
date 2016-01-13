@@ -88,6 +88,7 @@
     <Compile Include="Configuration\FileConfigurationParser.cs" />
     <Compile Include="Implementation\MemberSetter.cs" />
     <Compile Include="Implementation\MemberInjectionsProvider.cs" />
+    <Compile Include="Interface\DefinitionOf.cs" />
     <Compile Include="Interface\IParametersSource.cs" />
     <Compile Include="Interface\OptionalService.cs" />
     <Compile Include="Interface\ParametersSourceExtensions.cs" />

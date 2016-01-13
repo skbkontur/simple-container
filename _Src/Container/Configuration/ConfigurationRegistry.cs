@@ -68,9 +68,12 @@ namespace SimpleContainer.Configuration
 
 			public ServiceConfigurationSet GetConfigurationSet(Type type)
 			{
+				var t = type.IsGenericType && type.GetGenericTypeDefinition() == typeof (DefinitionOf<>)
+					? type.GetGenericArguments()[0].GetGenericTypeDefinition()
+					: type;
 				ServiceConfigurationSet result;
-				if (!configurations.TryGetValue(type, out result))
-					configurations.Add(type, result = new ServiceConfigurationSet());
+				if (!configurations.TryGetValue(t, out result))
+					configurations.Add(t, result = new ServiceConfigurationSet());
 				return result;
 			}
 
