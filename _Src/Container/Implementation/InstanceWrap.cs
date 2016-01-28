@@ -8,11 +8,13 @@ namespace SimpleContainer.Implementation
 		private volatile bool initialized;
 		public object Instance { get; private set; }
 		public bool Owned { get; private set; }
+		public bool IsConstant { get; private set; }
 
-		public InstanceWrap(object instance, bool owned)
+		public InstanceWrap(object instance, bool owned, bool isConstant)
 		{
 			Instance = instance;
 			Owned = owned;
+			IsConstant = isConstant;
 		}
 
 		public override bool Equals(object obj)
@@ -43,7 +45,8 @@ namespace SimpleContainer.Implementation
 						}
 						catch (Exception e)
 						{
-							throw new SimpleContainerException(string.Format("exception initializing {0}\r\n\r\n{1}", name, root.GetConstructionLog(containerContext)), e);
+							throw new SimpleContainerException(
+								string.Format("exception initializing {0}\r\n\r\n{1}", name, root.GetConstructionLog(containerContext)), e);
 						}
 						if (containerContext.infoLogger != null)
 							containerContext.infoLogger(name, "initialize finished");

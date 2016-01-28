@@ -300,9 +300,9 @@ namespace SimpleContainer.Implementation
 			if (builder.Type.IsSimpleType())
 				builder.SetError("can't create simple type");
 			else if (builder.Type == typeof (IContainer))
-				builder.AddInstance(this, false);
+				builder.AddInstance(this, false, false);
 			else if (builder.Configuration.ImplementationAssigned)
-				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance);
+				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance, true);
 			else if (builder.Configuration.Factory != null)
 			{
 				if (!builder.Context.AnalizeDependenciesOnly)
@@ -502,7 +502,7 @@ namespace SimpleContainer.Implementation
 			var result = FactoryCreator.TryCreate(builder) ?? LazyCreator.TryCreate(builder);
 			if (result != null)
 			{
-				builder.AddInstance(result, true);
+				builder.AddInstance(result, true, false);
 				return;
 			}
 			if (NestedFactoryCreator.TryCreate(builder))

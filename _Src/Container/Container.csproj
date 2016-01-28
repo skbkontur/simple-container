@@ -66,6 +66,7 @@
     <Compile Include="Implementation\ServiceDependency.cs" />
     <Compile Include="Implementation\ServiceInstance.cs" />
     <Compile Include="Implementation\ServiceStatus.cs" />
+    <Compile Include="Implementation\ValueFormatter.cs" />
     <Compile Include="Infection\DontUseAttribute.cs" />
     <Compile Include="Infection\Lifestyle.cs" />
     <Compile Include="Infection\LifestyleAttribute.cs" />

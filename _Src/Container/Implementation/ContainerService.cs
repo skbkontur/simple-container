@@ -184,6 +184,8 @@ namespace SimpleContainer.Implementation
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
 			    (context.UsedFromDependency.Value == null || context.UsedFromDependency.Value.GetType().IsSimpleType()))
 				context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(context.UsedFromDependency.Value));
+			else if (Instances.Length == 1 && Instances[0].IsConstant)
+				ValueFormatter.WriteValue(context, Instances[0].Instance, true);
 			if (initializing)
 				context.Writer.WriteMeta(", initializing ...");
 			else if (disposing)
@@ -328,9 +330,9 @@ namespace SimpleContainer.Implementation
 				return new ServiceName(Type, DeclaredContracts);
 			}
 
-			public void AddInstance(object instance, bool owned)
+			public void AddInstance(object instance, bool owned, bool isConstant)
 			{
-				AddInstance(new InstanceWrap(instance, owned));
+				AddInstance(new InstanceWrap(instance, owned, isConstant));
 			}
 
 			private void AddInstance(InstanceWrap wrap)
@@ -465,7 +467,7 @@ namespace SimpleContainer.Implementation
 					SetError(e);
 					return;
 				}
-				AddInstance(instance, owned);
+				AddInstance(instance, owned, false);
 			}
 		}
 	}
