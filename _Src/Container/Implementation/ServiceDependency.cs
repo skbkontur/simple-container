@@ -1,29 +1,30 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
 {
 	internal class ServiceDependency
 	{
-		public ContainerService ContainerService { get; private set; }
-		public object Value { get; private set; }
-		public string Name { get; private set; }
+		public ContainerService ContainerService { get; set; }
+		public object Value { get; set; }
+		public string Name { get; set; }
 		public string Comment { get; set; }
-		public ServiceStatus Status { get; private set; }
-
-		private ServiceDependency()
-		{
-		}
+		public ServiceStatus Status { get; set; }
+		public ConstantKind? constantKind;
+		public string resourceName;
 
 		public ServiceDependency CastTo(Type targetType)
 		{
 			object castedValue;
 			if (!TryCast(Value, targetType, out castedValue))
-				return Error(ContainerService, Name, "can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
-					Value, Value.GetType().FormatName(), targetType.FormatName(), Name);
+				return new ServiceDependency
+				{
+					Comment = string.Format("can't cast value [{0}] from [{1}] to [{2}] for dependency [{3}]",
+						Value, Value.GetType().FormatName(), targetType.FormatName(), Name),
+					ContainerService = ContainerService,
+					Name = Name,
+					Status = ServiceStatus.Error
+				};
 			return ReferenceEquals(castedValue, Value) ? this : CloneWithValue(castedValue);
 		}
 
@@ -60,65 +61,6 @@ namespace SimpleContainer.Implementation
 			};
 		}
 
-		public static ServiceDependency Constant(ParameterInfo formalParameter, object value)
-		{
-			return new ServiceDependency
-			{
-				Status = ServiceStatus.Ok,
-				Value = value,
-				constantKind = ConstantKind.Value
-			}.WithName(formalParameter, null);
-		}
-
-		public static ServiceDependency Resource(ParameterInfo formalParameter, string resourceName, Stream value)
-		{
-			return new ServiceDependency
-			{
-				Status = ServiceStatus.Ok,
-				constantKind = ConstantKind.Resource,
-				resourceName = resourceName,
-				Value = value
-			}.WithName(null, formalParameter.Name);
-		}
-
-		public static ServiceDependency Service(ContainerService service, object value, string name = null)
-		{
-			return new ServiceDependency
-			{
-				Status = ServiceStatus.Ok,
-				Value = value,
-				ContainerService = service
-			}.WithName(null, name);
-		}
-
-		public static ServiceDependency NotResolved(ContainerService service, string name = null)
-		{
-			return new ServiceDependency
-			{
-				Status = ServiceStatus.NotResolved,
-				ContainerService = service
-			}.WithName(null, name);
-		}
-
-		public static ServiceDependency Error(ContainerService containerService, string name, string message,
-			params object[] args)
-		{
-			return new ServiceDependency
-			{
-				ContainerService = containerService,
-				Status = ServiceStatus.Error,
-				Comment = string.Format(message, args)
-			}.WithName(null, name);
-		}
-
-		public static ServiceDependency ServiceError(ContainerService service, string name = null)
-		{
-			return new ServiceDependency
-			{
-				Status = ServiceStatus.DependencyError,
-				ContainerService = service
-			}.WithName(null, name);
-		}
 
 		public void WriteConstructionLog(ConstructionLogContext context)
 		{
@@ -149,33 +91,7 @@ namespace SimpleContainer.Implementation
 			context.Writer.WriteNewLine();
 		}
 
-		private ServiceDependency WithName(ParameterInfo parameter, string name)
-		{
-			Name = BuildName(parameter, name);
-			return this;
-		}
-
-		private string BuildName(ParameterInfo parameter, string name)
-		{
-			if (name != null)
-				return name;
-			var type = GetDependencyType();
-			return type == null || type.IsSimpleType() || type.UnwrapEnumerable() != type ? parameter.Name : type.FormatName();
-		}
-
-		private Type GetDependencyType()
-		{
-			if (ContainerService != null)
-				return ContainerService.Type;
-			if (Value != null)
-				return Value.GetType();
-			return null;
-		}
-
-		private ConstantKind? constantKind;
-		private string resourceName;
-
-		private enum ConstantKind
+		public enum ConstantKind
 		{
 			Value,
 			Resource

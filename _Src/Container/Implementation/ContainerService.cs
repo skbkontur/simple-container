@@ -55,17 +55,17 @@ namespace SimpleContainer.Implementation
 				message, GetConstructionLog(containerContext), assemblies));
 		}
 
-		public ServiceDependency AsDependency(string dependencyName, bool isEnumerable)
+		public ServiceDependency AsDependency(ContainerContext containerContext, string dependencyName, bool isEnumerable)
 		{
 			if (Status.IsBad())
-				return ServiceDependency.ServiceError(this, dependencyName);
+				return containerContext.ServiceError(this, dependencyName);
 			if (Status == ServiceStatus.NotResolved)
-				return ServiceDependency.NotResolved(this, dependencyName);
+				return containerContext.NotResolved(this, dependencyName);
 			if (!isEnumerable)
 				return Instances.Length > 1
-					? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
-					: ServiceDependency.Service(this, Instances[0].Instance, dependencyName);
-			return ServiceDependency.Service(this, GetAllValues(), dependencyName);
+					? containerContext.Error(this, dependencyName, FormatManyImplementationsMessage())
+					: containerContext.Service(this, Instances[0].Instance, dependencyName);
+			return containerContext.Service(this, GetAllValues(), dependencyName);
 		}
 
 		public IEnumerable<object> GetAllValues()
@@ -356,9 +356,9 @@ namespace SimpleContainer.Implementation
 				target.comment = value;
 			}
 
-			public void LinkTo(ContainerService childService, string comment)
+			public void LinkTo(ContainerContext containerContext, ContainerService childService, string comment)
 			{
-				var dependency = childService.AsDependency(null, true);
+				var dependency = childService.AsDependency(containerContext, null, true);
 				dependency.Comment = comment;
 				AddDependency(dependency, true);
 				UnionUsedContracts(childService);

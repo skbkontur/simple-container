@@ -70,6 +70,42 @@ namespace SimpleContainer.Tests.ConstructionLog
 			}
 		}
 
+		public class DumpParameterNamesForTypesWithCustomValueFormatting : ConstructionLogValueFormattingTest
+		{
+			public class MyCoolValueType
+			{
+				public MyCoolValueType(int value)
+				{
+					Value = value;
+				}
+
+				public int Value { get; private set; }
+			}
+
+			public class A
+			{
+				public readonly MyCoolValueType someValue;
+
+				public A(MyCoolValueType someValue)
+				{
+					this.someValue = someValue;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithValueFormatter<MyCoolValueType>(x => "!" + x.Value + "!")
+					.WithConfigurator(b => b.BindDependencies<A>(new {someValue = new MyCoolValueType(42)}));
+				using (var c = f.Build())
+				{
+					var s = c.Resolve<A>();
+					Assert.That(s.GetConstructionLog(), Is.EqualTo("A\r\n\tsomeValue const -> !42!"));
+				}
+			}
+		}
+
 		public class IgnoreNonReadableProperties : ConstructionLogValueFormattingTest
 		{
 			public class A
@@ -123,7 +159,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
 					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tDto const -> dumpted Dto"));
+						Is.EqualTo("A\r\n\tdto const -> dumpted Dto"));
 			}
 		}
 
