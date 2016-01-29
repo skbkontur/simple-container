@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using SimpleContainer.Implementation;
 using SimpleContainer.Infection;
@@ -29,14 +30,19 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
-		public static string ParseContracts(ICustomAttributeProvider provider)
+		public static string[] ParseContracts(ICustomAttributeProvider provider)
 		{
 			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();
 			if (attributes.Length == 0)
-				return null;
+				return emptyStrings;
 			if (attributes.Length > 1)
 				throw new SimpleContainerException("assertion failure");
-			return attributes[0].ContractName;
+			var contractsSequence = attributes[0] as ContractsSequenceAttribute;
+			return contractsSequence == null
+				? new[] {attributes[0].ContractName}
+				: contractsSequence.ContractAttributeTypes
+					.Select(x => ((RequireContractAttribute) Activator.CreateInstance(x)).ContractName)
+					.ToArray();
 		}
 
 		public static FuncResult<ConstructorInfo> GetConstructor(this Type target)

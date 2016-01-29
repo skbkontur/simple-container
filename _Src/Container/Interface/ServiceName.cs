@@ -14,27 +14,10 @@ namespace SimpleContainer.Interface
 			this.contracts = contracts ?? InternalHelpers.emptyStrings;
 		}
 
-		internal static ServiceName Parse(Type type, bool excludeTypeContractIfDuplicates, string contract, string[] contracts)
+		internal static ServiceName Parse(Type type, string[] contracts)
 		{
-			if (contract != null && contracts != null)
-				throw new InvalidOperationException("assertion failure");
-			var typeContract = InternalHelpers.ParseContracts(type);
-			if (typeContract == null && contract == null && contracts == null)
-				return new ServiceName(type);
-			if (contracts != null)
-			{
-				if (typeContract == null)
-					return new ServiceName(type, contracts);
-				if (excludeTypeContractIfDuplicates && contracts.Length > 0 &&
-				    typeContract.EqualsIgnoringCase(contracts[contracts.Length - 1]))
-					return new ServiceName(type, contracts);
-				return new ServiceName(type, contracts.ConcatIfNotNull(typeContract));
-			}
-			if (typeContract == null || contract == null)
-				return new ServiceName(type, new[] {typeContract ?? contract});
-			if (excludeTypeContractIfDuplicates && typeContract.EqualsIgnoringCase(contract))
-				return new ServiceName(type, new[] {typeContract});
-			return new ServiceName(type, new[] {contract, typeContract});
+			var typeContracts = InternalHelpers.ParseContracts(type);
+			return new ServiceName(type, contracts.Concat(typeContracts));
 		}
 
 		public Type Type

@@ -182,6 +182,67 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
+		public class CanDeclareContractsChain : ContractsNestingTest
+		{
+			[ContractsSequence(typeof (ContractX), typeof (ContractY))]
+			public class Axy
+			{
+				public readonly B b;
+
+				public Axy(B b)
+				{
+					this.b = b;
+				}
+			}
+
+
+			public class Ayx
+			{
+				public readonly B b;
+
+				public Ayx([ContractsSequence(typeof (ContractY), typeof (ContractX))] B b)
+				{
+					this.b = b;
+				}
+			}
+
+			public class B
+			{
+				public readonly string contracts;
+
+				public B(string contracts)
+				{
+					this.contracts = contracts;
+				}
+			}
+
+			public class ContractX : RequireContractAttribute
+			{
+				public ContractX() : base("x")
+				{
+				}
+			}
+
+			public class ContractY : RequireContractAttribute
+			{
+				public ContractY() : base("y")
+				{
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder builder)
+				{
+					builder.Contract<ContractX>().Contract<ContractY>().BindDependencies<B>(new {contracts = "xy"});
+					builder.Contract<ContractY>().Contract<ContractX>().BindDependencies<B>(new {contracts = "yx"});
+				});
+				Assert.That(container.Get<Axy>().b.contracts, Is.EqualTo("xy"));
+				Assert.That(container.Get<Ayx>().b.contracts, Is.EqualTo("yx"));
+			}
+		}
+
 		public class ConditionalContractsRedefinitionIsProhibited : ContractsNestingTest
 		{
 			[TestContract("c1")]
