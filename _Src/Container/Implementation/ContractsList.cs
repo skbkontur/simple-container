@@ -25,6 +25,11 @@ namespace SimpleContainer.Implementation
 			}
 		}
 
+		public int Count()
+		{
+			return contracts.Count;
+		}
+
 		public string[] Snapshot()
 		{
 			return contractsArray ?? (contractsArray = contracts.ToArray());

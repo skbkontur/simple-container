@@ -14,11 +14,15 @@ namespace SimpleContainer.Implementation
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return null;
 			var resultType = builder.Type.GetGenericArguments()[0];
-			var oldValue = builder.Context.AnalizeDependenciesOnly;
-			builder.Context.AnalizeDependenciesOnly = true;
-			var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true, null, builder.Context);
-			builder.Context.AnalizeDependenciesOnly = oldValue;
-			builder.UnionUsedContracts(containerService);
+			if (builder.Context.Contracts.Count() > 0)
+			{
+				var oldValue = builder.Context.AnalizeDependenciesOnly;
+				builder.Context.AnalizeDependenciesOnly = true;
+				var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true, null,
+					builder.Context);
+				builder.Context.AnalizeDependenciesOnly = oldValue;
+				builder.UnionUsedContracts(containerService);
+			}
 			var lazyFactoryCtor = typeof (LazyFactory<>).MakeGenericType(resultType).GetConstructors().Single();
 			var lazyFactory = (ILazyFactory) lazyFactoryCtor.Compile()(null, new object[] {builder.Context.Container});
 			return lazyFactory.CreateLazy();
