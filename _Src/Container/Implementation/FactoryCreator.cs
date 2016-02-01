@@ -54,7 +54,8 @@ namespace SimpleContainer.Implementation
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
 			var container = builder.Context.Container;
-			if (builder.Context.Contracts.Count() > 0)
+			string[] factoryContracts;
+			if (builder.Context.Contracts.Count() > 0 && builder.Type.GetGenericTypeDefinition() == typeof (Func<>))
 			{
 				var oldValue = builder.Context.AnalizeDependenciesOnly;
 				builder.Context.AnalizeDependenciesOnly = true;
@@ -62,12 +63,13 @@ namespace SimpleContainer.Implementation
 					null, builder.Context);
 				builder.Context.AnalizeDependenciesOnly = oldValue;
 				builder.UnionUsedContracts(containerService);
+				factoryContracts = builder.GetCurrentlyUsedContracts();
 			}
-			builder.EndResolveDependencies();
-			var factoryContractsArray = builder.FinalUsedContracts;
+			else
+				factoryContracts = builder.DeclaredContracts;
 			return (type, arguments) =>
 			{
-				var name = new ServiceName(type.UnwrapEnumerable(), factoryContractsArray);
+				var name = new ServiceName(type.UnwrapEnumerable(), factoryContracts);
 				return container.Create(name, name.Type != type, arguments);
 			};
 		}

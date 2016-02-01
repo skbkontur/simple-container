@@ -302,11 +302,6 @@ namespace SimpleContainer.Implementation
 				get { return target.Status; }
 			}
 
-			public string[] FinalUsedContracts
-			{
-				get { return target.UsedContracts; }
-			}
-
 			public void SetConfiguration(ServiceConfiguration newConfiguration)
 			{
 				Configuration = newConfiguration;
@@ -318,11 +313,6 @@ namespace SimpleContainer.Implementation
 					if (!usedContractNames.Contains(contract, StringComparer.OrdinalIgnoreCase))
 						usedContractNames.Add(contract);
 				}
-			}
-
-			public ServiceName GetFinalName()
-			{
-				return new ServiceName(Type, FinalUsedContracts);
 			}
 
 			public ServiceName GetDeclaredName()
@@ -393,16 +383,6 @@ namespace SimpleContainer.Implementation
 				target.Status = ServiceStatus.Error;
 			}
 
-			public void EndResolveDependencies()
-			{
-				if (target.UsedContracts == null)
-					target.UsedContracts = usedContractNames == null || DeclaredContracts == null
-						? InternalHelpers.emptyStrings
-						: DeclaredContracts
-							.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-							.ToArray();
-			}
-
 			public void Reuse(ContainerService containerService)
 			{
 				target = containerService;
@@ -413,7 +393,6 @@ namespace SimpleContainer.Implementation
 			{
 				if (built)
 					return target;
-				EndResolveDependencies();
 				if (target.Status == ServiceStatus.Ok && instances.Count == 0)
 					target.Status = ServiceStatus.NotResolved;
 				if (Status == ServiceStatus.Ok && Arguments != null)
@@ -425,8 +404,18 @@ namespace SimpleContainer.Implementation
 				target.Instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
+				target.UsedContracts = GetCurrentlyUsedContracts();
 				built = true;
 				return target;
+			}
+
+			public string[] GetCurrentlyUsedContracts()
+			{
+				return usedContractNames == null || DeclaredContracts == null
+					? InternalHelpers.emptyStrings
+					: DeclaredContracts
+						.Where(x => usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
+						.ToArray();
 			}
 
 			private static ServiceStatus DependencyStatusToServiceStatus(ServiceStatus dependencyStatus, bool isUnion)

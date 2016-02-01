@@ -77,6 +77,7 @@ namespace SimpleContainer.Tests.Contracts
 
 				public B(Func<object, FactoryResult> getResult)
 				{
+					getResult(new {value = 11});
 					this.getResult = getResult;
 				}
 			}

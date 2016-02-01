@@ -106,10 +106,9 @@ namespace SimpleContainer.Implementation
 					delegateParameterNameToIndexMap.Keys.JoinStrings(",")));
 				return true;
 			}
-			builder.EndResolveDependencies();
 			int serviceNameIndex;
 			if (serviceTypeToIndex.TryGetValue(typeof (ServiceName), out serviceNameIndex))
-				services[serviceNameIndex] = new ServiceName(builder.Type.DeclaringType, builder.FinalUsedContracts);
+				services[serviceNameIndex] = new ServiceName(builder.Type.DeclaringType, builder.DeclaredContracts);
 			il.Emit(OpCodes.Newobj, constructors[0]);
 			il.Emit(OpCodes.Ret);
 			var context = serviceTypeToIndex.Count == 0 ? null : services.ToArray();

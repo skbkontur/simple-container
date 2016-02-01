@@ -85,6 +85,7 @@ namespace SimpleContainer.Implementation
 			if (activation.activated.Container != activation.previous.Container)
 				resultDependency.Comment = "container boundary";
 			activation.previous.TopBuilder.AddDependency(resultDependency, false);
+			activation.previous.TopBuilder.UnionUsedContracts(resultDependency.ContainerService);
 		}
 
 		public object Create(Type type, IEnumerable<string> contracts, object arguments)
@@ -382,9 +383,8 @@ namespace SimpleContainer.Implementation
 					dependency.Comment = implementationType.comment;
 					builder.AddDependency(dependency, true);
 				}
-			builder.EndResolveDependencies();
 			if (factory != null && canUseFactory)
-				factoryCache.TryAdd(builder.GetFinalName(), factory);
+				factoryCache.TryAdd(builder.GetService().Name, factory);
 		}
 
 		private HashSet<ImplementationType> GetImplementationTypes(ContainerService.Builder builder)
@@ -550,7 +550,6 @@ namespace SimpleContainer.Implementation
 				if (builder.Status != ServiceStatus.Ok)
 					return;
 			}
-			builder.EndResolveDependencies();
 			if (builder.Context.AnalizeDependenciesOnly)
 				return;
 			var dependenciesResolvedByArguments = builder.Arguments == null ? null : builder.Arguments.GetUsed();
@@ -574,14 +573,17 @@ namespace SimpleContainer.Implementation
 			if (hasServiceNameParameters)
 				for (var i = 0; i < formalParameters.Length; i++)
 					if (formalParameters[i].ParameterType == typeof (ServiceName))
-						actualArguments[i] = builder.GetFinalName();
-			if (builder.CreateNew || builder.DeclaredContracts.Length == builder.FinalUsedContracts.Length)
+						actualArguments[i] = new ServiceName(builder.Type, builder.DeclaredContracts);
+			builder.CreateInstanceBy(CallTarget.M(constructor.value, null, actualArguments), true);
+			var containerService = builder.GetService();
+			if (containerService.Status != ServiceStatus.Ok)
+				return;
+			if (builder.CreateNew || builder.DeclaredContracts.Length == containerService.Name.Contracts.Length)
 			{
-				builder.CreateInstanceBy(CallTarget.M(constructor.value, null, actualArguments), true);
-				if (builder.CreateNew && builder.Arguments == null)
+				if (builder.Arguments == null)
 				{
 					var compiledConstructor = constructor.value.Compile();
-					factoryCache.TryAdd(builder.GetFinalName(), () =>
+					factoryCache.TryAdd(containerService.Name, () =>
 					{
 						var instance = compiledConstructor(null, actualArguments);
 						var component = instance as IInitializable;
@@ -592,17 +594,16 @@ namespace SimpleContainer.Implementation
 				}
 				return;
 			}
-			var serviceForUsedContractsId = instanceCache.GetOrAdd(builder.GetFinalName(), createId);
+			var serviceForUsedContractsId = instanceCache.GetOrAdd(containerService.Name, createId);
 			var acquireResult = serviceForUsedContractsId.AcquireInstantiateLock();
 			if (acquireResult.acquired)
-			{
-				builder.CreateInstanceBy(CallTarget.M(constructor.value, null, actualArguments), true);
-				serviceForUsedContractsId.ReleaseInstantiateLock(builder.Context.AnalizeDependenciesOnly
-					? null
-					: builder.GetService());
-			}
+				serviceForUsedContractsId.ReleaseInstantiateLock(containerService);
 			else
+			{
+				if (typeof (IDisposable).IsAssignableFrom(builder.Type))
+					DisposeService(new ServiceInstance(containerService.Instances[0].Instance, containerService));
 				builder.Reuse(acquireResult.alreadyConstructedService);
+			}
 		}
 
 		internal ServiceDependency InstantiateDependency(ParameterInfo formalParameter, ContainerService.Builder builder)

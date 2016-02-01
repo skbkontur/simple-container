@@ -416,7 +416,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container(b => b.Contract("x").BindDependency<C>("parameter", 42));
 				container.Resolve<A>("x");
 				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(),
-					Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
+					Is.EqualTo("B[x]\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
 			}
 		}
 
