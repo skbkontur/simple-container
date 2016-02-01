@@ -542,7 +542,8 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = ResolveCore(d, false, null, builder.Context).AsDependency(containerContext, null, false);
+				var dependency = ResolveCore(ServiceName.Parse(d.Type, d.Contracts), false, null, builder.Context)
+					.AsDependency(containerContext, null, false);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
