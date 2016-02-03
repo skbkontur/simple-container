@@ -97,9 +97,9 @@ namespace SimpleContainer.Implementation
 			return result;
 		}
 
-		public string[][] TryExpandUnions(ConfigurationRegistry configuration)
+		public ExpandedUnions? TryExpandUnions(ConfigurationRegistry configuration)
 		{
-			string[][] result = null;
+			ExpandedUnions? result = null;
 			var startIndex = 0;
 			for (var i = 0; i < contracts.Count; i++)
 			{
@@ -108,16 +108,21 @@ namespace SimpleContainer.Implementation
 				if (union == null)
 				{
 					if (result != null)
-						result[i - startIndex] = new[] {contract};
+						result.Value.contracts[i - startIndex] = new[] {contract};
 				}
 				else
 				{
 					if (result == null)
 					{
 						startIndex = i;
-						result = new string[contracts.Count - startIndex][];
+						result = new ExpandedUnions
+						{
+							contracts = new string[contracts.Count - startIndex][],
+							unionedContracts = new List<UnionedContact>(1)
+						};
 					}
-					result[i - startIndex] = union.ToArray();
+					result.Value.unionedContracts.Add(new UnionedContact {children = union, parent = contract});
+					result.Value.contracts[i - startIndex] = union.ToArray();
 				}
 			}
 			return result;

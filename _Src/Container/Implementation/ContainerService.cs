@@ -307,6 +307,8 @@ namespace SimpleContainer.Implementation
 				get { return target.UsedContracts; }
 			}
 
+			public ExpandedUnions? ExpandedUnions { get; set; }
+
 			public void SetConfiguration(ServiceConfiguration newConfiguration)
 			{
 				Configuration = newConfiguration;
@@ -374,11 +376,23 @@ namespace SimpleContainer.Implementation
 					return;
 				if (usedContractNames == null)
 					usedContractNames = new List<string>();
-				var contractsToAdd = dependency.UsedContracts
-					.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-					.Where(x => DeclaredContracts.Any(x.EqualsIgnoringCase));
-				foreach (var n in contractsToAdd)
-					usedContractNames.Add(n);
+				foreach (var dependencyContract in dependency.UsedContracts)
+				{
+					if (usedContractNames.ContainsIgnoringCase(dependencyContract))
+						continue;
+					string usedContractName = null;
+					if (DeclaredContracts.ContainsIgnoringCase(dependencyContract))
+						usedContractName = dependencyContract;
+					else if (ExpandedUnions.HasValue)
+						foreach (var c in ExpandedUnions.Value.unionedContracts)
+							if (c.children.ContainsIgnoringCase(dependencyContract))
+							{
+								usedContractName = c.parent;
+								break;
+							}
+					if (usedContractName != null)
+						usedContractNames.Add(usedContractName);
+				}
 			}
 
 			public void SetError(string newErrorMessage)

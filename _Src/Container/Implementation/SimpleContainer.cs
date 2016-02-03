@@ -266,11 +266,11 @@ namespace SimpleContainer.Implementation
 			else
 			{
 				builder.SetConfiguration(configuration);
-				var expandedUnions = context.Contracts.TryExpandUnions(Configuration);
-				if (expandedUnions != null)
+				builder.ExpandedUnions = context.Contracts.TryExpandUnions(Configuration);
+				if (builder.ExpandedUnions.HasValue)
 				{
-					var poppedContracts = context.Contracts.PopMany(expandedUnions.Length);
-					foreach (var c in expandedUnions.CartesianProduct())
+					var poppedContracts = context.Contracts.PopMany(builder.ExpandedUnions.Value.contracts.Length);
+					foreach (var c in builder.ExpandedUnions.Value.contracts.CartesianProduct())
 					{
 						var childService = ResolveCore(new ServiceName(name.Type, c), createNew, arguments, context);
 						builder.LinkTo(containerContext, childService, null);

@@ -67,7 +67,7 @@ namespace SimpleContainer.Implementation
 			var factoryContractsArray = builder.FinalUsedContracts;
 			return (type, arguments) =>
 			{
-				var name = new ServiceName(type.UnwrapEnumerable(), factoryContractsArray);
+				var name = ServiceName.Parse(type.UnwrapEnumerable(), factoryContractsArray);
 				return container.Create(name, name.Type != type, arguments);
 			};
 		}
