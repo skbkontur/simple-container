@@ -5,4 +5,6 @@ SimpleContainer
 
 http://habrahabr.ru/company/skbkontur/blog/248585/
 
+https://www.nuget.org/packages/simple-container
+
 This project is licensed under the terms of the MIT license.
