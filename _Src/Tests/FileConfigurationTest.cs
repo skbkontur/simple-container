@@ -129,7 +129,6 @@ namespace SimpleContainer.Tests
 
 		public class UnixStyleNewLinesAreOk : FileConfigurationTest
 		{
-			[TestContract("x")]
 			public class A
 			{
 				public readonly int parameter;

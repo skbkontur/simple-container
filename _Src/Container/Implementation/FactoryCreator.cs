@@ -54,17 +54,20 @@ namespace SimpleContainer.Implementation
 		private static Func<Type, object, object> CreateFactory(ContainerService.Builder builder, Type resultType)
 		{
 			var container = builder.Context.Container;
-			var oldValue = builder.Context.AnalizeDependenciesOnly;
-			builder.Context.AnalizeDependenciesOnly = true;
-			var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true, null,
-				builder.Context);
-			builder.Context.AnalizeDependenciesOnly = oldValue;
-			builder.UnionUsedContracts(containerService);
+			if (builder.Context.Contracts.Count() > 0)
+			{
+				var oldValue = builder.Context.AnalizeDependenciesOnly;
+				builder.Context.AnalizeDependenciesOnly = true;
+				var containerService = builder.Context.Container.ResolveCore(new ServiceName(resultType), true,
+					null, builder.Context);
+				builder.Context.AnalizeDependenciesOnly = oldValue;
+				builder.UnionUsedContracts(containerService);
+			}
 			builder.EndResolveDependencies();
 			var factoryContractsArray = builder.FinalUsedContracts;
 			return (type, arguments) =>
 			{
-				var name = new ServiceName(type.UnwrapEnumerable(), factoryContractsArray);
+				var name = ServiceName.Parse(type.UnwrapEnumerable(), factoryContractsArray);
 				return container.Create(name, name.Type != type, arguments);
 			};
 		}

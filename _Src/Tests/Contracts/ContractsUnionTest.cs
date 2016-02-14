@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
@@ -435,6 +436,50 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(a.b.enumerable.Select(x => x.parameter).ToArray(), Is.EquivalentTo(new[] { 1, 2 }));
 				Assert.That(a.y1C.parameter, Is.EqualTo(3));
 				Assert.That(a.y2C.parameter, Is.EqualTo(4));
+			}
+		}
+
+		public class TrackUsageOfUnionedContract : ContractsUnionTest
+		{
+			public class A
+			{
+				public readonly IEnumerable<B> bs;
+
+				public A([TestContract("test-union-contract")] IEnumerable<B> bs)
+				{
+					this.bs = bs;
+				}
+			}
+
+			public class B
+			{
+				public readonly int parameter;
+
+				public B(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(delegate(ContainerConfigurationBuilder b)
+				{
+					b.Contract("test-union-contract").UnionOf("c1", "c2");
+					b.Contract("c1").BindDependencies<B>(new {parameter = 1});
+					b.Contract("c2").BindDependencies<B>(new {parameter = 2});
+				});
+				var a = container.Resolve<A>();
+				Assert.That(a.Single().bs.Select(x => x.parameter).ToArray(), Is.EqualTo(new[] {1, 2}));
+				var expectedConstructionLog = FormatExpectedMessage(@"
+A
+	B[test-union-contract]++
+		B[c1]
+			parameter -> 1
+		B[c2]
+			parameter -> 2");
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 

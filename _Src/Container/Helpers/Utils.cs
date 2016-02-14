@@ -21,6 +21,22 @@ namespace SimpleContainer.Helpers
 			return result;
 		}
 
+		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
+		{
+			foreach (var t in source[index])
+			{
+				result[resultIndex][index] = t;
+				if (index < source.Length - 1)
+					CartesianIteration(source, result, index + 1, ref resultIndex);
+				else
+				{
+					resultIndex++;
+					if (resultIndex < result.Length)
+						Array.Copy(result[resultIndex - 1], result[resultIndex], result[resultIndex].Length);
+				}
+			}
+		}
+
 		public static bool SameAs(this Type[] a, Type[] b, int countOfItemsToCompare)
 		{
 			if (a.Length != b.Length)
@@ -67,32 +83,21 @@ namespace SimpleContainer.Helpers
 			Array.Copy(second, 0, result, first.Length, second.Length);
 			return result;
 		}
-		
-		public static T[] ConcatIfNotNull<T>(this T[] first, T second)
-			where T: class
+
+		public static bool ContainsIgnoringCase(this string[] strings, string target)
 		{
-			if (second == null)
-				return first;
-			var result = new T[first.Length + 1];
-			Array.Copy(first, result, first.Length);
-			result[result.Length - 1] = second;
-			return result;
+			foreach (var s in strings)
+				if (s.EqualsIgnoringCase(target))
+					return true;
+			return false;
 		}
 
-		private static void CartesianIteration<T>(T[][] source, T[][] result, int index, ref int resultIndex)
+		public static bool ContainsIgnoringCase(this List<string> strings, string target)
 		{
-			foreach (var t in source[index])
-			{
-				result[resultIndex][index] = t;
-				if (index < source.Length - 1)
-					CartesianIteration(source, result, index + 1, ref resultIndex);
-				else
-				{
-					resultIndex++;
-					if (resultIndex < result.Length)
-						Array.Copy(result[resultIndex - 1], result[resultIndex], result[resultIndex].Length);
-				}
-			}
+			foreach (var s in strings)
+				if (s.EqualsIgnoringCase(target))
+					return true;
+			return false;
 		}
 
 		public static IEnumerable<T> Closure<T>(T root, Func<T, IEnumerable<T>> children)

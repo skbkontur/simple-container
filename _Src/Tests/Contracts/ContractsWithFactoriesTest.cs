@@ -350,6 +350,28 @@ namespace SimpleContainer.Tests.Contracts
 			}
 		}
 
+		public class ApplyClassContractFromFactory : ContractsWithFactoriesTest
+		{
+			[TestContract("test-contract")]
+			public class A
+			{
+				public readonly int parameter;
+
+				public A(int parameter)
+				{
+					this.parameter = parameter;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(b => b.Contract("test-contract").BindDependencies<A>(new {parameter = 45}));
+				var factory = container.Get<Func<A>>();
+				Assert.That(factory().parameter, Is.EqualTo(45));
+			}
+		}
+
 		public class CaptureFactoryContract : ContractsWithFactoriesTest
 		{
 			public class A

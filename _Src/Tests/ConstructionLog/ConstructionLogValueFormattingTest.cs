@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using NUnit.Framework;
+using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
@@ -31,6 +32,77 @@ namespace SimpleContainer.Tests.ConstructionLog
 				Assert.That(service.IsOk());
 				Assert.That(() => { log = service.GetConstructionLog(); }, Throws.Nothing);
 				Assert.That(log, Is.StringContaining("resource [test-resource-for-construction-log-test.txt]"));
+			}
+		}
+
+		public class DumpValuesForConstantServices : ConstructionLogValueFormattingTest
+		{
+			public class A
+			{
+				public readonly SomeConstantSwitch constantSwitch;
+
+				public A(SomeConstantSwitch constantSwitch)
+				{
+					this.constantSwitch = constantSwitch;
+				}
+			}
+
+			public class SomeConstantSwitch
+			{
+				public int Value { get; set; }
+			}
+
+			public class SomeConstantSwitchConfigurator : IServiceConfigurator<SomeConstantSwitch>
+			{
+				public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<SomeConstantSwitch> builder)
+				{
+					builder.Bind(new SomeConstantSwitch {Value = 42});
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container();
+				var resolvedA = container.Resolve<A>();
+				Assert.That(resolvedA.Single().constantSwitch.Value, Is.EqualTo(42));
+				Assert.That(resolvedA.GetConstructionLog(), Is.EqualTo("A\r\n\tSomeConstantSwitch const\r\n\t\tValue -> 42"));
+			}
+		}
+
+		public class DumpParameterNamesForTypesWithCustomValueFormatting : ConstructionLogValueFormattingTest
+		{
+			public class MyCoolValueType
+			{
+				public MyCoolValueType(int value)
+				{
+					Value = value;
+				}
+
+				public int Value { get; private set; }
+			}
+
+			public class A
+			{
+				public readonly MyCoolValueType someValue;
+
+				public A(MyCoolValueType someValue)
+				{
+					this.someValue = someValue;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var f = Factory()
+					.WithValueFormatter<MyCoolValueType>(x => "!" + x.Value + "!")
+					.WithConfigurator(b => b.BindDependencies<A>(new {someValue = new MyCoolValueType(42)}));
+				using (var c = f.Build())
+				{
+					var s = c.Resolve<A>();
+					Assert.That(s.GetConstructionLog(), Is.EqualTo("A\r\n\tsomeValue const -> !42!"));
+				}
 			}
 		}
 
@@ -87,7 +159,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
 					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tDto const -> dumpted Dto"));
+						Is.EqualTo("A\r\n\tdto const -> dumpted Dto"));
 			}
 		}
 

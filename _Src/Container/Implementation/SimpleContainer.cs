@@ -80,8 +80,8 @@ namespace SimpleContainer.Implementation
 			ResolutionContext.Pop(activation);
 			if (activation.previous == null)
 				return;
-			var resultDependency = containerService.AsDependency(containerContext,
-				"() => " + containerService.Type.FormatName(), isEnumerable);
+			var resultDependency = containerService.AsDependency(containerContext, "() => " + containerService.Type.FormatName(),
+				isEnumerable);
 			if (activation.activated.Container != activation.previous.Container)
 				resultDependency.Comment = "container boundary";
 			activation.previous.TopBuilder.AddDependency(resultDependency, false);
@@ -115,9 +115,11 @@ namespace SimpleContainer.Implementation
 			PopResolutionContext(activation, result, isEnumerable);
 			if (!hasPendingResolutionContext)
 				result.EnsureInitialized(containerContext, result);
-			return isEnumerable
-				? result.GetAllValues(containerContext)
-				: result.GetSingleValue(containerContext, false, null);
+			result.CheckStatusIsGood(containerContext);
+			if (isEnumerable)
+				return result.GetAllValues();
+			result.CheckSingleValue(containerContext);
+			return result.Instances[0].Instance;
 		}
 
 		private ServiceConfiguration GetConfigurationWithoutContracts(Type type)
@@ -183,7 +185,7 @@ namespace SimpleContainer.Implementation
 						throw new SimpleContainerException(message);
 					}
 			}
-			return ServiceName.Parse(type, true, null, contractsArray);
+			return ServiceName.Parse(type, contractsArray);
 		}
 
 		private IEnumerable<ServiceInstance> GetInstanceCache(Type interfaceType)
@@ -264,11 +266,11 @@ namespace SimpleContainer.Implementation
 			else
 			{
 				builder.SetConfiguration(configuration);
-				var expandedUnions = context.Contracts.TryExpandUnions(Configuration);
-				if (expandedUnions != null)
+				builder.ExpandedUnions = context.Contracts.TryExpandUnions(Configuration);
+				if (builder.ExpandedUnions.HasValue)
 				{
-					var poppedContracts = context.Contracts.PopMany(expandedUnions.Length);
-					foreach (var c in expandedUnions.CartesianProduct())
+					var poppedContracts = context.Contracts.PopMany(builder.ExpandedUnions.Value.contracts.Length);
+					foreach (var c in builder.ExpandedUnions.Value.contracts.CartesianProduct())
 					{
 						var childService = ResolveCore(new ServiceName(name.Type, c), createNew, arguments, context);
 						builder.LinkTo(containerContext, childService, null);
@@ -299,9 +301,9 @@ namespace SimpleContainer.Implementation
 			if (builder.Type.IsSimpleType())
 				builder.SetError("can't create simple type");
 			else if (builder.Type == typeof (IContainer))
-				builder.AddInstance(this, false);
+				builder.AddInstance(this, false, false);
 			else if (builder.Configuration.ImplementationAssigned)
-				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance);
+				builder.AddInstance(builder.Configuration.Implementation, builder.Configuration.ContainerOwnsInstance, true);
 			else if (builder.Configuration.Factory != null)
 			{
 				if (!builder.Context.AnalizeDependenciesOnly)
@@ -359,7 +361,7 @@ namespace SimpleContainer.Implementation
 			foreach (var implementationType in implementationTypes)
 				if (implementationType.accepted)
 				{
-					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, false, null, null),
+					var implementationService = ResolveCore(ServiceName.Parse(implementationType.type, InternalHelpers.emptyStrings),
 						builder.CreateNew, builder.Arguments, builder.Context);
 					builder.LinkTo(containerContext, implementationService, implementationType.comment);
 					if (builder.CreateNew && builder.Arguments == null &&
@@ -376,7 +378,7 @@ namespace SimpleContainer.Implementation
 				}
 				else
 				{
-					var dependency = ServiceDependency.NotResolved(null, implementationType.type.FormatName());
+					var dependency = containerContext.NotResolved(null, implementationType.type.FormatName());
 					dependency.Comment = implementationType.comment;
 					builder.AddDependency(dependency, true);
 				}
@@ -501,7 +503,7 @@ namespace SimpleContainer.Implementation
 			var result = FactoryCreator.TryCreate(builder) ?? LazyCreator.TryCreate(builder);
 			if (result != null)
 			{
-				builder.AddInstance(result, true);
+				builder.AddInstance(result, true, false);
 				return;
 			}
 			if (NestedFactoryCreator.TryCreate(builder))
@@ -540,7 +542,8 @@ namespace SimpleContainer.Implementation
 			}
 			foreach (var d in builder.Configuration.ImplicitDependencies)
 			{
-				var dependency = ResolveCore(d, false, null, builder.Context).AsDependency(containerContext, null, false);
+				var dependency = ResolveCore(ServiceName.Parse(d.Type, d.Contracts), false, null, builder.Context)
+					.AsDependency(containerContext, null, false);
 				dependency.Comment = "implicit";
 				builder.AddDependency(dependency, false);
 				if (dependency.ContainerService != null)
@@ -607,17 +610,17 @@ namespace SimpleContainer.Implementation
 		{
 			ValueWithType actualArgument;
 			if (builder.Arguments != null && builder.Arguments.TryGet(formalParameter.Name, out actualArgument))
-				return ServiceDependency.Constant(formalParameter, actualArgument.value);
+				return containerContext.Constant(formalParameter, actualArgument.value);
 			var parameters = builder.Configuration.ParametersSource;
 			object actualParameter;
 			if (parameters != null && parameters.TryGet(formalParameter.Name, formalParameter.ParameterType, out actualParameter))
-				return ServiceDependency.Constant(formalParameter, actualParameter);
+				return containerContext.Constant(formalParameter, actualParameter);
 			var dependencyConfiguration = builder.Configuration.GetOrNull(formalParameter);
 			Type implementationType = null;
 			if (dependencyConfiguration != null)
 			{
 				if (dependencyConfiguration.ValueAssigned)
-					return ServiceDependency.Constant(formalParameter, dependencyConfiguration.Value);
+					return containerContext.Constant(formalParameter, dependencyConfiguration.Value);
 				if (dependencyConfiguration.Factory != null)
 				{
 					var dependencyBuilder = new ContainerService.Builder(new ServiceName(formalParameter.ParameterType))
@@ -638,34 +641,34 @@ namespace SimpleContainer.Implementation
 			{
 				var resourceStream = builder.Type.Assembly.GetManifestResourceStream(builder.Type, resourceAttribute.Name);
 				if (resourceStream == null)
-					return ServiceDependency.Error(null, formalParameter.Name,
+					return containerContext.Error(null, formalParameter.Name,
 						"can't find resource [{0}] in namespace of [{1}], assembly [{2}]",
 						resourceAttribute.Name, builder.Type, builder.Type.Assembly.GetName().Name);
-				return ServiceDependency.Resource(formalParameter, resourceAttribute.Name, resourceStream);
+				return containerContext.Resource(formalParameter, resourceAttribute.Name, resourceStream);
 			}
-			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(), false,
-				InternalHelpers.ParseContracts(formalParameter), null);
+			var dependencyName = ServiceName.Parse(implementationType.UnwrapEnumerable(),
+				InternalHelpers.ParseContracts(formalParameter));
 			if (dependencyName.Type.IsSimpleType())
 			{
 				if (!formalParameter.HasDefaultValue)
-					return ServiceDependency.Error(null, formalParameter.Name,
+					return containerContext.Error(null, formalParameter.Name,
 						"parameter [{0}] of service [{1}] is not configured",
 						formalParameter.Name, builder.Type.FormatName());
-				return ServiceDependency.Constant(formalParameter, formalParameter.DefaultValue);
+				return containerContext.Constant(formalParameter, formalParameter.DefaultValue);
 			}
 			var resultService = ResolveCore(dependencyName, false, null, builder.Context);
 			if (resultService.Status.IsBad())
-				return ServiceDependency.ServiceError(resultService);
+				return containerContext.ServiceError(resultService);
 			var isEnumerable = dependencyName.Type != implementationType;
 			if (isEnumerable)
-				return ServiceDependency.Service(resultService, resultService.GetAllValues(containerContext));
+				return containerContext.Service(resultService, resultService.GetAllValues());
 			if (resultService.Status == ServiceStatus.NotResolved)
 			{
 				if (formalParameter.HasDefaultValue)
-					return ServiceDependency.Service(resultService, formalParameter.DefaultValue);
+					return containerContext.Service(resultService, formalParameter.DefaultValue);
 				if (formalParameter.IsDefined<OptionalAttribute>() || formalParameter.IsDefined("CanBeNullAttribute"))
-					return ServiceDependency.Service(resultService, null);
-				return ServiceDependency.NotResolved(resultService);
+					return containerContext.Service(resultService, null);
+				return containerContext.NotResolved(resultService);
 			}
 			return resultService.AsDependency(containerContext, null, false);
 		}

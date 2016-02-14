@@ -113,7 +113,7 @@ namespace SimpleContainer.Implementation
 			il.Emit(OpCodes.Newobj, constructors[0]);
 			il.Emit(OpCodes.Ret);
 			var context = serviceTypeToIndex.Count == 0 ? null : services.ToArray();
-			builder.AddInstance(dynamicMethod.CreateDelegate(builder.Type, context), true);
+			builder.AddInstance(dynamicMethod.CreateDelegate(builder.Type, context), true, false);
 			return true;
 		}
 

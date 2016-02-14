@@ -7,8 +7,6 @@ todo
 
 	speed up factories with arguments: should be no reflection at runtime
 
-	used unioned contracts in construction log
-
 	get rid of stupid AnalizeDependenciesOnly
 
 	reduce memory traffix (remove LINQ, use List, etc)

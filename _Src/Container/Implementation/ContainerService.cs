@@ -16,7 +16,7 @@ namespace SimpleContainer.Implementation
 		internal volatile bool disposing;
 		private volatile bool initialized;
 		private volatile bool initializing;
-		private InstanceWrap[] instances;
+		public InstanceWrap[] Instances { get; private set; }
 
 		private object[] typedArray;
 
@@ -33,17 +33,14 @@ namespace SimpleContainer.Implementation
 			get { return new ServiceName(Type, UsedContracts); }
 		}
 
-		public object GetSingleValue(ContainerContext containerContext, bool hasDefaultValue, object defaultValue)
+		public void CheckSingleValue(ContainerContext containerContext)
 		{
-			CheckStatusIsGood(containerContext);
-			if (instances.Length == 1)
-				return instances[0].Instance;
-			if (instances.Length == 0 && hasDefaultValue)
-				return defaultValue;
+			if (Instances.Length == 1)
+				return;
 			string message;
-			if (instances.Length == 0)
+			if (Instances.Length == 0)
 			{
-				var targetType = typeof (Delegate).IsAssignableFrom(Type) ? Type.DeclaringType : Type;
+				var targetType = Type.IsDelegate() ? Type.DeclaringType : Type;
 				message = string.Format("no instances for [{0}]", targetType.FormatName());
 				var notResolvedRoot = SearchForNotResolvedRoot();
 				if (notResolvedRoot != this)
@@ -61,24 +58,22 @@ namespace SimpleContainer.Implementation
 		public ServiceDependency AsDependency(ContainerContext containerContext, string dependencyName, bool isEnumerable)
 		{
 			if (Status.IsBad())
-				return ServiceDependency.ServiceError(this, dependencyName);
+				return containerContext.ServiceError(this, dependencyName);
 			if (Status == ServiceStatus.NotResolved)
-				return ServiceDependency.NotResolved(this, dependencyName);
+				return containerContext.NotResolved(this, dependencyName);
 			if (!isEnumerable)
-				return instances.Length > 1
-					? ServiceDependency.Error(this, dependencyName, FormatManyImplementationsMessage())
-					: ServiceDependency.Service(this, instances[0].Instance, dependencyName);
-			return ServiceDependency.Service(this, GetAllValues(containerContext), dependencyName);
+				return Instances.Length > 1
+					? containerContext.Error(this, dependencyName, FormatManyImplementationsMessage())
+					: containerContext.Service(this, Instances[0].Instance, dependencyName);
+			return containerContext.Service(this, GetAllValues(), dependencyName);
 		}
 
-		public IEnumerable<object> GetAllValues(ContainerContext containerContext)
+		public IEnumerable<object> GetAllValues()
 		{
-			CheckStatusIsGood(containerContext);
-			return typedArray ?? (typedArray = instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
+			return typedArray ?? (typedArray = Instances.Select(x => x.Instance).CastToObjectArrayOf(Type));
 		}
 
-		[ThreadStatic]
-		private static bool threadInitializing;
+		[ThreadStatic] private static bool threadInitializing;
 
 		public static bool ThreadInitializing
 		{
@@ -102,7 +97,7 @@ namespace SimpleContainer.Implementation
 								foreach (var dependency in dependencies)
 									if (dependency.ContainerService != null)
 										dependency.ContainerService.EnsureInitialized(containerContext, root);
-							foreach (var instance in instances)
+							foreach (var instance in Instances)
 								instance.EnsureInitialized(this, containerContext, root);
 							initialized = true;
 						}
@@ -122,7 +117,7 @@ namespace SimpleContainer.Implementation
 				foreach (var dependency in dependencies)
 					if (dependency.ContainerService != null)
 						dependency.ContainerService.CollectInstances(interfaceType, seen, target);
-			foreach (var instance in instances)
+			foreach (var instance in Instances)
 			{
 				var obj = instance.Instance;
 				var acceptInstance = instance.Owned &&
@@ -170,7 +165,7 @@ namespace SimpleContainer.Implementation
 				context.Writer.WriteNewLine();
 				return;
 			}
-			if (instances.Length > 1)
+			if (Instances.Length > 1)
 				context.Writer.WriteMeta("++");
 			if (Status == ServiceStatus.Error)
 				context.Writer.WriteMeta(" <---------------");
@@ -189,6 +184,8 @@ namespace SimpleContainer.Implementation
 			if (context.UsedFromDependency != null && context.UsedFromDependency.Status == ServiceStatus.Ok &&
 			    (context.UsedFromDependency.Value == null || context.UsedFromDependency.Value.GetType().IsSimpleType()))
 				context.Writer.WriteMeta(" -> " + InternalHelpers.DumpValue(context.UsedFromDependency.Value));
+			else if (Instances.Length == 1 && Instances[0].IsConstant)
+				ValueFormatter.WriteValue(context, Instances[0].Instance, true);
 			if (initializing)
 				context.Writer.WriteMeta(", initializing ...");
 			else if (disposing)
@@ -204,7 +201,7 @@ namespace SimpleContainer.Implementation
 				}
 		}
 
-		private void CheckStatusIsGood(ContainerContext containerContext)
+		public void CheckStatusIsGood(ContainerContext containerContext)
 		{
 			if (Status.IsGood())
 				return;
@@ -254,19 +251,10 @@ namespace SimpleContainer.Implementation
 			return current;
 		}
 
-		private ServiceDependency GetLinkedDependency(ContainerContext containerContext)
-		{
-			if (Status == ServiceStatus.Ok)
-				return ServiceDependency.Service(this, GetAllValues(containerContext));
-			if (Status == ServiceStatus.NotResolved)
-				return ServiceDependency.NotResolved(this);
-			return ServiceDependency.ServiceError(this);
-		}
-
 		private string FormatManyImplementationsMessage()
 		{
 			return string.Format("many instances for [{0}]\r\n{1}", Type.FormatName(),
-				instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
+				Instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
 		}
 
 		private class ErrorTarget
@@ -319,6 +307,8 @@ namespace SimpleContainer.Implementation
 				get { return target.UsedContracts; }
 			}
 
+			public ExpandedUnions? ExpandedUnions { get; set; }
+
 			public void SetConfiguration(ServiceConfiguration newConfiguration)
 			{
 				Configuration = newConfiguration;
@@ -342,9 +332,9 @@ namespace SimpleContainer.Implementation
 				return new ServiceName(Type, DeclaredContracts);
 			}
 
-			public void AddInstance(object instance, bool owned)
+			public void AddInstance(object instance, bool owned, bool isConstant)
 			{
-				AddInstance(new InstanceWrap(instance, owned));
+				AddInstance(new InstanceWrap(instance, owned, isConstant));
 			}
 
 			private void AddInstance(InstanceWrap wrap)
@@ -370,12 +360,12 @@ namespace SimpleContainer.Implementation
 
 			public void LinkTo(ContainerContext containerContext, ContainerService childService, string comment)
 			{
-				var dependency = childService.GetLinkedDependency(containerContext);
+				var dependency = childService.AsDependency(containerContext, null, true);
 				dependency.Comment = comment;
 				AddDependency(dependency, true);
 				UnionUsedContracts(childService);
 				if (target.Status.IsGood())
-					foreach (var instance in childService.instances)
+					foreach (var instance in childService.Instances)
 						if (!instances.Contains(instance))
 							AddInstance(instance);
 			}
@@ -386,11 +376,23 @@ namespace SimpleContainer.Implementation
 					return;
 				if (usedContractNames == null)
 					usedContractNames = new List<string>();
-				var contractsToAdd = dependency.UsedContracts
-					.Where(x => !usedContractNames.Contains(x, StringComparer.OrdinalIgnoreCase))
-					.Where(x => DeclaredContracts.Any(x.EqualsIgnoringCase));
-				foreach (var n in contractsToAdd)
-					usedContractNames.Add(n);
+				foreach (var dependencyContract in dependency.UsedContracts)
+				{
+					if (usedContractNames.ContainsIgnoringCase(dependencyContract))
+						continue;
+					string usedContractName = null;
+					if (DeclaredContracts.ContainsIgnoringCase(dependencyContract))
+						usedContractName = dependencyContract;
+					else if (ExpandedUnions.HasValue)
+						foreach (var c in ExpandedUnions.Value.unionedContracts)
+							if (c.children.ContainsIgnoringCase(dependencyContract))
+							{
+								usedContractName = c.parent;
+								break;
+							}
+					if (usedContractName != null)
+						usedContractNames.Add(usedContractName);
+				}
 			}
 
 			public void SetError(string newErrorMessage)
@@ -434,7 +436,7 @@ namespace SimpleContainer.Implementation
 					if (unused.Any())
 						SetError(string.Format("arguments [{0}] are not used", unused.JoinStrings(",")));
 				}
-				target.instances = instances.ToArray();
+				target.Instances = instances.ToArray();
 				if (dependencies != null)
 					target.dependencies = dependencies.ToArray();
 				built = true;
@@ -479,7 +481,7 @@ namespace SimpleContainer.Implementation
 					SetError(e);
 					return;
 				}
-				AddInstance(instance, owned);
+				AddInstance(instance, owned, false);
 			}
 		}
 	}

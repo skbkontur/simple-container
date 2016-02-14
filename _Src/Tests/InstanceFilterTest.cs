@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Infection;
 using SimpleContainer.Tests.Helpers;
 
 namespace SimpleContainer.Tests
@@ -66,7 +65,7 @@ namespace SimpleContainer.Tests
 				Assert.That(instance.fileAccessors.Select(x => x.fileAccessor.fileName).ToArray(), Is.EqualTo(new[] { "ww1", "ww2" }));
 				Assert.That(container.Resolve<Wrap>().GetConstructionLog(), Is.EqualTo(
 					"Wrap\r\n" +
-					"\tFileAccessorWrap++\r\n" +
+					"\tFileAccessorWrap[all]++\r\n" +
 					"\t\t!FileAccessorWrap[c1] - instance filter\r\n" +
 					"\t\t\tFileAccessor[c1]\r\n" +
 					"\t\t\t\tfileName -> qq\r\n" +
