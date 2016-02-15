@@ -264,36 +264,6 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
-		public class CorrectErrorMessageForCyclesWithContracts : FactoriesBasicTest
-		{
-			public class A
-			{
-				public readonly B b;
-
-				public A([TestContract("x")] B b)
-				{
-					this.b = b;
-				}
-			}
-
-			public class B
-			{
-				public B(IContainer container)
-				{
-					container.Get<A>();
-				}
-			}
-
-			[Test]
-			public void Test()
-			{
-				var container = Container();
-				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB[x]\r\n\tA\r\n\r\n!A\r\n\t!B\r\n\t\tIContainer\r\n\t\t!() => A"));
-				Assert.That(exception.InnerException, Is.Null);
-			}
-		}
-
 		public class DetectIndirectCycles : FactoriesBasicTest
 		{
 			public class A
