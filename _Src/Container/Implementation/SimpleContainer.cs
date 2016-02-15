@@ -212,16 +212,8 @@ namespace SimpleContainer.Implementation
 			get { return containerContext.AllTypes(); }
 		}
 
-		internal ContainerService ResolveCore(ServiceName name, bool createNew,
-			IObjectAccessor arguments, ResolutionContext context)
+		internal ContainerService ResolveCore(ServiceName name, bool createNew, IObjectAccessor arguments, ResolutionContext context)
 		{
-			if (context.HasCycle(name))
-			{
-				var message = string.Format("cyclic dependency for service [{0}], stack\r\n{1}",
-					name.Type.FormatName(), context.FormatStack() + "\r\n\t" + name);
-				return ContainerService.Error(name, message);
-			}
-			context.ConstructingServices.Add(name);
 			var pushedContracts = context.Contracts.Push(name.Contracts);
 			if (!pushedContracts.isOk)
 			{
@@ -229,20 +221,28 @@ namespace SimpleContainer.Implementation
 				var message = string.Format(messageFormat, pushedContracts.duplicatedContractName,
 					context.FormatStack() + "\r\n\t" + name);
 				context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
-				context.ConstructingServices.Remove(name);
 				return ContainerService.Error(name, message);
 			}
+			var declaredName = new ServiceName(name.Type, context.Contracts.Snapshot());
+
+			if (context.HasCycle(declaredName))
+			{
+				var message = string.Format("cyclic dependency for service [{0}], stack\r\n{1}",
+					declaredName.Type.FormatName(), context.FormatStack() + "\r\n\t" + declaredName);
+				return ContainerService.Error(declaredName, message);
+			}
+			context.ConstructingServices.Add(declaredName);
+		
 			ServiceConfiguration configuration = null;
 			Exception configurationException = null;
 			try
 			{
-				configuration = GetConfiguration(name.Type, context);
+				configuration = GetConfiguration(declaredName.Type, context);
 			}
 			catch (Exception e)
 			{
 				configurationException = e;
 			}
-			var declaredName = new ServiceName(name.Type, context.Contracts.Snapshot());
 			if (configuration != null && configuration.FactoryDependsOnTarget && context.Stack.Count > 0)
 				declaredName = declaredName.AddContracts(context.TopBuilder.Type.FormatName());
 			ContainerServiceId id = null;
@@ -252,12 +252,12 @@ namespace SimpleContainer.Implementation
 				var acquireResult = id.AcquireInstantiateLock();
 				if (!acquireResult.acquired)
 				{
-					context.ConstructingServices.Remove(name);
+					context.ConstructingServices.Remove(declaredName);
 					context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
 					return acquireResult.alreadyConstructedService;
 				}
 			}
-			var builder = new ContainerService.Builder(name);
+			var builder = new ContainerService.Builder(declaredName);
 			context.Stack.Add(builder);
 			builder.Context = context;
 			builder.DeclaredContracts = declaredName.Contracts;
@@ -286,7 +286,7 @@ namespace SimpleContainer.Implementation
 					Instantiate(builder);
 				}
 			}
-			context.ConstructingServices.Remove(name);
+			context.ConstructingServices.Remove(declaredName);
 			context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
 			context.Stack.RemoveLast();
 			var result = builder.GetService();
