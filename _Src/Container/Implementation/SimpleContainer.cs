@@ -220,7 +220,8 @@ namespace SimpleContainer.Implementation
 			{
 				var message = string.Format("cyclic dependency for service [{0}], stack\r\n{1}",
 					declaredName.Type.FormatName(), context.FormatStack() + "\r\n\t" + declaredName);
-				return ContainerService.Error(declaredName, message);
+                context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
+                return ContainerService.Error(declaredName, message);
 			}
 			if (!pushedContracts.isOk)
 			{
