@@ -89,7 +89,7 @@ namespace SimpleContainer.Implementation
 					if (!initialized)
 					{
 						initializing = true;
-						var oldInitializintService = threadInitializing;
+						var oldInitializingService = threadInitializing;
 						threadInitializing = true;
 						try
 						{
@@ -104,7 +104,7 @@ namespace SimpleContainer.Implementation
 						finally
 						{
 							initializing = false;
-							threadInitializing = oldInitializintService;
+							threadInitializing = oldInitializingService;
 						}
 					}
 		}

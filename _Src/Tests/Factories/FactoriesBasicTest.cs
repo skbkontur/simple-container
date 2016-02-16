@@ -264,7 +264,7 @@ namespace SimpleContainer.Tests.Factories
 			}
 		}
 
-		public class CorrectErrorMessageForCyclesWithContracts : FactoriesBasicTest
+		public class CycleWithContractsThrowsCyclicDependenciesError : FactoriesBasicTest
 		{
 			public class A
 			{
@@ -289,7 +289,8 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB[x]\r\n\tA\r\n\r\n!A\r\n\t!B\r\n\t\tIContainer\r\n\t\t!() => A"));
+				var exprectedMessage = "cyclic dependency for service [B], stack\r\n\tA\r\n\tB[x]\r\n\tA[x]\r\n\tB[x]\r\n\r\n!A\r\n\t!B\r\n\t\tIContainer\r\n\t\t!() => A";
+				Assert.That(exception.Message, Is.EqualTo(exprectedMessage));
 				Assert.That(exception.InnerException, Is.Null);
 			}
 		}

@@ -824,5 +824,48 @@ namespace SimpleContainer.Tests.Contracts
 					Is.EqualTo("contract [x] already declared, stack\r\n\tA\r\n\tB[x->x]\r\n\r\n!A\r\n\t!B <---------------"));
 			}
 		}
+
+		public class SameInterfaceInContractNotACyclicDependency : ContractsBasicTest
+		{
+			public interface IB
+			{
+			}
+
+			public class ServiceB : IB
+			{
+				public C C;
+
+				public ServiceB([TestContract("test")] C c)
+				{
+					C = c;
+				}
+			}
+
+			public class InternalB : IB
+			{
+			}
+
+			public class C
+			{
+				public IB B;
+
+				public C(IB b)
+				{
+					B = b;
+				}
+			}
+
+			[Test]
+			public void Test()
+			{
+				var container = Container(x =>
+				{
+					x.Bind<IB, ServiceB>();
+					x.Contract("test").Bind<IB, InternalB>();
+				});
+				var serviceB = (ServiceB) container.Get<IB>();
+				Assert.That(serviceB.C.B, Is.SameAs(container.Get<InternalB>()));
+			}
+		}
 	}
 }

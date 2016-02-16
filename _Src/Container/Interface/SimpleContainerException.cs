@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 
 namespace SimpleContainer.Interface
 {
@@ -11,6 +12,10 @@ namespace SimpleContainer.Interface
 		}
 
 		public SimpleContainerException(string message, Exception innerException) : base(message, innerException)
+		{
+		}
+
+		protected SimpleContainerException(SerializationInfo info, StreamingContext context) : base(info, context)
 		{
 		}
 	}
