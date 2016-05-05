@@ -39,6 +39,44 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+	    public class GracefullyHandleCrashInImplementationConfigurator : IgnoreImplementationTest
+	    {
+	        public interface IA
+	        {
+	        }
+
+	        public class A : IA
+	        {
+	        }
+
+	        public class AConfigurator : IServiceConfigurator<A>
+	        {
+	            public void Configure(ConfigurationContext context, ServiceConfigurationBuilder<A> builder)
+	            {
+	                throw new InvalidOperationException("test-crash");
+	            }
+	        }
+
+	        private static void CheckException(SimpleContainerException e)
+	        {
+                Assert.That(e.Message, Is.EqualTo(FormatExpectedMessage(@"
+service [IA] construction exception
+
+!IA <---------------")));
+	            Assert.That(e.InnerException.Message, Is.EqualTo("error executing configurator [AConfigurator]"));
+	            Assert.That(e.InnerException.InnerException.Message, Is.EqualTo("test-crash"));
+	        }
+
+	        [Test]
+	        public void Test()
+	        {
+	            var container = Container();
+                CheckException(Assert.Throws<SimpleContainerException>(() => container.Get<IA>()));
+                //check no side effects because of unexpected stack unwind
+                CheckException(Assert.Throws<SimpleContainerException>(() => container.Get<IA>()));
+	        }
+	    }
+
 		public class CanExplicitlyInjectIgnoredImplementation : IgnoreImplementationTest
 		{
 			[IgnoredImplementation]

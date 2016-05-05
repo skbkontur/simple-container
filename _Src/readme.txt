@@ -10,3 +10,5 @@ todo
 	get rid of stupid AnalizeDependenciesOnly
 
 	reduce memory traffix (remove LINQ, use List, etc)
+
+	replace exceptions with FuncResult-s for Configuration api

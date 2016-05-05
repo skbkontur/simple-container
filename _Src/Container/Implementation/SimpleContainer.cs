@@ -350,8 +350,17 @@ namespace SimpleContainer.Implementation
 
 		private void InstantiateInterface(ContainerService.Builder builder)
 		{
-			var implementationTypes = GetImplementationTypes(builder);
-			ApplySelectors(implementationTypes, builder);
+		    HashSet<ImplementationType> implementationTypes;
+		    try
+		    {
+		        implementationTypes = GetImplementationTypes(builder);
+		    }
+		    catch (Exception e)
+		    {
+		        builder.SetError(e);
+		        return;
+		    }
+		    ApplySelectors(implementationTypes, builder);
 			if (implementationTypes.Count == 0)
 			{
 				builder.SetComment("has no implementations");
