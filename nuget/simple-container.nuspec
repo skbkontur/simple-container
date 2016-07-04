@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>simple-container</id>
+    <version>1.0.2</version>
+    <authors>gusev_p</authors>
+    <owners>gusev_p</owners>
+    <licenseUrl>https://github.com/gusev-p/simple-container/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/gusev-p/simple-container</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Just another DI container</description>
+    <copyright>Copyright 2016</copyright>
+  </metadata>
+  <files>
+    <file src="..\bin\Release\SimpleContainer.dll" target="lib/net45" />
+    <file src="..\bin\Release\SimpleContainer.pdb" target="lib/net45" />
+  </files>
+</package>
