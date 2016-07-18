@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Implementation
@@ -7,7 +8,7 @@ namespace SimpleContainer.Implementation
 	{
 		public static bool TryCreate(ContainerService.Builder builder)
 		{
-			var factoryType = builder.Type.GetNestedType("Factory");
+			var factoryType = builder.Type.GetNestedType("Factory", BindingFlags.Public);
 			if (factoryType == null)
 				return false;
 			var method = factoryType.GetMethod("Create", Type.EmptyTypes);

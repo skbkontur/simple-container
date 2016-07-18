@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using SimpleContainer.Annotations;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
@@ -20,13 +21,13 @@ namespace SimpleContainer.Implementation
 		private static readonly Func<SignatureDelegateKey, Delegate> createCaster = delegate(SignatureDelegateKey key)
 		{
 			var delegateType = typeof (Func<Func<Type, object, object>, object>);
-			return Delegate.CreateDelegate(delegateType, key.signature.MakeGenericMethod(key.resultType));
+			return key.signature.MakeGenericMethod(key.resultType).CreateDelegate(delegateType);
 		};
 
 		public static object TryCreate(ContainerService.Builder builder)
 		{
 			var funcType = builder.Type;
-			if (!funcType.IsGenericType || !funcType.IsDelegate())
+			if (!funcType.IsGenericType() || !funcType.IsDelegate())
 				return null;
 			Type resultType;
 			var signature = FindSignature(funcType, out resultType);

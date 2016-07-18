@@ -84,7 +84,7 @@ namespace SimpleContainer.Implementation
 			if (cache.TryGetValue(definition, out types))
 				foreach (var type in types)
 					result.closures.Add(type);
-			else if (definition.IsAbstract)
+			else if (definition.IsAbstract())
 				MarkInterface(result, context);
 			else
 				MarkImplementation(result, context);
@@ -101,16 +101,16 @@ namespace SimpleContainer.Implementation
 			foreach (var parameter in parameters)
 			{
 				var parameterType = parameter.ParameterType;
-				if (parameterType.IsGenericType && (parameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
-				                                    || parameterType.GetGenericTypeDefinition() == typeof (Func<>)))
+				if (parameterType.IsGenericType() && (parameterType.GetGenericTypeDefinition() == typeof (IEnumerable<>)
+				                                   || parameterType.GetGenericTypeDefinition() == typeof (Func<>)))
 					parameterType = parameterType.GetGenericArguments()[0];
 				if (parameterType.IsSimpleType())
 					continue;
-				if (!assemblyFilter(parameterType.Assembly.GetName()))
+				if (!assemblyFilter(parameterType.Assembly().GetName()))
 					continue;
-				if (!parameterType.IsGenericType)
+				if (!parameterType.IsGenericType())
 					continue;
-				if (!parameterType.ContainsGenericParameters)
+				if (!parameterType.ContainsGenericParameters())
 					continue;
 				if (parameterType.GenericParameters().Count != definition.type.GetGenericArguments().Length)
 					continue;
@@ -130,7 +130,7 @@ namespace SimpleContainer.Implementation
 			foreach (var implType in typesList.InheritorsOf(definition.type))
 			{
 				var interfaceImpls = implType.ImplementationsOf(definition.type);
-				if (implType.IsGenericType)
+				if (implType.IsGenericType())
 				{
 					var markedImpl = Mark(implType, context);
 					foreach (var interfaceImpl in interfaceImpls)
@@ -160,7 +160,7 @@ namespace SimpleContainer.Implementation
 			if (constraints.Length == 0)
 				return;
 			foreach (var c in constraints)
-				if (!assemblyFilter(c.Assembly.GetName()))
+				if (!assemblyFilter(c.Assembly().GetName()))
 					return;
 			var impls = typesList.InheritorsOf(constraints[0]);
 			for (var i = 1; i < constraints.Length; i++)
@@ -175,11 +175,11 @@ namespace SimpleContainer.Implementation
 			if (impls.Count == 0)
 				return;
 			var nonGenericOverrides = typesList.InheritorsOf(definition.type)
-				.Where(x => !x.IsGenericType)
+				.Where(x => !x.IsGenericType())
 				.ToArray();
 			foreach (var impl in impls)
 			{
-				if (genericArguments[0].GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+				if (genericArguments[0].GenericParameterAttributes().HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
 					if (impl.GetConstructor(Type.EmptyTypes) == null)
 						continue;
 				var closedItem = definition.type.MakeGenericType(impl);

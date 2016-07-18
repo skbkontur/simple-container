@@ -26,7 +26,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 			if (!outputType.IsAssignableFrom(memberType))
 				throw new TypeMismatchException(outputType, memberType);
 
-			if (memberType.IsValueType && !outputType.IsValueType)
+			if (memberType.IsValueType() && !outputType.IsValueType())
 				EmitValueTypeCast(ilGenerator);
 
 			if (outputType.IsNullableOf(memberType))

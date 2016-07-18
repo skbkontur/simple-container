@@ -15,7 +15,7 @@ namespace SimpleContainer.Implementation
 			if (!builder.Type.IsDelegate() || builder.Type.FullName.StartsWith("System.Func`"))
 				return false;
 			var invokeMethod = builder.Type.GetMethod("Invoke");
-			if (!builder.Type.IsNestedPublic)
+			if (!builder.Type.IsNestedPublic())
 			{
 				builder.SetError(string.Format("can't create delegate [{0}]. must be nested public", builder.Type.FormatName()));
 				return true;
@@ -97,7 +97,7 @@ namespace SimpleContainer.Implementation
 					il.Emit(OpCodes.Ldarg_0);
 					il.EmitLdInt32(serviceIndex);
 					il.Emit(OpCodes.Ldelem_Ref);
-					il.Emit(p.ParameterType.IsValueType ? OpCodes.Unbox_Any : OpCodes.Castclass, p.ParameterType);
+					il.Emit(p.ParameterType.IsValueType() ? OpCodes.Unbox_Any : OpCodes.Castclass, p.ParameterType);
 				}
 			}
 			if (delegateParameterNameToIndexMap.Count > 0)

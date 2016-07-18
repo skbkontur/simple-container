@@ -9,7 +9,7 @@ namespace SimpleContainer.Implementation
 	{
 		public static object TryCreate(ContainerService.Builder builder)
 		{
-			if (!builder.Type.IsGenericType)
+			if (!builder.Type.IsGenericType())
 				return null;
 			if (builder.Type.GetGenericTypeDefinition() != typeof (Lazy<>))
 				return null;

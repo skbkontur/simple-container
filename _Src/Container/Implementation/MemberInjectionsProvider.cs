@@ -39,7 +39,7 @@ namespace SimpleContainer.Implementation
 			MemberSetter[] baseSetters = null;
 			if (!type.IsDefined<FrameworkBoundaryAttribute>(false))
 			{
-				var baseType = type.BaseType;
+				var baseType = type.BaseType();
 				if (baseType != typeof (object))
 					baseSetters = GetMembers(baseType);
 			}

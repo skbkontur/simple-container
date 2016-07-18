@@ -1,9 +1,10 @@
 using System;
-using System.Runtime.Serialization;
 
 namespace SimpleContainer.Interface
 {
-	[Serializable]
+#if !NETCORE1
+	[System.Runtime.Serialization.Serializable]
+#endif
 	public class SimpleContainerException : Exception
 	{
 		public SimpleContainerException(string message)
@@ -15,8 +16,10 @@ namespace SimpleContainer.Interface
 		{
 		}
 
+#if !NETCORE1
 		protected SimpleContainerException(SerializationInfo info, StreamingContext context) : base(info, context)
 		{
 		}
+#endif
 	}
 }

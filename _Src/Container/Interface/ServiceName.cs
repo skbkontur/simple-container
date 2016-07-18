@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using SimpleContainer.Helpers;
 
 namespace SimpleContainer.Interface
@@ -17,7 +18,7 @@ namespace SimpleContainer.Interface
 		internal static ServiceName Parse(Type type, string[] contracts)
 		{
 			var typeContracts = InternalHelpers.ParseContracts(type);
-			return new ServiceName(type, contracts.Concat(typeContracts));
+			return new ServiceName(type, contracts.Concat(typeContracts).ToArray());
 		}
 
 		public Type Type
