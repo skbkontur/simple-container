@@ -94,6 +94,10 @@ namespace SimpleContainer.Configuration
 						interfaceType.FormatName(), implementationType.FormatName()));
 				if (target.ImplementationTypes == null)
 					target.ImplementationTypes = new List<Type>();
+			    target.Factory = null;
+			    target.Implementation = null;
+			    target.ImplementationAssigned = false;
+			    target.ContainerOwnsInstance = false;
 				if (clearOld)
 					target.ImplementationTypes.Clear();
 				if (!target.ImplementationTypes.Contains(implementationType))

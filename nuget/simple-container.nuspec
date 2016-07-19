@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>simple-container</id>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <authors>gusev_p</authors>
     <owners>gusev_p</owners>
     <licenseUrl>https://github.com/gusev-p/simple-container/blob/master/LICENSE.txt</licenseUrl>

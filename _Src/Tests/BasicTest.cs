@@ -1729,6 +1729,32 @@ namespace SimpleContainer.Tests
 			}
 		}
 
+        public class BindImplementationOverridesPreviouslyBindedValues : BasicTest
+	    {
+            public interface IA
+            {
+            }
+
+	        public class A1 : IA
+	        {
+	        }
+
+	        public class A2 : IA
+	        {
+	        }
+
+	        [Test]
+	        public void Test()
+	        {
+	            var container = Container(delegate(ContainerConfigurationBuilder b)
+	            {
+	                b.Bind<IA>(new A1());
+	                b.Bind<IA, A2>();
+	            });
+                Assert.That(container.Get<IA>(), Is.InstanceOf<A2>());
+	        }
+	    }
+
 		public class OptionalFunc : BasicTest
 		{
 			public class Wrap
