@@ -37,7 +37,7 @@ namespace SimpleContainer.Tests.Helpers
 				OutputAssembly = resultFileName ?? "tmp_" + Guid.NewGuid().ToString("N") + ".dll",
 				GenerateExecutable = false
 			};
-			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.GetName().Name + ".dll"))
+			foreach (var reference in references.Concat(defaultAssemblies).Select(x => x.Location))
 				compilationParameters.ReferencedAssemblies.Add(reference);
 			CompilerResults compilationResult;
 			using (var codeDomProvider = CodeDomProvider.CreateProvider("C#"))

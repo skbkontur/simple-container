@@ -686,7 +686,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.StringContaining("!A[a]\r\n\tparameter -> 78\r\n\t!B\r\n\t\t!parameter <---------------"));
+					Does.Contain("!A[a]\r\n\tparameter -> 78\r\n\t!B\r\n\t\t!parameter <---------------"));
 			}
 		}
 

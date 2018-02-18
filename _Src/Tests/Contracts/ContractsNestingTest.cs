@@ -61,7 +61,7 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A\r\n\tB[x]\r\n\t\tC[x->y]\r\n\t\t\tcontext -> xy"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A\r\n\tB[x]\r\n\t\tC[x->y]\r\n\t\t\tcontext -> xy"));
 			}
 		}
 

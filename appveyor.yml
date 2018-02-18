@@ -14,6 +14,8 @@ configuration:
   - Release
 init:
   - git config --global core.autocrlf true
+before_build:
+  - nuget restore _Src\SimpleContainer.sln
 build:
   verbosity: minimal
   project: _Src\SimpleContainer.sln

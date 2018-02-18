@@ -372,7 +372,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(b => b.Contract("a"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>("a"));
-				Assert.That(error.Message, Is.StringContaining("construction exception"));
+				Assert.That(error.Message, Does.Contain("construction exception"));
 				Assert.That(error.InnerException.Message, Is.EqualTo("test crash"));
 			}
 		}
