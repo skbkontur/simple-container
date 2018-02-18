@@ -31,7 +31,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var service = container.Resolve<ServiceWithResource>();
 				Assert.That(service.IsOk());
 				Assert.That(() => { log = service.GetConstructionLog(); }, Throws.Nothing);
-				Assert.That(log, Is.StringContaining("resource [test-resource-for-construction-log-test.txt]"));
+				Assert.That(log, Does.Contain("resource [test-resource-for-construction-log-test.txt]"));
 			}
 		}
 

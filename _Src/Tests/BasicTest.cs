@@ -22,7 +22,7 @@ namespace SimpleContainer.Tests
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
-					Is.StringContaining("can't cast value [42] from [int] to [string] for dependency [x]\r\n\r\n!Wrap\r\n\t!A"));
+					Does.Contain("can't cast value [42] from [int] to [string] for dependency [x]\r\n\r\n!Wrap\r\n\t!A"));
 			}
 
 			public class A
@@ -314,7 +314,7 @@ namespace SimpleContainer.Tests
 				Assert.That(service.GetContent(), Is.EqualTo("the resource"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceA>());
 				Assert.That(error.Message,
-					Is.StringContaining(
+					Does.Contain(
 						"can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]\r\n\r\n!ServiceA\r\n\t!ServiceWithInexistentResource"));
 			}
 
@@ -467,7 +467,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
-				Assert.That(error.Message, Is.StringContaining("can't create open generic\r\n\r\n!GenericClass<T> <---------------"));
+				Assert.That(error.Message, Does.Contain("can't create open generic\r\n\r\n!GenericClass<T> <---------------"));
 			}
 
 			public class GenericClass<T>
@@ -565,9 +565,9 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				var messageText = exception.ToString();
-				Assert.That(messageText, Is.StringContaining("service [InnerService] construction exception\r\n\r\n!OuterService\r\n\t!InnerService <---------------"));
-				Assert.That(messageText, Is.StringContaining("test crash"));
-				Assert.That(messageText, Is.StringContaining("InvalidOperationException"));
+				Assert.That(messageText, Does.Contain("service [InnerService] construction exception\r\n\r\n!OuterService\r\n\t!InnerService <---------------"));
+				Assert.That(messageText, Does.Contain("test crash"));
+				Assert.That(messageText, Does.Contain("InvalidOperationException"));
 			}
 
 			public class InnerService
@@ -728,7 +728,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.StringContaining("!A\r\n\t!B\r\n\t\t!unresolved"));
+				Assert.That(error.Message, Does.Contain("!A\r\n\t!B\r\n\t\t!unresolved"));
 			}
 
 			public class A
@@ -1025,7 +1025,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.StringContaining("no public ctors\r\n\r\n!IInterface\r\n\t!TestService <---------------"));
+					Does.Contain("no public ctors\r\n\r\n!IInterface\r\n\t!TestService <---------------"));
 			}
 
 			public interface IInterface
@@ -1266,11 +1266,11 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<StructConsumer>());
 				Assert.That(error.Message,
-					Is.StringContaining(string.Format(
+					Does.Contain(string.Format(
 						"can't create value type\r\n\r\n!StructConsumer\r\n\t!SomeStruct <---------------")));
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<ITestInterface>());
 				Assert.That(error.Message,
-					Is.StringContaining(string.Format("!ITestInterface\r\n\t!SomeStruct <---------------")));
+					Does.Contain(string.Format("!ITestInterface\r\n\t!SomeStruct <---------------")));
 			}
 
 			public interface ITestInterface

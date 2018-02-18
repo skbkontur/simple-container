@@ -15,12 +15,12 @@ namespace SimpleContainer.Tests.Helpers
 		{
 		}
 
-		[TestFixtureSetUp]
+		[OneTimeSetUp]
 		public virtual void TestFixtureSetUp()
 		{
 		}
 
-		[TestFixtureTearDown]
+		[OneTimeTearDown]
 		public virtual void TestFixtureTearDown()
 		{
 		}

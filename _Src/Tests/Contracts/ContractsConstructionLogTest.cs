@@ -174,7 +174,7 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.StringStarting("A[c1]\r\n\tB[c1->c2]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A[c1]\r\n\tB[c1->c2]"));
 			}
 		}
 	}
