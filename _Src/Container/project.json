@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0-*",
+  "dependencies": {
+    "NETStandard.Library": "1.6.0"
+  },
+  "frameworks": {
+    "netstandard1.6": {
+      "imports": "dnxcore50",
+      "buildOptions": {
+        "define": [
+          "NETCORE1"
+        ]
+      },
+      "dependencies": {
+        "System.Reflection": {
+          "type": "build",
+          "version": "4.1.0"
+        },
+        "System.Runtime.Extensions": {
+          "type": "build",
+          "version": "4.1.0"
+        },
+        "System.Reflection.Emit.ILGeneration": {
+          "type": "build",
+          "version": "4.0.1"
+        },
+        "System.Reflection.Emit.Lightweight": {
+          "type": "build",
+          "version": "4.0.1"
+        },
+        "System.Runtime.Loader": {
+          "type": "build",
+          "version": "4.0.0"
+        },
+        "System.Linq.Parallel": {
+          "type": "build",
+          "version": "4.0.1"
+        }
+      }
+    }
+  }
+}

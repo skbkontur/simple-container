@@ -33,7 +33,7 @@ namespace SimpleContainer.Helpers.ReflectionEmit
 				return;
 			ilGenerator.Emit(OpCodes.Ldarg_0);
 			var declaringType = member.DeclaringType;
-			if (!declaringType.IsValueType)
+			if (!declaringType.IsValueType())
 				return;
 			ilGenerator.Emit(OpCodes.Unbox_Any, declaringType);
 			ilGenerator.DeclareLocal(declaringType);

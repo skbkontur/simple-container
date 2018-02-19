@@ -22,7 +22,7 @@ namespace SimpleContainer.Helpers
 		{
 			if (t.IsGenericParameter)
 				result.Add(t);
-			else if (t.IsGenericType)
+			else if (t.IsGenericType())
 				foreach (var x in t.GetGenericArguments())
 					FillGenericParameters(x, result);
 		}
@@ -48,7 +48,7 @@ namespace SimpleContainer.Helpers
 				foreach (var constraint in pattern.GetGenericParameterConstraints())
 					if (!constraint.IsAssignableFrom(value))
 						return false;
-				if (pattern.GenericParameterAttributes.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+				if (pattern.GenericParameterAttributes().HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
 					if (value.GetConstructor(Type.EmptyTypes) == null)
 						return false;
 				if (matched != null)
@@ -60,9 +60,9 @@ namespace SimpleContainer.Helpers
 				}
 				return true;
 			}
-			if (pattern.IsGenericType ^ value.IsGenericType)
+			if (pattern.IsGenericType() ^ value.IsGenericType())
 				return false;
-			if (!pattern.IsGenericType)
+			if (!pattern.IsGenericType())
 				return pattern == value;
 			if (pattern.GetGenericTypeDefinition() != value.GetGenericTypeDefinition())
 				return false;
@@ -76,7 +76,7 @@ namespace SimpleContainer.Helpers
 
 		public static Type UnwrapEnumerable(this Type type)
 		{
-			if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
+			if (type.IsGenericType() && type.GetGenericTypeDefinition() == typeof (IEnumerable<>))
 				return type.GetGenericArguments()[0];
 			return type.IsArray ? type.GetElementType() : type;
 		}
@@ -114,6 +114,14 @@ namespace SimpleContainer.Helpers
 			return (IEnumerable<Attribute>) AttributesCache.instance.GetCustomAttributes(attributeProvider, type, inherit);
 		}
 
+#if NETCORE1
+		public static bool TryGetCustomAttribute<TAttribute>(this Type t, out TAttribute result)
+			where TAttribute : Attribute
+		{
+			return TryGetCustomAttribute<TAttribute>(t.GetTypeInfo(), out result);
+		}
+#endif
+
 		public static bool TryGetCustomAttribute<TAttribute>(this ICustomAttributeProvider memberInfo, out TAttribute result)
 			where TAttribute : Attribute
 		{
@@ -126,6 +134,19 @@ namespace SimpleContainer.Helpers
 			result = null;
 			return false;
 		}
+
+#if NETCORE1
+		public static bool IsDefined<TAttribute>(this Type t, bool inherit = true)
+			where TAttribute : Attribute
+		{
+			return IsDefined<TAttribute>(t.GetTypeInfo(), inherit);
+		}
+
+		public static bool IsDefined(this Type t, string attributeName)
+		{
+			return t.GetTypeInfo().IsDefined(attributeName);
+		}
+#endif
 
 		public static bool IsDefined<TAttribute>(this ICustomAttributeProvider type, bool inherit = true)
 			where TAttribute : Attribute
@@ -146,7 +167,7 @@ namespace SimpleContainer.Helpers
 		public static List<Type> ImplementationsOf(this Type implementation, Type interfaceDefinition)
 		{
 			var result = new List<Type>();
-			if (interfaceDefinition.IsInterface)
+			if (interfaceDefinition.IsInterface())
 			{
 				var interfaces = implementation.GetInterfaces();
 				foreach (var interfaceImpl in interfaces)
@@ -163,7 +184,7 @@ namespace SimpleContainer.Helpers
 						result.Add(current);
 						break;
 					}
-					current = current.BaseType;
+					current = current.BaseType();
 				}
 			}
 			return result;
@@ -194,7 +215,7 @@ namespace SimpleContainer.Helpers
 				var declaringType = targetMethod.DeclaringType;
 				if (declaringType == null)
 					throw new InvalidOperationException(string.Format("DeclaringType is null for [{0}]", targetMethod));
-				if (declaringType.IsValueType)
+				if (declaringType.IsValueType())
 				{
 					il.Emit(OpCodes.Unbox_Any, declaringType);
 					il.DeclareLocal(declaringType);
@@ -242,16 +263,17 @@ namespace SimpleContainer.Helpers
 			string result;
 			if (typeNames.TryGetValue(type, out result))
 				return result;
+			result = type.Name;
 			if (type.IsArray)
 				return type.GetElementType().FormatName() + "[]";
 			if (type.IsDelegate() && type.IsNested)
 				return type.DeclaringType.FormatName() + "." + type.Name;
 
-			if (!type.IsNested || !type.DeclaringType.IsGenericType || type.IsGenericParameter)
+			if (!type.IsNested || !type.DeclaringType.IsGenericType() || type.IsGenericParameter)
 				return FormatGenericType(type, type.GetGenericArguments());
 
 			var declaringHierarchy = DeclaringHierarchy(type)
-				.TakeWhile(t => t.IsGenericType)
+				.TakeWhile(t => t.IsGenericType())
 				.Reverse();
 			
 			var knownGenericArguments = type.GetGenericTypeDefinition().GetGenericArguments()
@@ -287,7 +309,7 @@ namespace SimpleContainer.Helpers
 
 		private static string FormatGenericType(Type type, Type[] arguments)
 		{
-			var genericMarkerIndex = type.Name.IndexOf("`", StringComparison.InvariantCulture);
+			var genericMarkerIndex = type.Name.IndexOf("`", StringComparison.Ordinal);
 			return genericMarkerIndex > 0
 				? string.Format("{0}<{1}>", type.Name.Substring(0, genericMarkerIndex), arguments.Select(FormatName).JoinStrings(","))
 				: type.Name;
@@ -296,12 +318,14 @@ namespace SimpleContainer.Helpers
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Type GetDefinition(this Type type)
 		{
-			return type.IsGenericType && !type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
+			return type.IsGenericType() && !type.IsGenericTypeDefinition()
+				? type.GetGenericTypeDefinition()
+				: type;
 		}
 
 		public static bool IsSimpleType(this Type type)
 		{
-			if (simpleTypes.Contains(type) || type.IsEnum)
+			if (simpleTypes.Contains(type) || type.IsEnum())
 				return true;
 			var nullableWrapped = Nullable.GetUnderlyingType(type);
 			return nullableWrapped != null && nullableWrapped.IsSimpleType();
@@ -309,7 +333,7 @@ namespace SimpleContainer.Helpers
 
 		public static bool IsDelegate(this Type type)
 		{
-			return type.BaseType == typeof (MulticastDelegate);
+			return type.BaseType() == typeof (MulticastDelegate);
 		}
 
 		private static readonly ISet<Type> simpleTypes = new HashSet<Type>

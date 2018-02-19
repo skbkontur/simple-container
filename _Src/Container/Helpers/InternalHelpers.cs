@@ -30,6 +30,13 @@ namespace SimpleContainer.Helpers
 			return new T().ContractName;
 		}
 
+#if NETCORE1
+		public static string[] ParseContracts(Type provider)
+		{
+			return ParseContracts(provider.GetTypeInfo());
+		}
+#endif
+
 		public static string[] ParseContracts(ICustomAttributeProvider provider)
 		{
 			var attributes = provider.GetCustomAttributes<RequireContractAttribute>();

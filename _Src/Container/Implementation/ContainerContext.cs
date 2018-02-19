@@ -18,7 +18,7 @@ namespace SimpleContainer.Implementation
 		public Type[] AllTypes()
 		{
 			return allTypes ??
-			       (allTypes = typesList.Types.Where(x => x.Assembly != typeof (SimpleContainer).Assembly).ToArray());
+			       (allTypes = typesList.Types.Where(x => x.Assembly() != typeof (SimpleContainer).Assembly()).ToArray());
 		}
 
 		private Type[] allTypes;

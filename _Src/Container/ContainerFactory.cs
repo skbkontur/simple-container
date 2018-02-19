@@ -136,7 +136,7 @@ namespace SimpleContainer
 				{
 					try
 					{
-						return AssemblyName.GetAssemblyName(s);
+						return Portability.GetAssemblyName(s);
 					}
 					catch (BadImageFormatException)
 					{
@@ -169,7 +169,7 @@ namespace SimpleContainer
 			if (typesContext == null)
 			{
 				var targetTypes = types()
-					.Concat(Assembly.GetExecutingAssembly().GetTypes())
+					.Concat(Portability.GetSimpleContainerAssembly().GetTypes())
 					.Where(x => !x.Name.StartsWith("<>", StringComparison.OrdinalIgnoreCase))
 					.Distinct()
 					.ToArray();
