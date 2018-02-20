@@ -14,7 +14,8 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private Type profile;
-		private Func<AssemblyName, bool> assembliesFilter = n => true;
+		private static readonly Func<AssemblyName, bool> defaultAssembliesFilter = n => n.Name != "NUnit3.TestAdapter";
+		private Func<AssemblyName, bool> assembliesFilter = defaultAssembliesFilter;
 		private Func<Type, string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
@@ -63,7 +64,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
-			assembliesFilter = n => newAssembliesFilter(n) || n.Name == "SimpleContainer";
+			assembliesFilter = n => defaultAssembliesFilter(n) && (newAssembliesFilter(n) || n.Name == "SimpleContainer");
 			typesContextCache = null;
 			configurationByProfileCache.Clear();
 			return this;

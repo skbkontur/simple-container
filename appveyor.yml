@@ -1,4 +1,3 @@
-image: Visual Studio 2017
 version: 1.0.{build}
 assembly_info:
   patch: true
@@ -16,12 +15,13 @@ configuration:
 init:
   - git config --global core.autocrlf true
 before_build:
-  - nuget restore _Src\SimpleContainer.sln
-build:
-  verbosity: minimal
-  project: _Src\SimpleContainer.sln
-test:
-  assemblies:
-    - '**\*.tests.dll'
+  - nuget install NUnit.ConsoleRunner -Version 3.8.0
+  - nuget install NUnit3TestAdapter -Version 3.9.0
+  - copy /y NUnit.ConsoleRunner.3.8.0\tools\*.* c:\Tools\NUnit3
+build_script:
+  - dotnet build _Src\SimpleContainer.sln
+test_script:
+  - nunit3-console.exe "_Src\Tests\bin\%configuration%\net45\SimpleContainer.Tests.dll"
+  - dotnet test "_Src\Tests\Tests.csproj" --no-restore --no-build -f netcoreapp2.0 -o "bin\%configuration%\netcoreapp2.0"
 artifacts:
   - path: bin\$(configuration)\*.*

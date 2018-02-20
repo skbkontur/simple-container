@@ -14,7 +14,9 @@ namespace SimpleContainer.Tests
 		public void Test()
 		{
 			//#13#10(\r\n) - windows, #10(\n) - unix
-			var srcDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\..\_Src");
+			var srcDirectory = Path.Combine(
+				AppDomain.CurrentDomain.BaseDirectory,
+				@"..\..\..\..\..\_Src".Replace('\\', Path.DirectorySeparatorChar));
 			var sourceFiles = Directory.GetFiles(srcDirectory, "*.cs", SearchOption.AllDirectories);
 			var invalidFiles = new List<string>();
 			foreach (var f in sourceFiles)
