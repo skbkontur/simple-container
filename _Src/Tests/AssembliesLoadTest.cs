@@ -14,8 +14,7 @@ namespace SimpleContainer.Tests
 		protected override void SetUp()
 		{
 			base.SetUp();
-			if (Directory.Exists(testDirectory))
-				Directory.Delete(testDirectory, true);
+			testDirectory = Path.GetFullPath($"{testDirectory}{Guid.NewGuid():N}");
 			Directory.CreateDirectory(testDirectory);
 
 			appDomain = AppDomain.CreateDomain("test", null, new AppDomainSetup {ApplicationBase = testDirectory});
@@ -25,13 +24,18 @@ namespace SimpleContainer.Tests
 		{
 			if (appDomain != null)
 				AppDomain.Unload(appDomain);
-			if (Directory.Exists(testDirectory))
-				Directory.Delete(testDirectory, true);
+			try
+			{
+				if (Directory.Exists(testDirectory))
+					Directory.Delete(testDirectory, true);
+			}
+			catch (Exception ex)
+			{}
 			base.TearDown();
 		}
 
-		protected AppDomain appDomain;
-		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
+		private AppDomain appDomain;
+		private string testDirectory;
 
 		private void CopyAssemblyToTestDirectory(Assembly assembly)
 		{
