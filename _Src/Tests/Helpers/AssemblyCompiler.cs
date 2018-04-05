@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -17,7 +16,7 @@ namespace SimpleContainer.Tests.Helpers
 		{
 			Assembly.GetExecutingAssembly(),
 			typeof (IInitializable).Assembly,
-			typeof (NameValueCollection).Assembly
+			typeof (object).Assembly
 		};
 
 		static AssemblyCompiler()
@@ -33,13 +32,13 @@ namespace SimpleContainer.Tests.Helpers
 
 		public static Assembly Compile(string source, string resultFileName, params Assembly[] references)
 		{
-			var syntaxTree = CSharpSyntaxTree.ParseText(source);
 			var assemblyName = "tmp_" + Guid.NewGuid().ToString("N");
 			var assemblyPath = resultFileName ?? assemblyName + ".dll";
+			var syntaxTree = CSharpSyntaxTree.ParseText(source, path: assemblyName);
 
 			var metadataReferences = references
 				.Select(r => MetadataReference.CreateFromFile(r.Location))
-				.Concat(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+				.Concat(defaultAssemblies.Select(r => MetadataReference.CreateFromFile(r.Location)));
 			var defaultNamespaces = new[] { "System" };
 			var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
 				.WithUsings(defaultNamespaces);
@@ -57,7 +56,7 @@ namespace SimpleContainer.Tests.Helpers
 				{
 					var message = emitResult.Diagnostics
 						.Select(d => $"{d.Location}: {d.Severity} {d.Id}: {d.GetMessage()}")
-						.JoinStrings("\r\n");
+						.JoinStrings(Environment.NewLine);
 					Assert.Fail(message);
 				}
 			}

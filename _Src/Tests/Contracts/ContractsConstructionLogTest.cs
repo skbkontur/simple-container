@@ -1,7 +1,6 @@
 using System;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
-using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -60,8 +59,10 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				const string expectedMessage =
-					"no instances for [Wrap] because [IUnimplemented] has no instances\r\n\r\n!Wrap\r\n\t!Service[c1]\r\n\t\tSingletonService\r\n\t\t!IInterface[c1]\r\n\t\t\t!Impl1\r\n\t\t\t\t!IUnimplemented - has no implementations" + defaultScannedAssemblies;
+				var expectedMessage = string.Format(
+					"no instances for [Wrap] because [IUnimplemented] has no instances{0}!Wrap{0}\t!Service[c1]{0}\t\tSingletonService{0}\t\t!IInterface[c1]{0}\t\t\t!Impl1{0}\t\t\t\t!IUnimplemented - has no implementations{1}",
+					Environment.NewLine,
+					defaultScannedAssemblies);
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -100,7 +101,7 @@ namespace SimpleContainer.Tests.Contracts
 					builder.Contract("a2").BindDependency<A>("parameter", 52);
 				});
 				container.Get<Wrap>();
-				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A[a2]\r\n\tparameter -> 52"));
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A[a2]" + Environment.NewLine + "\tparameter -> 52"));
 			}
 		}
 
@@ -125,7 +126,7 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<B>"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A" + Environment.NewLine + "\tFunc<B>"));
 			}
 		}
 
@@ -174,7 +175,7 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A[c1]\r\n\tB[c1->c2]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A[c1]" + Environment.NewLine + "\tB[c1->c2]"));
 			}
 		}
 	}

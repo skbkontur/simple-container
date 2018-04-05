@@ -41,7 +41,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo("service [A] construction exception\r\n\r\n!AWrap\r\n\t!A <---------------"));
+				Assert.That(error.Message, Is.EqualTo(string.Format("service [A] construction exception{0}{0}!AWrap{0}\t!A <---------------", Environment.NewLine)));
 				Assert.That(error.InnerException, Is.InstanceOf<SimpleContainerException>());
 				Assert.That(error.InnerException.Message, Is.EqualTo("error executing configurator [AConfigurator]"));
 				Assert.That(error.InnerException.InnerException, Is.InstanceOf<InvalidOperationException>());
@@ -472,13 +472,12 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				var a = container.Resolve<A>();
 				Assert.That(a.Single().bs.Select(x => x.parameter).ToArray(), Is.EqualTo(new[] {1, 2}));
-				var expectedConstructionLog = FormatExpectedMessage(@"
-A
-	B[test-union-contract]++
-		B[c1]
-			parameter -> 1
-		B[c2]
-			parameter -> 2");
+				var expectedConstructionLog = "A"
+					+ Environment.NewLine + "\tB[test-union-contract]++"
+					+ Environment.NewLine + "\t\tB[c1]"
+					+ Environment.NewLine + "\t\t\tparameter -> 1"
+					+ Environment.NewLine + "\t\tB[c2]"
+					+ Environment.NewLine + "\t\t\tparameter -> 2";
 				Assert.That(a.GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}

@@ -22,8 +22,11 @@ namespace SimpleContainer.Tests
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
-					Does.Contain("can't cast value [42] from [int] to [string] for dependency [x]\r\n\r\n!Wrap\r\n\t!A"));
-			}
+					Does.Contain("can't cast value [42] from [int] to [string] for dependency [x]"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!Wrap" 
+						+ Environment.NewLine + "\t!A"));
+			}													
 
 			public class A
 			{
@@ -314,8 +317,10 @@ namespace SimpleContainer.Tests
 				Assert.That(service.GetContent(), Is.EqualTo("the resource"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceA>());
 				Assert.That(error.Message,
-					Does.Contain(
-						"can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]\r\n\r\n!ServiceA\r\n\t!ServiceWithInexistentResource"));
+					Does.Contain("can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!ServiceA" 
+						+ Environment.NewLine + "\t!ServiceWithInexistentResource"));
 			}
 
 			public class ServiceA
@@ -467,7 +472,9 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
-				Assert.That(error.Message, Does.Contain("can't create open generic\r\n\r\n!GenericClass<T> <---------------"));
+				Assert.That(error.Message, Does.Contain("can't create open generic"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!GenericClass<T> <---------------"));
 			}
 
 			public class GenericClass<T>
@@ -497,7 +504,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("parameter [unresolved] of service [Factory] is not configured\r\n\r\n!A\r\n\t!() => Factory\r\n\t\t!unresolved <---------------"));
+				Assert.That(error.Message, Is.EqualTo("parameter [unresolved] of service [Factory] is not configured"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!A" 
+					+ Environment.NewLine + "\t!() => Factory" 
+					+ Environment.NewLine + "\t\t!unresolved <---------------"));
 			}
 		}
 
@@ -565,7 +576,10 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				var messageText = exception.ToString();
-				Assert.That(messageText, Does.Contain("service [InnerService] construction exception\r\n\r\n!OuterService\r\n\t!InnerService <---------------"));
+				Assert.That(messageText, Does.Contain("service [InnerService] construction exception"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!OuterService" 
+					+ Environment.NewLine + "\t!InnerService <---------------"));
 				Assert.That(messageText, Does.Contain("test crash"));
 				Assert.That(messageText, Does.Contain("InvalidOperationException"));
 			}
@@ -598,7 +612,18 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"cyclic dependency for service [ClassA], stack\r\n\tOuterService\r\n\tClassA\r\n\tIntermediate\r\n\tClassB\r\n\tClassA\r\n\r\n!OuterService\r\n\t!ClassA\r\n\t\t!Intermediate\r\n\t\t\t!ClassB\r\n\t\t\t\t!ClassA"));
+						"cyclic dependency for service [ClassA], stack" 
+							+ Environment.NewLine + "\tOuterService" 
+							+ Environment.NewLine + "\tClassA" 
+							+ Environment.NewLine + "\tIntermediate" 
+							+ Environment.NewLine + "\tClassB" 
+							+ Environment.NewLine + "\tClassA"
+							+ Environment.NewLine
+							+ Environment.NewLine + "!OuterService" 
+							+ Environment.NewLine + "\t!ClassA" 
+							+ Environment.NewLine + "\t\t!Intermediate" 
+							+ Environment.NewLine + "\t\t\t!ClassB" 
+							+ Environment.NewLine + "\t\t\t\t!ClassA"));
 			}
 
 			public class ClassA
@@ -728,7 +753,9 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Does.Contain("!A\r\n\t!B\r\n\t\t!unresolved"));
+				Assert.That(error.Message, Does.Contain("!A" 
+					+ Environment.NewLine + "\t!B" 
+					+ Environment.NewLine + "\t\t!unresolved"));
 			}
 
 			public class A
@@ -759,7 +786,12 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
 					Is.EqualTo(
-						"many instances for [IInterface]\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>\r\n\r\nIInterface++\r\n\tSomeImpl<int>\r\n\tSomeImpl<string>" + defaultScannedAssemblies));
+						"many instances for [IInterface]" 
+							+ Environment.NewLine + "\tSomeImpl<int>" 
+							+ Environment.NewLine + "\tSomeImpl<string>" 
+							+ Environment.NewLine + "IInterface++" 
+							+ Environment.NewLine + "\tSomeImpl<int>" 
+							+ Environment.NewLine + "\tSomeImpl<string>" + defaultScannedAssemblies));
 			}
 
 			public interface IInterface
@@ -780,7 +812,12 @@ namespace SimpleContainer.Tests
 				Assert.That(container.GetAll<IInterface>().Count(), Is.EqualTo(2));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.EqualTo("many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\nIInterface++\r\n\tImpl1\r\n\tImpl2" + defaultScannedAssemblies));
+					Is.EqualTo("many instances for [IInterface]" 
+						+ Environment.NewLine + "\tImpl1" 
+						+ Environment.NewLine + "\tImpl2" 
+						+ Environment.NewLine + "IInterface++" 
+						+ Environment.NewLine + "\tImpl1" 
+						+ Environment.NewLine + "\tImpl2" + defaultScannedAssemblies));
 			}
 
 			public interface IInterface
@@ -802,7 +839,10 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				const string message = "parameter [argument] of service [SomeClass] is not configured\r\n\r\n!SomeClass\r\n\t!argument <---------------";
+				var message = "parameter [argument] of service [SomeClass] is not configured"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!SomeClass" 
+					+ Environment.NewLine + "\t!argument <---------------";
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<SomeClass>());
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
@@ -916,8 +956,14 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				const string message =
-					"many instances for [IInterface]\r\n\tImpl1\r\n\tImpl2\r\n\r\n!Wrap\r\n\tIInterface++\r\n\t\tImpl1\r\n\t\tImpl2";
+				var message = "many instances for [IInterface]" 
+					+ Environment.NewLine + "\tImpl1" 
+					+ Environment.NewLine + "\tImpl2"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!Wrap" 
+					+ Environment.NewLine + "\tIInterface++" 
+					+ Environment.NewLine + "\t\tImpl1" 
+					+ Environment.NewLine + "\t\tImpl2";
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
 
@@ -950,8 +996,12 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				const string message =
-					"parameter [parameter] of service [Impl1] is not configured\r\n\r\n!OuterService\r\n\t!IInterface\r\n\t\t!Impl1\r\n\t\t\t!parameter <---------------";
+				var message = "parameter [parameter] of service [Impl1] is not configured"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!OuterService" 
+					+ Environment.NewLine + "\t!IInterface" 
+					+ Environment.NewLine + "\t\t!Impl1" 
+					+ Environment.NewLine + "\t\t\t!parameter <---------------";
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 			}
@@ -993,7 +1043,10 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.EqualTo("many public ctors\r\n\r\n!IInterface\r\n\t!TestService <---------------"));
+					Is.EqualTo("many public ctors"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!IInterface" 
+						+ Environment.NewLine + "\t!TestService <---------------"));
 			}
 
 			public interface IInterface
@@ -1025,7 +1078,10 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Does.Contain("no public ctors\r\n\r\n!IInterface\r\n\t!TestService <---------------"));
+					Does.Contain("no public ctors"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!IInterface" 
+						+ Environment.NewLine + "\t!TestService <---------------"));
 			}
 
 			public interface IInterface
@@ -1266,11 +1322,13 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<StructConsumer>());
 				Assert.That(error.Message,
-					Does.Contain(string.Format(
-						"can't create value type\r\n\r\n!StructConsumer\r\n\t!SomeStruct <---------------")));
+					Does.Contain("can't create value type"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!StructConsumer" 
+						+ Environment.NewLine + "\t!SomeStruct <---------------"));
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<ITestInterface>());
-				Assert.That(error.Message,
-					Does.Contain(string.Format("!ITestInterface\r\n\t!SomeStruct <---------------")));
+				Assert.That(error.Message, Does.Contain("!ITestInterface"
+					+ Environment.NewLine + "\t!SomeStruct <---------------"));
 			}
 
 			public interface ITestInterface
@@ -1334,12 +1392,18 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container();
-				const string message =
-					"parameter [argument] of service [Child1] is not configured\r\n\r\n!OuterService\r\n\t!IInterface\r\n\t\t!Child1\r\n\t\t\t!argument <---------------";
+				var message = "parameter [argument] of service [Child1] is not configured" 
+					+ Environment.NewLine
+					+ Environment.NewLine + "!OuterService" 
+					+ Environment.NewLine + "\t!IInterface" 
+					+ Environment.NewLine + "\t\t!Child1" 
+					+ Environment.NewLine + "\t\t\t!argument <---------------";
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				const string message2 = "no instances for [Child2] because [IOtherService] has no instances\r\n\r\n!Child2\r\n\t!IOtherService - has no implementations" + defaultScannedAssemblies;
+				var message2 = "no instances for [Child2] because [IOtherService] has no instances" 
+					+ Environment.NewLine + "!Child2" 
+					+ Environment.NewLine + "\t!IOtherService - has no implementations" + defaultScannedAssemblies;
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<Child2>());
 				Assert.That(error.Message, Is.EqualTo(message2));
 			}
@@ -1394,7 +1458,9 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(c => c.BindDependency<A>("inexistent", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("unused dependency configurations [name=inexistent]\r\n\r\n!A <---------------"));
+				Assert.That(error.Message, Is.EqualTo("unused dependency configurations [name=inexistent]"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!A <---------------"));
 			}
 		}
 
@@ -1459,7 +1525,8 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				Assert.That(container.Get<Wrap>().instances.Count(), Is.EqualTo(0));
 				Assert.That(container.Resolve<Wrap>().GetConstructionLog(),
-					Is.EqualTo("Wrap\r\n\tIInterface - has no implementations"));
+					Is.EqualTo("Wrap" 
+						+ Environment.NewLine + "\tIInterface - has no implementations"));
 			}
 		}
 
@@ -1520,7 +1587,8 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
 				Assert.That(container.Resolve<WrapWithOptionalDependency>().GetConstructionLog(),
-					Is.EqualTo("WrapWithOptionalDependency\r\n\tA - DontUse -> <null>"));
+					Is.EqualTo("WrapWithOptionalDependency" 
+						+ Environment.NewLine + "\tA - DontUse -> <null>"));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
 			}
 		}
@@ -1628,7 +1696,10 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\tIInterface\r\n\t\t!B1 - invalid test condition\r\n\t\tB2"));
+					Is.EqualTo("A" 
+						+ Environment.NewLine + "\tIInterface" 
+						+ Environment.NewLine + "\t\t!B1 - invalid test condition" 
+						+ Environment.NewLine + "\t\tB2"));
 			}
 		}
 
@@ -1649,7 +1720,10 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("parameter [parameters] of service [A] is not configured\r\n\r\n!A\r\n\t!parameters <---------------"));
+				Assert.That(exception.Message, Is.EqualTo("parameter [parameters] of service [A] is not configured"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!A" 
+					+ Environment.NewLine + "\t!parameters <---------------"));
 			}
 		}
 
@@ -1700,7 +1774,10 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Client1>());
-				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeReader> instead\r\n\r\n!Client1\r\n\t!SomeReader <---------------"));
+				Assert.That(error.Message, Is.EqualTo("service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeReader> instead"
+					+ Environment.NewLine
+					+ Environment.NewLine + "!Client1" 
+					+ Environment.NewLine + "\t!SomeReader <---------------"));
 			}
 		}
 
@@ -1725,7 +1802,11 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead\r\n\r\n!A\r\n\tIContainer\r\n\t!() => B <---------------"));
+					Is.EqualTo("service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!A" 
+						+ Environment.NewLine + "\tIContainer" 
+						+ Environment.NewLine + "\t!() => B <---------------"));
 			}
 		}
 

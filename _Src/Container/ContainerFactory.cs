@@ -237,9 +237,9 @@ namespace SimpleContainer
 					}
 					catch (ReflectionTypeLoadException e)
 					{
-						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
-						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
-						throw new SimpleContainerException(string.Format(messageFormat, a.GetName(), loaderExceptionsText), e);
+						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings(Environment.NewLine);
+						var message = $"can't load types from assembly [{a.GetName()}], loaderExceptions:{Environment.NewLine}{loaderExceptionsText}";
+						throw new SimpleContainerException(message, e);
 					}
 				});
 			types = newTypes.ToArray;

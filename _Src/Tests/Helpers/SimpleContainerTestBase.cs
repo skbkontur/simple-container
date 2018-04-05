@@ -10,8 +10,9 @@ namespace SimpleContainer.Tests.Helpers
 	{
 		protected List<IDisposable> disposables;
 
-		protected const string defaultScannedAssemblies =
-			"\r\nscanned assemblies\r\n\tSimpleContainer\r\n\tSimpleContainer.Tests";
+		protected readonly string defaultScannedAssemblies = Environment.NewLine + "scanned assemblies"
+			+ Environment.NewLine + "\tSimpleContainer"
+			+ Environment.NewLine + "\tSimpleContainer.Tests";
 
 		protected override void SetUp()
 		{
@@ -45,12 +46,6 @@ namespace SimpleContainer.Tests.Helpers
 				.Build();
 			disposables.Add(result);
 			return result;
-		}
-
-		protected static string FormatExpectedMessage(string s)
-		{
-			const string crlf = "\r\n";
-			return s.Substring(crlf.Length);
 		}
 	}
 }

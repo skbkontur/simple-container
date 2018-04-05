@@ -45,7 +45,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolved = container.Resolve<IA>();
 				Assert.That(resolved.Single().GetType().Name, Is.EqualTo("MyPrivateImpl"));
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tMyPrivateImpl - private-impl"));
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA" + Environment.NewLine + "\tMyPrivateImpl - private-impl"));
 			}
 		}
 
@@ -103,13 +103,13 @@ namespace SimpleContainer.Tests
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<InMemoryA>());
-					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\t!DefaultA - in-memory\r\n\tInMemoryA"));
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA" + Environment.NewLine + "\t!DefaultA - in-memory" + Environment.NewLine + "\tInMemoryA"));
 				}
 				using (var c = Factory().WithProfile(typeof (LiteProfile)).Build())
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
-					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tDefaultA\r\n\t!InMemoryA - not-in-memory"));
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA" + Environment.NewLine + "\tDefaultA" + Environment.NewLine + "\t!InMemoryA - not-in-memory"));
 				}
 			}
 		}
@@ -155,7 +155,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolved = container.Resolve<IA>();
 				Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA\r\n\tDefaultA"));
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("IA" + Environment.NewLine + "\tDefaultA"));
 			}
 		}
 
@@ -270,9 +270,9 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<A1>().parameter, Is.EqualTo(20));
 				Assert.That(container.Get<A2>().parameter, Is.EqualTo(10));
 				Assert.That(container.Resolve<A1>().GetConstructionLog(),
-					Is.EqualTo("A1 - spec dependency for A1\r\n\tparameter -> 20"));
+					Is.EqualTo("A1 - spec dependency for A1" + Environment.NewLine + "\tparameter -> 20"));
 				Assert.That(container.Resolve<A2>().GetConstructionLog(),
-					Is.EqualTo("A2\r\n\tparameter -> 10"));
+					Is.EqualTo("A2" + Environment.NewLine + "\tparameter -> 10"));
 			}
 		}
 	}

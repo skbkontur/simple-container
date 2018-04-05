@@ -66,7 +66,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				var resolvedA = container.Resolve<A>();
 				Assert.That(resolvedA.Single().constantSwitch.Value, Is.EqualTo(42));
-				Assert.That(resolvedA.GetConstructionLog(), Is.EqualTo("A\r\n\tSomeConstantSwitch const\r\n\t\tValue -> 42"));
+				var expected = "A"
+					+ Environment.NewLine + "\tSomeConstantSwitch const"
+					+ Environment.NewLine + "\t\tValue -> 42";
+				Assert.That(resolvedA.GetConstructionLog(), Is.EqualTo(expected));
 			}
 		}
 
@@ -101,7 +104,8 @@ namespace SimpleContainer.Tests.ConstructionLog
 				using (var c = f.Build())
 				{
 					var s = c.Resolve<A>();
-					Assert.That(s.GetConstructionLog(), Is.EqualTo("A\r\n\tsomeValue const -> !42!"));
+					var expected = "A" + Environment.NewLine + "\tsomeValue const -> !42!";
+					Assert.That(s.GetConstructionLog(), Is.EqualTo(expected));
 				}
 			}
 		}
@@ -130,8 +134,8 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("dto", new Dto()));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\tDto const"));
+				var expected = "A" + Environment.NewLine + "\tDto const";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expected));
 			}
 		}
 
@@ -158,8 +162,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithConfigurator(b => b.BindDependency<A>("dto", new Dto()))
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
-					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tdto const -> dumpted Dto"));
+				{
+					var expected = "A" + Environment.NewLine + "\tdto const -> dumpted Dto";
+					Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expected));
+				}
 			}
 		}
 
@@ -180,7 +186,8 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var ts = TimeSpan.FromSeconds(54).Add(TimeSpan.FromMilliseconds(17));
 				var container = Container(b => b.BindDependency<A>("parameter", ts));
-				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
+				var expectedConstructionLog = "A"
+					+ Environment.NewLine + "\tparameter -> 00:00:54.0170000";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -201,7 +208,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
-				const string expectedConstructionLog = "A\r\n\tCancellationToken const";
+				var expectedConstructionLog = "A" + Environment.NewLine + "\tCancellationToken const";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -222,7 +229,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("someBool", true));
-				const string expectedConstructionLog = "A\r\n\tsomeBool -> true";
+				var expectedConstructionLog = "A" + Environment.NewLine + "\tsomeBool -> true";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -243,7 +250,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("parameter", 78));
-				const string expectedConstructionLog = "A\r\n\tparameter -> 78";
+				var expectedConstructionLog = "A" + Environment.NewLine + "\tparameter -> 78";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -264,7 +271,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("value", 21));
-				const string expectedConstructionLog = "A\r\n\tvalue -> 21";
+				var expectedConstructionLog = "A" + Environment.NewLine + "\tvalue -> 21";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -291,7 +298,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("value", MyEnum.Val2));
-				const string expectedConstructionLog = "A\r\n\tvalue -> Val2";
+				var expectedConstructionLog = "A" + Environment.NewLine + "\tvalue -> Val2";
 				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
@@ -328,8 +335,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 					StrVal = "test-string",
 					ComplexType = new B()
 				}));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\tDto const\r\n\t\tStrVal -> test-string\r\n\t\tComplexType\r\n\t\tIntVal -> 5"));
+				var expected = "A"
+					+ Environment.NewLine + "\tDto const"
+					+ Environment.NewLine + "\t\tStrVal -> test-string"
+					+ Environment.NewLine + "\t\tComplexType"
+					+ Environment.NewLine + "\t\tIntVal -> 5";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expected));
 			}
 		}
 
@@ -361,8 +372,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithConfigurator(b => b.BindDependency<A>("b", new B {Val = new Dto()}))
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
-					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tB const\r\n\t\tVal -> dumpted Dto"));
+				{
+					var expected = "A"
+						+ Environment.NewLine + "\tB const"
+						+ Environment.NewLine + "\t\tVal -> dumpted Dto";
+					Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expected));
+				}
 			}
 		}
 
@@ -388,11 +403,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container(b => b.BindDependencyValue(typeof (A), typeof (ASettings), new ASettings {port = 671}));
 				var actualConstructionLog = container.Resolve<A>().GetConstructionLog();
-				const string expectedConstructionLog = @"
-A
-	ASettings const
-		port -> 671";
-				Assert.That(actualConstructionLog, Is.EqualTo(FormatExpectedMessage(expectedConstructionLog)));
+				var expectedConstructionLog = "A"
+					+ Environment.NewLine + "\tASettings const" 
+					+ Environment.NewLine + "\t\tport -> 671";
+				Assert.That(actualConstructionLog, Is.EqualTo(expectedConstructionLog));
 			}
 		}
 
@@ -432,13 +446,12 @@ A
 				};
 				var container = Container(b => b.BindDependencyValue(typeof (A), typeof (ASettings), s));
 				var a = container.Resolve<A>();
-				const string expectedConstructionLog = @"
-A
-	ASettings const
-		Nested
-			Value -> 42
-		StrValue -> test-str-value";
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatExpectedMessage(expectedConstructionLog)));
+				var expectedConstructionLog = "A"
+					+ Environment.NewLine + "\tASettings const"
+					+ Environment.NewLine + "\t\tNested"
+					+ Environment.NewLine + "\t\t\tValue -> 42"
+					+ Environment.NewLine + "\t\tStrValue -> test-str-value";
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
 			}
 		}
 
@@ -458,8 +471,12 @@ A
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("urls", new[] {"a", "b", "c"}));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\turls const\r\n\t\ta\r\n\t\tb\r\n\t\tc"));
+				var expected = "A" 
+					+ Environment.NewLine + "\turls const" 
+					+ Environment.NewLine + "\t\ta" 
+					+ Environment.NewLine + "\t\tb" 
+					+ Environment.NewLine + "\t\tc";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expected));
 			}
 		}
 		
@@ -489,16 +506,15 @@ A
 					new SomeItem {x = 1, y = "t1"},
 					new SomeItem {x = 2, y = "t2"}
 				}));
-				const string expectedLog = @"
-A
-	items const
-		item
-			x -> 1
-			y -> t1
-		item
-			x -> 2
-			y -> t2";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatExpectedMessage(expectedLog)));
+				var expectedLog = "A" 
+					+ Environment.NewLine + "\titems const"
+					+ Environment.NewLine + "\t\titem"
+					+ Environment.NewLine + "\t\t\tx -> 1"
+					+ Environment.NewLine + "\t\t\ty -> t1"
+					+ Environment.NewLine + "\t\titem"
+					+ Environment.NewLine + "\t\t\tx -> 2"
+					+ Environment.NewLine + "\t\t\ty -> t2";
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedLog));
 			}
 		}
 	}

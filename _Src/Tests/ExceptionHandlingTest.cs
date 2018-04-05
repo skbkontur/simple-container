@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 using SimpleContainer.Infection;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -12,8 +13,10 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				const string message =
-					"no instances for [OuterOuterService] because [IInterface] has no instances\r\n\r\n!OuterOuterService\r\n\t!OuterService\r\n\t\t!IInterface - has no implementations" + defaultScannedAssemblies;
+				var message = "no instances for [OuterOuterService] because [IInterface] has no instances"
+					+ Environment.NewLine + "!OuterOuterService"
+					+ Environment.NewLine + "\t!OuterService"
+					+ Environment.NewLine + "\t\t!IInterface - has no implementations" + defaultScannedAssemblies;
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
@@ -76,7 +79,10 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [C] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!C - DontUse" + defaultScannedAssemblies));
+				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [C] has no instances"
+					+ Environment.NewLine + "!A"
+					+ Environment.NewLine + "\t!B"
+					+ Environment.NewLine + "\t\t!C - DontUse" + defaultScannedAssemblies));
 			}
 		}
 
@@ -121,7 +127,12 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [IC] has no instances\r\n\r\n!A\r\n\t!B\r\n\t\t!IC\r\n\t\t\t!C1 - DontUse\r\n\t\t\t!C2 - DontUse" + defaultScannedAssemblies));
+				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [IC] has no instances"
+					+ Environment.NewLine + "!A"
+					+ Environment.NewLine + "\t!B"
+					+ Environment.NewLine + "\t\t!IC"
+					+ Environment.NewLine + "\t\t\t!C1 - DontUse"
+					+ Environment.NewLine + "\t\t\t!C2 - DontUse" + defaultScannedAssemblies));
 			}
 		}
 	}

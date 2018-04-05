@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using SimpleContainer.Configuration;
 using SimpleContainer.Infection;
@@ -61,7 +62,10 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A\r\n\tB[x]\r\n\t\tC[x->y]\r\n\t\t\tcontext -> xy"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A"
+					+ Environment.NewLine + "\tB[x]"
+					+ Environment.NewLine + "\t\tC[x->y]"
+					+ Environment.NewLine + "\t\t\tcontext -> xy"));
 			}
 		}
 
@@ -273,7 +277,12 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.Message,
-					Is.EqualTo("contract [c2] already declared, stack\r\n\tA[c1]\r\n\tB[c2->c2]\r\n\r\n!A\r\n\t!B <---------------"));
+					Is.EqualTo("contract [c2] already declared, stack"
+						+ Environment.NewLine + "\tA[c1]"
+						+ Environment.NewLine + "\tB[c2->c2]"
+						+ Environment.NewLine
+						+ Environment.NewLine + "!A"
+						+ Environment.NewLine + "\t!B <---------------"));
 			}
 		}
 	}

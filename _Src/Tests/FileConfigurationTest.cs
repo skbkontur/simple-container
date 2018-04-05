@@ -340,7 +340,8 @@ namespace SimpleContainer.Tests
 					.WithConfigFile(configFileName)
 					.WithTypesFromAssemblies(new[] { assembly });
 				var e = Assert.Throws<SimpleContainerException>(() => factory.Build());
-				Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]"));
+				Assert.That(e.Message, Is.EqualTo("for name [A] more than one type found [A1.A], [A2.A]")
+					.Or.EqualTo("for name [A] more than one type found [A2.A], [A1.A]"));
 			}
 		}
 

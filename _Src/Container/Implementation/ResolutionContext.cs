@@ -96,7 +96,7 @@ namespace SimpleContainer.Implementation
 					result.AppendLine();
 					stackItems[0] = stackItems[0] + "[container boundary]";
 				}
-				result.Append(stackItems.JoinStrings("\r\n"));
+				result.Append(stackItems.JoinStrings(Environment.NewLine));
 			}
 			return result.ToString();
 		}

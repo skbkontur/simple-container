@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
@@ -21,7 +22,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(c => c.WithImplicitDependency<A>(new ServiceName(typeof (B), new string[0])));
 				var resolvedService = container.Resolve<A>();
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB - implicit"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A" + Environment.NewLine + "\tB - implicit"));
 			}
 		}
 		
@@ -51,7 +52,9 @@ namespace SimpleContainer.Tests
 					c.WithImplicitDependency<A>(new ServiceName(typeof (B), new string[0]));
 				});
 				var resolvedService = container.Resolve<A>();
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A\r\n\tB[c] - implicit\r\n\t\tparameter -> 42"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A"
+					+ Environment.NewLine + "\tB[c] - implicit"
+					+ Environment.NewLine + "\t\tparameter -> 42"));
 			}
 		}
 	}

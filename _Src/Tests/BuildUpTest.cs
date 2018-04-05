@@ -115,7 +115,10 @@ namespace SimpleContainer.Tests
 				var error = Assert.Throws<SimpleContainerException>(() => container.BuildUp(this, new String[0]));
 				Assert.That(a, Is.Null);
 				Assert.That(error.Message, Is.EqualTo("can't resolve member [GracefulBuildUpExceptions.a]"));
-				Assert.That(error.InnerException.Message, Is.EqualTo("no instances for [A]\r\n\r\n!A - DontUse" + defaultScannedAssemblies));
+				var expectedInnerMessage = "no instances for [A]"
+					+ Environment.NewLine
+					+ "!A - DontUse" + defaultScannedAssemblies;
+				Assert.That(error.InnerException.Message, Is.EqualTo(expectedInnerMessage));
 			}
 		}
 
