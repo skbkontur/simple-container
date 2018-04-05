@@ -175,7 +175,6 @@ namespace SimpleContainer.Tests
 				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
 
 				var exceptionText = GetInvoker().CreateCointainerWithCrash();
-				Assert.That(exceptionText, Does.Contain("A1.ISomeInterface.Do"));
 
 				const string englishText = "Unable to load one or more of the requested types";
 				const string russianText = "Не удается загрузить один или более запрошенных типов";
