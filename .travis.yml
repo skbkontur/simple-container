@@ -9,16 +9,12 @@ matrix:
       env: CURRENTOS=UNDER_MACOSX
       mono: none
 script:
-  # installing .NET Core SDK and Mono
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg; fi
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg; fi
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-trusty-prod trusty main" > /etc/apt/sources.list.d/dotnetdev.list'; fi
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get install apt-transport-https; fi
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get update; fi
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get install dotnet-sdk-2.1.300-preview1-008174; fi
-  - if [[ $CURRENTOS == "UNDER_MACOSX" ]]; then wget --retry-connrefused --waitretry=1 -O /tmp/dotnet-sdk-2.1.300-preview1-008174-osx-x64.pkg https://download.microsoft.com/download/D/7/8/D788D3CD-44C4-487D-829B-413E914FB1C3/dotnet-sdk-2.1.300-preview1-008174-osx-x64.pkg; fi
-  - if [[ $CURRENTOS == "UNDER_MACOSX" ]]; then sudo installer -pkg /tmp/dotnet-sdk-2.1.300-preview1-008174-osx-x64.pkg -target /; fi
-  - if [[ $CURRENTOS == "UNDER_MACOSX" ]]; then ln -s /usr/local/share/dotnet/dotnet /usr/local/bin/; fi
+  # installing .NET Core SDK
+  - wget --retry-connrefused --waitretry=1 https://dot.net/v1/dotnet-install.sh
+  - chmod +x dotnet-install.sh
+  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get install apt-transport-https libunwind8; fi
+  - ./dotnet-install.sh --channel 2.0
+  - export PATH="$PATH:$HOME/.dotnet"
 
-  # run tests under .NET Core 2.o
+  # run tests under .NET Core 2.0
   - dotnet test _Src/Tests/Tests.csproj -f netcoreapp2.0
