@@ -186,18 +186,20 @@ namespace SimpleContainer.Tests.Contracts
 				var c1 = Container(b => b.BindDependencies<B>(new { parameter = 42 }));
 				var a1 = c1.Resolve<A>();
 				Assert.That(a1.Single().b.parameter, Is.EqualTo(42));
-				Assert.That(a1.GetConstructionLog(), Is.EqualTo("A"
-					+ Environment.NewLine + "\tFunc<B>"
-					+ Environment.NewLine + "\t() => B"
-					+ Environment.NewLine + "\t\tparameter -> 42"));
+				Assert.That(a1.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	Func<B>
+	() => B
+		parameter -> 42")));
 
 				var c2 = Container(b => b.Contract("c1").BindDependencies<B>(new { parameter = 43 }));
 				var a2 = c2.Resolve<A>();
 				Assert.That(a2.Single().b.parameter, Is.EqualTo(43));
-				Assert.That(a2.GetConstructionLog(), Is.EqualTo("A[c1]"
-					+ Environment.NewLine + "\tFunc<B>[c1]"
-					+ Environment.NewLine + "\t() => B[c1]"
-					+ Environment.NewLine + "\t\tparameter -> 43"));
+				Assert.That(a2.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A[c1]
+	Func<B>[c1]
+	() => B[c1]
+		parameter -> 43")));
 			}
 		}
 
@@ -290,8 +292,9 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {p2 = 2}));
 				var c = container.Resolve<C>("c1");
-				Assert.That(c.GetConstructionLog(), Is.EqualTo("C[c1]"
-					+ Environment.NewLine + "\tFunc<A>[c1]"));
+				Assert.That(c.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+C[c1]
+	Func<A>[c1]")));
 			}
 		}
 
@@ -322,8 +325,9 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {parameter = 42}));
 				var a = container.Resolve<A>("c1");
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A[c1]"
-					+ Environment.NewLine + "\tLazy<B>[c1]"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A[c1]
+	Lazy<B>[c1]")));
 			}
 		}
 
@@ -354,10 +358,11 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("!A"
-					+ Environment.NewLine + "\tLazy<B>"
-					+ Environment.NewLine + "\t!() => B"
-					+ Environment.NewLine + "\t\t!parameter <---------------"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+!A
+	Lazy<B>
+	!() => B
+		!parameter <---------------")));
 			}
 		}
 

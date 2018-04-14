@@ -13,10 +13,11 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var message = "no instances for [OuterOuterService] because [IInterface] has no instances"
-					+ Environment.NewLine + "!OuterOuterService"
-					+ Environment.NewLine + "\t!OuterService"
-					+ Environment.NewLine + "\t\t!IInterface - has no implementations" + defaultScannedAssemblies;
+				var message = FormatMessage(@"
+no instances for [OuterOuterService] because [IInterface] has no instances
+!OuterOuterService
+	!OuterService
+		!IInterface - has no implementations" + defaultScannedAssemblies);
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterOuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
@@ -79,10 +80,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [C] has no instances"
-					+ Environment.NewLine + "!A"
-					+ Environment.NewLine + "\t!B"
-					+ Environment.NewLine + "\t\t!C - DontUse" + defaultScannedAssemblies));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+no instances for [A] because [C] has no instances
+!A
+	!B
+		!C - DontUse" + defaultScannedAssemblies)));
 			}
 		}
 
@@ -127,12 +129,13 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo("no instances for [A] because [IC] has no instances"
-					+ Environment.NewLine + "!A"
-					+ Environment.NewLine + "\t!B"
-					+ Environment.NewLine + "\t\t!IC"
-					+ Environment.NewLine + "\t\t\t!C1 - DontUse"
-					+ Environment.NewLine + "\t\t\t!C2 - DontUse" + defaultScannedAssemblies));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+no instances for [A] because [IC] has no instances
+!A
+	!B
+		!IC
+			!C1 - DontUse
+			!C2 - DontUse" + defaultScannedAssemblies)));
 			}
 		}
 	}

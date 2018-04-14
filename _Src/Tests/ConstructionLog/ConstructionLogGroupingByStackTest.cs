@@ -36,11 +36,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A"
-					+ Environment.NewLine + "\tIContainer"
-					+ Environment.NewLine + "\t() => IB++"
-					+ Environment.NewLine + "\t\tB1"
-					+ Environment.NewLine + "\t\tB2"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	IContainer
+	() => IB++
+		B1
+		B2")));
 			}
 		}
 
@@ -68,9 +69,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 				{
 					var b = c2.Resolve<B>();
 					Assert.That(b.Single().a, Is.SameAs(c1.Get<A>()));
-					Assert.That(b.GetConstructionLog(), Is.EqualTo("B"
-						+ Environment.NewLine + "\tA"
-						+ Environment.NewLine + "\t\t() => A - container boundary"));
+					Assert.That(b.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+B
+	A
+		() => A - container boundary")));
 				}
 			}
 		}
@@ -97,9 +99,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				var a = container.Resolve<A>();
 				Assert.That(a.Single().b, Is.SameAs(container.Get<B>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A"
-					+ Environment.NewLine + "\tIContainer"
-					+ Environment.NewLine + "\t() => B"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	IContainer
+	() => B")));
 			}
 		}
 	}

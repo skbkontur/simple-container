@@ -28,8 +28,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependencyFactory<A>("parameter", _ => "qq"));
-				var expectedConstructionLog = "A" + Environment.NewLine + "\tparameter -> qq";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	parameter -> qq")));
 			}
 		}
 
@@ -62,11 +63,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container(c => c.BindDependency<A>("v", 76).BindDependency<B>("parameter", 67));
 				var resolved = container.Resolve<A>();
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo("A"
-					+ Environment.NewLine + "\tv -> 76"
-					+ Environment.NewLine + "\tFunc<B>"
-					+ Environment.NewLine + "\t() => B"
-					+ Environment.NewLine + "\t\tparameter -> 67"));
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	v -> 76
+	Func<B>
+	() => B
+		parameter -> 67")));
 			}
 		}
 
@@ -92,8 +94,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container(b => b.DontUse<B>());
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo("A"
-					+ Environment.NewLine + "\tB - DontUse -> <null>"));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	B - DontUse -> <null>")));
 			}
 		}
 
@@ -120,8 +123,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				var expected = "A" + Environment.NewLine + "\tB - DontUse -> <null>";
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(expected));
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	B - DontUse -> <null>")));
 			}
 		}
 
@@ -141,8 +145,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container();
-				var expectedConstructionLog = "A" + Environment.NewLine + "\tparameter -> <null>";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	parameter -> <null>")));
 			}
 		}
 
@@ -186,16 +191,16 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
-				var expectedMessage = "many instances for [IB]"
-					+ Environment.NewLine + "\tB1"
-					+ Environment.NewLine + "\tB2"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!C"
-					+ Environment.NewLine + "\t!A"
-					+ Environment.NewLine + "\t\tIB++"
-					+ Environment.NewLine + "\t\t\tB1"
-					+ Environment.NewLine + "\t\t\tB2";
-				Assert.That(error.Message, Is.EqualTo(expectedMessage));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+many instances for [IB]
+	B1
+	B2
+
+!C
+	!A
+		IB++
+			B1
+			B2")));
 			}
 		}
 
@@ -237,12 +242,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container();
-				var expected = "X"
-					+ Environment.NewLine + "\tIA - instance filter"
-					+ Environment.NewLine + "\t\tA1"
-					+ Environment.NewLine + "\t\tA2"
-					+ Environment.NewLine + "\tIA";
-				Assert.That(container.Resolve<X>().GetConstructionLog(), Is.EqualTo(expected));
+				Assert.That(container.Resolve<X>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+X
+	IA - instance filter
+		A1
+		A2
+	IA")));
 			}
 		}
 
@@ -270,11 +275,11 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container();
-				var expected = "B"
-					+ Environment.NewLine + "\tA"
-					+ Environment.NewLine + "\tA"
-					+ Environment.NewLine + "\tA";
-				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(expected));
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+B
+	A
+	A
+	A")));
 			}
 		}
 
@@ -316,18 +321,21 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				var t = Task.Run(() => container.Get<A>());
 				Thread.Sleep(15);
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A, initializing ..." + Environment.NewLine + "\tB, initializing ..."));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A, initializing ...
+	B, initializing ...")));
 				Assert.That(log.ToString(), Is.EqualTo(""));
 				B.goInitialize.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A, initializing ..." + Environment.NewLine + "\tB"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A, initializing ...
+	B")));
 				Assert.That(log.ToString(), Is.EqualTo("B.Initialize "));
 				A.goInitialize.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A" + Environment.NewLine + "\tB"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	B")));
 				Assert.That(log.ToString(), Is.EqualTo("B.Initialize A.Initialize "));
 				t.Wait();
 			}
@@ -379,13 +387,15 @@ namespace SimpleContainer.Tests.ConstructionLog
 				container.Get<A>();
 				var t = Task.Run(() => container.Dispose());
 				Thread.Sleep(15);
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A, disposing ..." + Environment.NewLine + "\tB"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A, disposing ...
+	B")));
 				Assert.That(log.ToString(), Is.EqualTo(""));
 				A.go.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A" + Environment.NewLine + "\tB, disposing ..."));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	B, disposing ...")));
 				Assert.That(log.ToString(), Is.EqualTo("A.Dispose "));
 				B.go.Set();
 				Thread.Sleep(5);
@@ -419,17 +429,17 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				var expected = "cyclic dependency for service [A], stack"
-					+ Environment.NewLine + "\tA"
-					+ Environment.NewLine + "\tB"
-					+ Environment.NewLine + "\tA"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!A"
-					+ Environment.NewLine + "\tIContainer"
-					+ Environment.NewLine + "\t!() => B"
-					+ Environment.NewLine + "\t\t!A";
-				Assert.That(exception.Message, Is.EqualTo(expected));
 				Assert.That(exception.InnerException, Is.Null);
+				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+cyclic dependency for service [A], stack
+	A
+	B
+	A
+
+!A
+	IContainer
+	!() => B
+		!A")));
 			}
 		}
 
@@ -454,17 +464,17 @@ namespace SimpleContainer.Tests.ConstructionLog
 			[Test]
 			public void Test()
 			{
-				var expectedMessage = "contract [c1] already declared, stack"
-					+ Environment.NewLine + "\tA[c1]"
-					+ Environment.NewLine + "\titem"
-					+ Environment.NewLine + "\tB[c1]"
-					+ Environment.NewLine + ""
-					+ Environment.NewLine + "!A"
-					+ Environment.NewLine + "\t!item"
-					+ Environment.NewLine + "\t\t!() => B <---------------";
 				var container = Container(b => b.BindDependencyFactory<A>("item", c => c.Get<B>("c1").value));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(expectedMessage));
+				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+contract [c1] already declared, stack
+	A[c1]
+	item
+	B[c1]
+
+!A
+	!item
+		!() => B <---------------")));
 			}
 		}
 	}

@@ -64,26 +64,28 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var instance = container.Get<Wrap>();
 				Assert.That(instance.fileAccessors.Select(x => x.fileAccessor.fileName).ToArray(), Is.EqualTo(new[] { "ww1", "ww2" }));
-				Assert.That(container.Resolve<Wrap>().GetConstructionLog(),
-					Is.EqualTo("Wrap"
-					+ Environment.NewLine + "\tFileAccessorWrap[all]++"
-					+ Environment.NewLine + "\t\t!FileAccessorWrap[c1] - instance filter"
-					+ Environment.NewLine + "\t\t\tFileAccessor[c1]"
-					+ Environment.NewLine + "\t\t\t\tfileName -> qq"
-					+ Environment.NewLine + "\t\tFileAccessorWrap[c2]"
-					+ Environment.NewLine + "\t\t\tFileAccessor[c2]"
-					+ Environment.NewLine + "\t\t\t\tfileName -> ww1"
-					+ Environment.NewLine + "\t\tFileAccessorWrap[c3]"
-					+ Environment.NewLine + "\t\t\tFileAccessor[c3]"
-					+ Environment.NewLine + "\t\t\t\tfileName -> ww2"));
-				Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(),
-					Is.EqualTo("!FileAccessorWrap[c1] - instance filter"
-						+ Environment.NewLine + "\tFileAccessor[c1]"
-						+ Environment.NewLine + "\t\tfileName -> qq"));
-				Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(),
-					Is.EqualTo("FileAccessorWrap[c2]"
-						+ Environment.NewLine + "\tFileAccessor[c2]"
-						+ Environment.NewLine + "\t\tfileName -> ww1"));
+				Assert.That(container.Resolve<Wrap>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+Wrap
+	FileAccessorWrap[all]++
+		!FileAccessorWrap[c1] - instance filter
+			FileAccessor[c1]
+				fileName -> qq
+		FileAccessorWrap[c2]
+			FileAccessor[c2]
+				fileName -> ww1
+		FileAccessorWrap[c3]
+			FileAccessor[c3]
+				fileName -> ww2")));
+				
+				Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+!FileAccessorWrap[c1] - instance filter
+	FileAccessor[c1]
+		fileName -> qq")));
+				
+				Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+FileAccessorWrap[c2]
+	FileAccessor[c2]
+		fileName -> ww1")));
 			}
 		}
 

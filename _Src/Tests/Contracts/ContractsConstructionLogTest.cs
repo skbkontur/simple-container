@@ -59,10 +59,14 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				var expectedMessage = string.Format(
-					"no instances for [Wrap] because [IUnimplemented] has no instances{0}!Wrap{0}\t!Service[c1]{0}\t\tSingletonService{0}\t\t!IInterface[c1]{0}\t\t\t!Impl1{0}\t\t\t\t!IUnimplemented - has no implementations{1}",
-					Environment.NewLine,
-					defaultScannedAssemblies);
+				var expectedMessage = FormatMessage(@"
+no instances for [Wrap] because [IUnimplemented] has no instances
+!Wrap
+	!Service[c1]
+		SingletonService
+		!IInterface[c1]
+			!Impl1
+				!IUnimplemented - has no implementations" + defaultScannedAssemblies);
 				Assert.That(error.Message, Is.EqualTo(expectedMessage));
 			}
 		}
@@ -101,7 +105,9 @@ namespace SimpleContainer.Tests.Contracts
 					builder.Contract("a2").BindDependency<A>("parameter", 52);
 				});
 				container.Get<Wrap>();
-				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo("A[a2]" + Environment.NewLine + "\tparameter -> 52"));
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A[a2]
+	parameter -> 52")));
 			}
 		}
 
@@ -126,7 +132,9 @@ namespace SimpleContainer.Tests.Contracts
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo("A" + Environment.NewLine + "\tFunc<B>"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+A
+	Func<B>")));
 			}
 		}
 
@@ -175,7 +183,9 @@ namespace SimpleContainer.Tests.Contracts
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain("A[c1]" + Environment.NewLine + "\tB[c1->c2]"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain(FormatMessage(@"
+A[c1]
+	B[c1->c2]")));
 			}
 		}
 	}

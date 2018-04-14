@@ -346,10 +346,10 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract<TestContractAttribute>().Bind<IInterface, Impl2>());
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
-				Assert.That(container.Resolve<Service>().GetConstructionLog(),
-					Is.EqualTo("Service[test-contract]"
-						+ Environment.NewLine + "\tIInterface[test-contract]"
-						+ Environment.NewLine + "\t\tImpl2"));
+				Assert.That(container.Resolve<Service>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+Service[test-contract]
+	IInterface[test-contract]
+		Impl2")));
 			}
 		}
 
@@ -689,10 +689,11 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Does.Contain("!A[a]"
-						+ Environment.NewLine + "\tparameter -> 78"
-						+ Environment.NewLine + "\t!B"
-						+ Environment.NewLine + "\t\t!parameter <---------------"));
+					Does.Contain(FormatMessage(@"
+!A[a]
+	parameter -> 78
+	!B
+		!parameter <---------------")));
 			}
 		}
 
@@ -826,13 +827,13 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message,
-					Is.EqualTo("contract [x] already declared, stack"
-						+ Environment.NewLine + "\tA"
-						+ Environment.NewLine + "\tB[x->x]"
-						+ Environment.NewLine
-						+ Environment.NewLine + "!A"
-						+ Environment.NewLine + "\t!B <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+contract [x] already declared, stack
+	A
+	B[x->x]
+
+!A
+	!B <---------------")));
 			}
 		}
 

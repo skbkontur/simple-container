@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 
 namespace SimpleContainer.Tests.Helpers
 {
@@ -24,5 +25,13 @@ namespace SimpleContainer.Tests.Helpers
 		public virtual void TestFixtureTearDown()
 		{
 		}
+		
+		protected static string FormatMessage(string s)
+		{
+			return s.Replace("\r\n", "\n")
+				.Replace("\n", Environment.NewLine)
+				.Trim();
+		}
+
 	}
 }

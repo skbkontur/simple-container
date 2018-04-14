@@ -47,7 +47,12 @@ namespace SimpleContainer.Tests.LongRunning
 				Thread.Sleep(20);
 				container.Get<A>();
 			});
-			var expected = string.Format("parameter [parameter] of service [A] is not configured{0}{0}!A{0}\tServiceWithDelay{0}\t!parameter <---------------", Environment.NewLine);
+			var expected = FormatMessage(@"
+parameter [parameter] of service [A] is not configured
+
+!A
+	ServiceWithDelay
+	!parameter <---------------");
 			Assert.That(error.Message, Is.EqualTo(expected));
 			var otherTaskException = Assert.Throws<AggregateException>(otherThreadTask.Wait);
 			Assert.That(otherTaskException.InnerExceptions.Single().Message, Is.EqualTo(expected));

@@ -30,9 +30,10 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new { argument = "qq" }));
-				Assert.That(error.Message, Is.EqualTo("arguments [argument] are not used"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!Service <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+arguments [argument] are not used
+
+!Service <---------------")));
 			}
 		}
 
@@ -110,13 +111,12 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new { argument = "qq" }));
-				Assert.That(error.Message,
-					Is.EqualTo(
-						"parameter [argument] of service [Dependency] is not configured"
-							+ Environment.NewLine
-							+ Environment.NewLine + "!Service"
-							+ Environment.NewLine + "\t!Dependency"
-							+ Environment.NewLine + "\t\t!argument <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+parameter [argument] of service [Dependency] is not configured
+
+!Service
+	!Dependency
+		!argument <---------------")));
 			}
 		}
 
@@ -172,10 +172,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<Func<int, int, A>>());
-				Assert.That(exception.Message,
-					Is.EqualTo("can't create delegate [Func<int,int,A>]"
-						+ Environment.NewLine
-						+ Environment.NewLine + "!Func<int,int,A> <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+can't create delegate [Func<int,int,A>]
+
+!Func<int,int,A> <---------------")));
 			}
 		}
 

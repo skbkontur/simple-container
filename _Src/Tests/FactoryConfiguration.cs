@@ -291,10 +291,11 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Bind<A>(c => { throw new InvalidOperationException("my test crash"); }));
 				
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo("service [A] construction exception"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!AWrap"
-					+ Environment.NewLine + "\t!A <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+service [A] construction exception
+
+!AWrap
+	!A <---------------")));
 				Assert.That(error.InnerException, Is.InstanceOf<InvalidOperationException>());
 				Assert.That(error.InnerException.Message, Is.EqualTo("my test crash"));
 			}
@@ -322,10 +323,11 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Bind<A>((c, t) => { throw new InvalidOperationException("my test crash"); }));
 				
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo("service [A] construction exception"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!AWrap"
-					+ Environment.NewLine + "\t!A <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+service [A] construction exception
+
+!AWrap
+	!A <---------------")));
 				Assert.That(error.InnerException, Is.InstanceOf<InvalidOperationException>());
 				Assert.That(error.InnerException.Message, Is.EqualTo("my test crash"));
 			}
@@ -354,10 +356,11 @@ namespace SimpleContainer.Tests
 					_ => { throw new InvalidOperationException("my test crash"); }));
 
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo("service [A] construction exception"
-					+ Environment.NewLine
-					+ Environment.NewLine + "!AWrap"
-					+ Environment.NewLine + "\t!a <---------------"));
+				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+service [A] construction exception
+
+!AWrap
+	!a <---------------")));
 				Assert.That(error.InnerException, Is.InstanceOf<InvalidOperationException>());
 				Assert.That(error.InnerException.Message, Is.EqualTo("my test crash"));
 			}
@@ -386,8 +389,9 @@ namespace SimpleContainer.Tests
 
 				var resolvedWrap = container.Resolve<AWrap>();
 				Assert.That(resolvedWrap.Single().a, Is.Null);
-				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo("AWrap"
-					+ Environment.NewLine + "\tA - test refused -> <null>"));
+				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+AWrap
+	A - test refused -> <null>")));
 			}
 
 			public class AWrap

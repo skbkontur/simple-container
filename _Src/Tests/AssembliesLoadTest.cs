@@ -24,13 +24,8 @@ namespace SimpleContainer.Tests
 		{
 			if (appDomain != null)
 				AppDomain.Unload(appDomain);
-			try
-			{
-				if (Directory.Exists(testDirectory))
-					Directory.Delete(testDirectory, true);
-			}
-			catch (Exception ex)
-			{}
+			if (Directory.Exists(testDirectory))
+				Directory.Delete(testDirectory, true);
 			base.TearDown();
 		}
 
@@ -113,12 +108,16 @@ namespace SimpleContainer.Tests
 					using (var c = f.Build())
 					{
 						var exception = Assert.Throws<SimpleContainerException>(() => c.Get(type));
-						var assemblies = new[] {"SimpleContainer", s}.OrderBy(x => x).Select(x => "\t" + x).JoinStrings(Environment.NewLine);
-						var expectedMessage = "no instances for [ISomeInterface]"
-							+ Environment.NewLine + "!ISomeInterface - has no implementations"
-							+ Environment.NewLine + "scanned assemblies"
-							+ Environment.NewLine;
-						Assert.That(exception.Message, Is.EqualTo(expectedMessage + assemblies));
+						var assemblies = new[] {"SimpleContainer", s}
+							.OrderBy(x => x)
+							.Select(x => "\t" + x)
+							.JoinStrings("\r\n");
+						var expectedMessage = FormatMessage(@"
+no instances for [ISomeInterface]
+!ISomeInterface - has no implementations
+scanned assemblies
+" + assemblies);
+						Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 					}
 				});
 			}
@@ -126,44 +125,41 @@ namespace SimpleContainer.Tests
 
 		public class CorrectExceptionHandling : AssembliesLoadTest
 		{
-			private string referencedAssemblyCodeV1 = new [] {
-				"using SimpleContainer.Configuration;",
-				"using SimpleContainer;",
-				"using System;",
-				"namespace A1",
-				"{",
-				"	public interface ISomeInterface",
-				"	{",
-				"	}",
-				"}"
-			}.JoinStrings(Environment.NewLine);
+			private string referencedAssemblyCodeV1 = @"
+using SimpleContainer.Configuration;
+using SimpleContainer;
+using System;
+namespace A1
+{
+	public interface ISomeInterface
+	{
+	}
+}";
 
-			private string referencedAssemblyCodeV2 = new [] {
-				"using SimpleContainer.Configuration;",
-				"using SimpleContainer;",
-				"using System;",
-				"namespace A1",
-				"{",
-				"	public interface ISomeInterface",
-				"	{",
-				"		void Do();",
-				"	}",
-				"}",
-			}.JoinStrings(Environment.NewLine);
+			private string referencedAssemblyCodeV2 = @"
+using SimpleContainer.Configuration;
+using SimpleContainer;
+using System;
+namespace A1
+{
+	public interface ISomeInterface
+	{
+		void Do();
+	}
+}";
 
-			private string primaryAssemblyCode = new [] {
-				"using System;",
-				"using A1;",
-				"namespace A2",
-				"{",
-				"	public class TestClass: ISomeInterface",
-				"	{",
-				"		void ISomeInterface.Do()",
-				"		{",
-				"		}",
-				"	}",
-				"}"
-			}.JoinStrings(Environment.NewLine);
+			private string primaryAssemblyCode = @"
+using System;
+using A1;
+namespace A2
+{
+	public class TestClass: ISomeInterface
+	{
+		void ISomeInterface.Do()
+		{
+		}
+	}
+}";
 
 
 			[Test]
