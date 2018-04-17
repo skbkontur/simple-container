@@ -87,9 +87,9 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var referencedAssembly = AssemblyCompiler.Compile(referencedCode);
-				var a1 = AssemblyCompiler.Compile(code1, referencedAssembly);
-				var a2 = AssemblyCompiler.Compile(code2, referencedAssembly);
+				var referencedAssembly = AssemblyCompiler.CompileAssembly(referencedCode);
+				var a1 = AssemblyCompiler.CompileAssembly(code1, referencedAssembly);
+				var a2 = AssemblyCompiler.CompileAssembly(code2, referencedAssembly);
 				var factory = new ContainerFactory()
 					.WithTypesFromAssemblies(new[] {a1, a2})
 					.WithAssembliesFilter(x => x.Name == a2.GetName().Name);
@@ -128,8 +128,8 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var referencedAssembly = AssemblyCompiler.Compile(referencedCode);
-				var assembly = AssemblyCompiler.Compile(code, referencedAssembly);
+				var referencedAssembly = AssemblyCompiler.CompileAssembly(referencedCode);
+				var assembly = AssemblyCompiler.CompileAssembly(code, referencedAssembly);
 				var factory = new ContainerFactory().WithTypesFromAssemblies(new[] {assembly});
 				using (var container = factory.Build())
 				{

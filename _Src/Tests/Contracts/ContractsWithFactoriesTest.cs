@@ -186,7 +186,7 @@ namespace SimpleContainer.Tests.Contracts
 				var c1 = Container(b => b.BindDependencies<B>(new { parameter = 42 }));
 				var a1 = c1.Resolve<A>();
 				Assert.That(a1.Single().b.parameter, Is.EqualTo(42));
-				Assert.That(a1.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a1.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<B>
 	() => B
@@ -195,7 +195,7 @@ A
 				var c2 = Container(b => b.Contract("c1").BindDependencies<B>(new { parameter = 43 }));
 				var a2 = c2.Resolve<A>();
 				Assert.That(a2.Single().b.parameter, Is.EqualTo(43));
-				Assert.That(a2.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a2.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A[c1]
 	Func<B>[c1]
 	() => B[c1]
@@ -292,7 +292,7 @@ A[c1]
 			{
 				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {p2 = 2}));
 				var c = container.Resolve<C>("c1");
-				Assert.That(c.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(c.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 C[c1]
 	Func<A>[c1]")));
 			}
@@ -325,7 +325,7 @@ C[c1]
 			{
 				var container = Container(b => b.Contract("c1").BindDependencies<B>(new {parameter = 42}));
 				var a = container.Resolve<A>("c1");
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A[c1]
 	Lazy<B>[c1]")));
 			}
@@ -358,7 +358,7 @@ A[c1]
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 !A
 	Lazy<B>
 	!() => B

@@ -36,7 +36,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	IContainer
 	() => IB++
@@ -69,7 +69,7 @@ A
 				{
 					var b = c2.Resolve<B>();
 					Assert.That(b.Single().a, Is.SameAs(c1.Get<A>()));
-					Assert.That(b.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+					Assert.That(b.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 B
 	A
 		() => A - container boundary")));
@@ -99,7 +99,7 @@ B
 				var container = Container();
 				var a = container.Resolve<A>();
 				Assert.That(a.Single().b, Is.SameAs(container.Get<B>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	IContainer
 	() => B")));

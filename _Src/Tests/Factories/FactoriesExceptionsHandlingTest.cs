@@ -38,7 +38,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var a = container.Get<A>();
 				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 many instances for [IB]
 	B1
 	B2
@@ -55,7 +55,7 @@ IB++
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.GetAll<B>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 parameter [parameter] of service [A] is not configured
 
 !B
@@ -108,7 +108,7 @@ parameter [parameter] of service [A] is not configured
 				var container = Container();
 				var creator = container.Get<Func<object, IA>>();
 				var exception = Assert.Throws<SimpleContainerException>(() => creator(new { parameter = 56 }));
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 no instances for [IA]
 !IA - has no implementations" + defaultScannedAssemblies)));
 			}

@@ -97,7 +97,7 @@ namespace SimpleContainer.Tests.LongRunning
 				foreach (var thread in threads)
 					thread.Join();
 				if (failure != null)
-					Assert.Fail("source exception:\n" + failure);
+					Assert.Fail("source exception:\r\n" + failure);
 			}
 		}
 	}

@@ -33,7 +33,7 @@ namespace SimpleContainer.Tests
 				Assert.That(container.Get<IA>(), Is.SameAs(container.Get<A2>()));
 			}
 		}
-		
+
 		public class CanOverrideLazyConfigurators : FileConfigurationTest
 		{
 			public interface IA
@@ -239,7 +239,7 @@ namespace SimpleContainer.Tests
 				Assert.That(e.Message, Is.EqualTo("can't parse [A.value] from [qq] as [int]"));
 			}
 		}
-		
+
 		public class MoreThanOneConstructor : FileConfigurationTest
 		{
 			public class A
@@ -250,7 +250,7 @@ namespace SimpleContainer.Tests
 				{
 					this.value = value;
 				}
-				
+
 				public A(int value)
 				{
 					this.value = value.ToString(CultureInfo.InvariantCulture);
@@ -264,7 +264,7 @@ namespace SimpleContainer.Tests
 				Assert.That(e.Message, Is.EqualTo("type [A] has many public ctors"));
 			}
 		}
-		
+
 		public class MoreThanOneConstructorWithContainerConstructorAttribute : FileConfigurationTest
 		{
 			public class A
@@ -333,7 +333,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var assembly = AssemblyCompiler.Compile(testCode);
+				var assembly = AssemblyCompiler.CompileAssembly(testCode);
 				File.WriteAllText(configFileName, "A.parameter->11");
 				var factory = new ContainerFactory()
 					.WithAssembliesFilter(x => x.Name.StartsWith("tmp_"))

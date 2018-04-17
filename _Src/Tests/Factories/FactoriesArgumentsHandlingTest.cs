@@ -30,7 +30,7 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new { argument = "qq" }));
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 arguments [argument] are not used
 
 !Service <---------------")));
@@ -111,7 +111,7 @@ arguments [argument] are not used
 				var container = Container();
 				var wrap = container.Get<Wrap>();
 				var error = Assert.Throws<SimpleContainerException>(() => wrap.createService(new { argument = "qq" }));
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 parameter [argument] of service [Dependency] is not configured
 
 !Service
@@ -172,7 +172,7 @@ parameter [argument] of service [Dependency] is not configured
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<Func<int, int, A>>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 can't create delegate [Func<int,int,A>]
 
 !Func<int,int,A> <---------------")));

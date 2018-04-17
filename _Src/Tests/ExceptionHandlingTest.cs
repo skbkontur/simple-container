@@ -13,7 +13,7 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				var message = FormatMessage(@"
+				var message = TestHelpers.FormatMessage(@"
 no instances for [OuterOuterService] because [IInterface] has no instances
 !OuterOuterService
 	!OuterService
@@ -80,7 +80,7 @@ no instances for [OuterOuterService] because [IInterface] has no instances
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 no instances for [A] because [C] has no instances
 !A
 	!B
@@ -129,7 +129,7 @@ no instances for [A] because [C] has no instances
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 no instances for [A] because [IC] has no instances
 !A
 	!B

@@ -18,16 +18,16 @@ namespace SimpleContainer.Tests
 			[Test]
 			public void Test()
 			{
-				
+
 				var container = Container(x => x.BindDependency<A>("x", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
 				Assert.That(error.Message,
-					Does.Contain(FormatMessage(@"
+					Does.Contain(TestHelpers.FormatMessage(@"
 can't cast value [42] from [int] to [string] for dependency [x]
 
 !Wrap
 	!A")));
-			}													
+			}
 
 			public class A
 			{
@@ -318,7 +318,7 @@ can't cast value [42] from [int] to [string] for dependency [x]
 				Assert.That(service.GetContent(), Is.EqualTo("the resource"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceA>());
 				Assert.That(error.Message,
-					Does.Contain(FormatMessage(@"
+					Does.Contain(TestHelpers.FormatMessage(@"
 can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.BasicTest+CanInjectResource+ServiceWithInexistentResource], assembly [SimpleContainer.Tests]
 
 !ServiceA
@@ -380,7 +380,7 @@ can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.Basi
 				public Func<ClassA> Factory { get; set; }
 			}
 		}
-		
+
 		public class CanResolveSimpleFactories : BasicTest
 		{
 			[Test]
@@ -428,7 +428,7 @@ can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.Basi
 				Assert.That(B.ctorCallCount, Is.EqualTo(1));
 			}
 		}
-		
+
 		public class CanResolveLazy : BasicTest
 		{
 			public class B
@@ -474,7 +474,7 @@ can't find resource [inexistent.txt] in namespace of [SimpleContainer.Tests.Basi
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get(typeof(GenericClass<>)));
-				Assert.That(error.Message, Does.Contain(FormatMessage(@"
+				Assert.That(error.Message, Does.Contain(TestHelpers.FormatMessage(@"
 can't create open generic
 
 !GenericClass<T> <---------------")));
@@ -507,7 +507,7 @@ can't create open generic
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 parameter [unresolved] of service [Factory] is not configured
 
 !A
@@ -580,7 +580,7 @@ parameter [unresolved] of service [Factory] is not configured
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				var messageText = exception.ToString();
-				Assert.That(messageText, Does.Contain(FormatMessage(@"
+				Assert.That(messageText, Does.Contain(TestHelpers.FormatMessage(@"
 service [InnerService] construction exception
 
 !OuterService
@@ -615,7 +615,7 @@ service [InnerService] construction exception
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 cyclic dependency for service [ClassA], stack
 	OuterService
 	ClassA
@@ -757,7 +757,7 @@ cyclic dependency for service [ClassA], stack
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Does.Contain(FormatMessage(@"
+				Assert.That(error.Message, Does.Contain(TestHelpers.FormatMessage(@"
 !A
 	!B
 		!unresolved")));
@@ -789,7 +789,7 @@ cyclic dependency for service [ClassA], stack
 					c.Bind(typeof (IInterface), typeof (SomeImpl<string>));
 				});
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 many instances for [IInterface]
 	SomeImpl<int>
 	SomeImpl<string>
@@ -815,7 +815,7 @@ IInterface++
 				var container = Container();
 				Assert.That(container.GetAll<IInterface>().Count(), Is.EqualTo(2));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 many instances for [IInterface]
 	Impl1
 	Impl2
@@ -843,7 +843,7 @@ IInterface++
 			public void Test()
 			{
 				var container = Container();
-				var message = FormatMessage(@"
+				var message = TestHelpers.FormatMessage(@"
 parameter [argument] of service [SomeClass] is not configured
 
 !SomeClass
@@ -961,7 +961,7 @@ parameter [argument] of service [SomeClass] is not configured
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				var message = FormatMessage(@"
+				var message = TestHelpers.FormatMessage(@"
 many instances for [IInterface]
 	Impl1
 	Impl2
@@ -1002,7 +1002,7 @@ many instances for [IInterface]
 			public void Test()
 			{
 				var container = Container();
-				var message = FormatMessage(@"
+				var message = TestHelpers.FormatMessage(@"
 parameter [parameter] of service [Impl1] is not configured
 
 !OuterService
@@ -1050,7 +1050,7 @@ parameter [parameter] of service [Impl1] is not configured
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 many public ctors
 
 !IInterface
@@ -1086,7 +1086,7 @@ many public ctors
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<IInterface>());
 				Assert.That(error.Message,
-					Does.Contain(FormatMessage(@"
+					Does.Contain(TestHelpers.FormatMessage(@"
 no public ctors
 
 !IInterface
@@ -1331,13 +1331,13 @@ no public ctors
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<StructConsumer>());
 				Assert.That(error.Message,
-					Does.Contain(FormatMessage(@"
+					Does.Contain(TestHelpers.FormatMessage(@"
 can't create value type
 
 !StructConsumer
 	!SomeStruct <---------------")));
 				error = Assert.Throws<SimpleContainerException>(() => container.Get<ITestInterface>());
-				Assert.That(error.Message, Does.Contain(FormatMessage(@"
+				Assert.That(error.Message, Does.Contain(TestHelpers.FormatMessage(@"
 !ITestInterface
 	!SomeStruct <---------------")));
 			}
@@ -1403,7 +1403,7 @@ can't create value type
 			public void Test()
 			{
 				var container = Container();
-				var message = FormatMessage(@"
+				var message = TestHelpers.FormatMessage(@"
 parameter [argument] of service [Child1] is not configured
 
 !OuterService
@@ -1413,7 +1413,7 @@ parameter [argument] of service [Child1] is not configured
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<OuterService>());
 				Assert.That(error.Message, Is.EqualTo(message));
 
-				var message2 = FormatMessage(@"
+				var message2 = TestHelpers.FormatMessage(@"
 no instances for [Child2] because [IOtherService] has no instances
 !Child2
 	!IOtherService - has no implementations" + defaultScannedAssemblies);
@@ -1471,7 +1471,7 @@ no instances for [Child2] because [IOtherService] has no instances
 			{
 				var container = Container(c => c.BindDependency<A>("inexistent", 42));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 unused dependency configurations [name=inexistent]
 
 !A <---------------")));
@@ -1539,7 +1539,7 @@ unused dependency configurations [name=inexistent]
 				var container = Container();
 				Assert.That(container.Get<Wrap>().instances.Count(), Is.EqualTo(0));
 				Assert.That(container.Resolve<Wrap>().GetConstructionLog(),
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 Wrap
 	IInterface - has no implementations")));
 			}
@@ -1602,7 +1602,7 @@ Wrap
 				var container = Container(b => b.DontUse<A>());
 				Assert.That(container.Get<WrapWithOptionalDependency>().a, Is.Null);
 				Assert.That(container.Resolve<WrapWithOptionalDependency>().GetConstructionLog(),
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 WrapWithOptionalDependency
 	A - DontUse -> <null>")));
 				Assert.Throws<SimpleContainerException>(() => container.Get<WrapWithRequiredDependency>());
@@ -1712,7 +1712,7 @@ WrapWithOptionalDependency
 				var container = Container();
 				Assert.That(container.Get<A>().enumerable.Single(), Is.InstanceOf<B2>());
 				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	IInterface
 		!B1 - invalid test condition
@@ -1737,7 +1737,7 @@ A
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 parameter [parameters] of service [A] is not configured
 
 !A
@@ -1776,7 +1776,7 @@ parameter [parameters] of service [A] is not configured
 					this.someReader = someReader;
 				}
 			}
-			
+
 			public class Client2
 			{
 				public readonly Func<SomeReader> createSomeReader;
@@ -1792,7 +1792,7 @@ parameter [parameters] of service [A] is not configured
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Client1>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeReader> instead
 
 !Client1
@@ -1820,7 +1820,7 @@ service [SomeReader] with PerRequest lifestyle can't be resolved, use Func<SomeR
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [B] with PerRequest lifestyle can't be resolved, use Func<B> instead
 
 !A

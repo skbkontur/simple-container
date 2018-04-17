@@ -47,7 +47,7 @@ namespace SimpleContainer.Tests.LongRunning
 				Thread.Sleep(20);
 				container.Get<A>();
 			});
-			var expected = FormatMessage(@"
+			var expected = TestHelpers.FormatMessage(@"
 parameter [parameter] of service [A] is not configured
 
 !A

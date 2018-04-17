@@ -45,7 +45,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var resolved = container.Resolve<IA>();
 				Assert.That(resolved.Single().GetType().Name, Is.EqualTo("MyPrivateImpl"));
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 IA
 	MyPrivateImpl - private-impl")));
 			}
@@ -105,7 +105,7 @@ IA
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<InMemoryA>());
-					Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 IA
 	!DefaultA - in-memory
 	InMemoryA")));
@@ -114,7 +114,7 @@ IA
 				{
 					var resolved = c.Resolve<IA>();
 					Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
-					Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+					Assert.That(resolved.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 IA
 	DefaultA
 	!InMemoryA - not-in-memory")));
@@ -163,7 +163,7 @@ IA
 				var container = Container();
 				var resolved = container.Resolve<IA>();
 				Assert.That(resolved.Single(), Is.InstanceOf<DefaultA>());
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 IA
 	DefaultA")));
 			}
@@ -280,11 +280,11 @@ IA
 				Assert.That(container.Get<A1>().parameter, Is.EqualTo(20));
 				Assert.That(container.Get<A2>().parameter, Is.EqualTo(10));
 				Assert.That(container.Resolve<A1>().GetConstructionLog(),
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 A1 - spec dependency for A1
 	parameter -> 20")));
 				Assert.That(container.Resolve<A2>().GetConstructionLog(),
-					Is.EqualTo(FormatMessage(@"
+					Is.EqualTo(TestHelpers.FormatMessage(@"
 A2
 	parameter -> 10")));
 			}

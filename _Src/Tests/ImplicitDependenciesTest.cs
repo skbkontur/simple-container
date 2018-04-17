@@ -22,12 +22,12 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container(c => c.WithImplicitDependency<A>(new ServiceName(typeof (B), new string[0])));
 				var resolvedService = container.Resolve<A>();
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B - implicit")));
 			}
 		}
-		
+
 		public class SimpleWithContracts : ImplicitDependenciesTest
 		{
 			public class A
@@ -54,7 +54,7 @@ A
 					c.WithImplicitDependency<A>(new ServiceName(typeof (B), new string[0]));
 				});
 				var resolvedService = container.Resolve<A>();
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B[c] - implicit
 		parameter -> 42")));

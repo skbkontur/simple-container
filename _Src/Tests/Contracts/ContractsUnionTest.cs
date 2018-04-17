@@ -41,7 +41,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [A] construction exception
 
 !AWrap
@@ -476,7 +476,7 @@ service [A] construction exception
 				});
 				var a = container.Resolve<A>();
 				Assert.That(a.Single().bs.Select(x => x.parameter).ToArray(), Is.EqualTo(new[] {1, 2}));
-				var expectedConstructionLog = FormatMessage(@"
+				var expectedConstructionLog = TestHelpers.FormatMessage(@"
 A
 	B[test-union-contract]++
 		B[c1]

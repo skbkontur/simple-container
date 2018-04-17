@@ -545,7 +545,7 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
 				var resolvedA = container.Resolve<A>();
 				var exception = Assert.Throws<SimpleContainerException>(resolvedA.EnsureInitialized);
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 exception initializing A[c1]
 
 A[c1], initializing ...
@@ -630,10 +630,10 @@ A[c1], initializing ...
 				using (var container = Factory().WithInfoLogger(logInfo).WithConfigurator(configure).Build())
 				{
 					container.Get<ComponentA>("my-contract");
-					var componentALog = FormatMessage(@"
+					var componentALog = TestHelpers.FormatMessage(@"
 ComponentA[my-contract] - initialize started ComponentA.Initialize
 ComponentA[my-contract] - initialize finished");
-					var componentBLog = FormatMessage(@"
+					var componentBLog = TestHelpers.FormatMessage(@"
 ComponentB[my-contract] - initialize started ComponentB.Initialize
 ComponentB[my-contract] - initialize finished");
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
@@ -667,7 +667,7 @@ ComponentB[my-contract] - initialize finished");
 				var container = Container();
 
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 exception initializing B
 
 A, initializing ...
@@ -707,7 +707,7 @@ A, initializing ...
 				Assert.That(B.initializeCalled, Is.True);
 			}
 		}
-		
+
 		public class InvokeInitializeOnGetAllOnlyIfItIsTopmost : InitializeComponentsTest
 		{
 			public class A
@@ -805,12 +805,12 @@ A, initializing ...
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				var expectedTopMessage = FormatMessage(@"
+				var expectedTopMessage = TestHelpers.FormatMessage(@"
 exception initializing A
 
 A, initializing ...
 	Lazy<B>");
-				var expectedNestedMessage = FormatMessage(@"
+				var expectedNestedMessage = TestHelpers.FormatMessage(@"
 attempt to resolve [B] is prohibited to prevent possible deadlocks
 
 !B <---------------");

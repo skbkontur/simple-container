@@ -289,9 +289,9 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var container = Container(b => b.Bind<A>(c => { throw new InvalidOperationException("my test crash"); }));
-				
+
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [A] construction exception
 
 !AWrap
@@ -314,16 +314,16 @@ service [A] construction exception
 			{
 			}
 		}
-		
+
 		public class HandleGracefullyFactoryWithTargetCrash : FactoryConfiguration
 		{
 			[Test]
 			public void Test()
 			{
 				var container = Container(b => b.Bind<A>((c, t) => { throw new InvalidOperationException("my test crash"); }));
-				
+
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [A] construction exception
 
 !AWrap
@@ -346,7 +346,7 @@ service [A] construction exception
 			{
 			}
 		}
-		
+
 		public class HandleGracefullyDependencyFactoryCrash : FactoryConfiguration
 		{
 			[Test]
@@ -356,7 +356,7 @@ service [A] construction exception
 					_ => { throw new InvalidOperationException("my test crash"); }));
 
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<AWrap>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [A] construction exception
 
 !AWrap
@@ -379,7 +379,7 @@ service [A] construction exception
 			{
 			}
 		}
-		
+
 		public class CanRefuseToCreateServiceFromFactory : FactoryConfiguration
 		{
 			[Test]
@@ -389,7 +389,7 @@ service [A] construction exception
 
 				var resolvedWrap = container.Resolve<AWrap>();
 				Assert.That(resolvedWrap.Single().a, Is.Null);
-				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolvedWrap.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 AWrap
 	A - test refused -> <null>")));
 			}

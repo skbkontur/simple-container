@@ -59,7 +59,7 @@ namespace SimpleContainer.Tests.Contracts
 			{
 				var container = Container(c => c.Contract("c1").Bind<IInterface, Impl1>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<Wrap>());
-				var expectedMessage = FormatMessage(@"
+				var expectedMessage = TestHelpers.FormatMessage(@"
 no instances for [Wrap] because [IUnimplemented] has no instances
 !Wrap
 	!Service[c1]
@@ -105,7 +105,7 @@ no instances for [Wrap] because [IUnimplemented] has no instances
 					builder.Contract("a2").BindDependency<A>("parameter", 52);
 				});
 				container.Get<Wrap>();
-				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>("a2").GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A[a2]
 	parameter -> 52")));
 			}
@@ -132,7 +132,7 @@ A[a2]
 			public void Test()
 			{
 				var container = Container(b => b.Contract("a"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<B>")));
 			}
@@ -183,7 +183,7 @@ A
 				});
 				Assert.That(container.Get<A>().b.parameter, Is.EqualTo(14));
 				Assert.That(container.Get<A>().b.c.parameter, Is.EqualTo(55));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain(TestHelpers.FormatMessage(@"
 A[c1]
 	B[c1->c2]")));
 			}

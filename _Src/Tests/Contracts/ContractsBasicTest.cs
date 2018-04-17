@@ -346,7 +346,7 @@ namespace SimpleContainer.Tests.Contracts
 				var container = Container(b => b.Contract<TestContractAttribute>().Bind<IInterface, Impl2>());
 				var wrap = container.Get<Wrap>();
 				Assert.That(wrap.service.@interface, Is.InstanceOf<Impl2>());
-				Assert.That(container.Resolve<Service>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<Service>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 Service[test-contract]
 	IInterface[test-contract]
 		Impl2")));
@@ -689,7 +689,7 @@ Service[test-contract]
 				var container = Container(b => b.Contract("a").BindDependency<A>("parameter", 78));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(error.Message,
-					Does.Contain(FormatMessage(@"
+					Does.Contain(TestHelpers.FormatMessage(@"
 !A[a]
 	parameter -> 78
 	!B
@@ -827,7 +827,7 @@ Service[test-contract]
 			{
 				var container = Container(b => b.Contract("x"));
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 contract [x] already declared, stack
 	A
 	B[x->x]

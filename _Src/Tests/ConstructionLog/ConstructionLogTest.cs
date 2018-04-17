@@ -28,7 +28,7 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependencyFactory<A>("parameter", _ => "qq"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	parameter -> qq")));
 			}
@@ -63,7 +63,7 @@ A
 			{
 				var container = Container(c => c.BindDependency<A>("v", 76).BindDependency<B>("parameter", 67));
 				var resolved = container.Resolve<A>();
-				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolved.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	v -> 76
 	Func<B>
@@ -94,7 +94,7 @@ A
 				var container = Container(b => b.DontUse<B>());
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B - DontUse -> <null>")));
 			}
@@ -123,7 +123,7 @@ A
 				var container = Container();
 				var resolvedService = container.Resolve<A>();
 				Assert.That(resolvedService.Single().b, Is.Null);
-				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(resolvedService.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B - DontUse -> <null>")));
 			}
@@ -145,7 +145,7 @@ A
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	parameter -> <null>")));
 			}
@@ -191,7 +191,7 @@ A
 				var container = Container();
 				Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				var error = Assert.Throws<SimpleContainerException>(() => container.Get<C>());
-				Assert.That(error.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 many instances for [IB]
 	B1
 	B2
@@ -242,7 +242,7 @@ many instances for [IB]
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.Resolve<X>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<X>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 X
 	IA - instance filter
 		A1
@@ -275,7 +275,7 @@ X
 			public void Test()
 			{
 				var container = Container();
-				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 B
 	A
 	A
@@ -321,26 +321,26 @@ B
 				var container = Container();
 				var t = Task.Run(() => container.Get<A>());
 				Thread.Sleep(15);
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A, initializing ...
 	B, initializing ...")));
 				Assert.That(log.ToString(), Is.EqualTo(""));
 				B.goInitialize.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A, initializing ...
 	B")));
 				Assert.That(log.ToString(), Is.EqualTo("B.Initialize "));
 				A.goInitialize.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B")));
 				Assert.That(log.ToString(), Is.EqualTo("B.Initialize A.Initialize "));
 				t.Wait();
 			}
 		}
-		
+
 		public class DisplayDisposingStatus : ConstructionLogTest
 		{
 			private static readonly StringBuilder log = new StringBuilder();
@@ -387,13 +387,13 @@ A
 				container.Get<A>();
 				var t = Task.Run(() => container.Dispose());
 				Thread.Sleep(15);
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A, disposing ...
 	B")));
 				Assert.That(log.ToString(), Is.EqualTo(""));
 				A.go.Set();
 				Thread.Sleep(5);
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	B, disposing ...")));
 				Assert.That(log.ToString(), Is.EqualTo("A.Dispose "));
@@ -430,7 +430,7 @@ A
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.InnerException, Is.Null);
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 cyclic dependency for service [A], stack
 	A
 	B
@@ -466,7 +466,7 @@ cyclic dependency for service [A], stack
 			{
 				var container = Container(b => b.BindDependencyFactory<A>("item", c => c.Get<B>("c1").value));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 contract [c1] already declared, stack
 	A[c1]
 	item

@@ -628,7 +628,7 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				var expectedMessage = FormatMessage(@"
+				var expectedMessage = TestHelpers.FormatMessage(@"
 can't cast value [invalidValue] from [string] to [IEnumerable<string>] for dependency [dependency]
 
 !A

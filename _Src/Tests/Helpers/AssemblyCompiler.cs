@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -25,30 +26,41 @@ namespace SimpleContainer.Tests.Helpers
 			AppDomain.CurrentDomain.DomainUnload += delegate { CleanupTestAssemblies(); };
 		}
 
-		public static Assembly Compile(string source, params Assembly[] references)
+		public static Assembly CompileAssembly(string source, params Assembly[] references)
 		{
-			return Compile(source, null, references);
+			return CompileAssembly(source, null, references);
 		}
 
-		public static Assembly Compile(string source, string resultFileName, params Assembly[] references)
+		public static Assembly CompileAssembly(string source, string resultFileName, params Assembly[] references)
+		{
+			var assemblyPath = CompileTo(source, resultFileName, references.Select(x => x.Location).ToArray());
+			return Assembly.LoadFrom(assemblyPath);
+		}
+
+		public static string Compile(string source, params string[] references)
+		{
+			return CompileTo(source, null, references);
+		}
+
+		public static string CompileTo(string source, string resultFileName, params string[] referencesLocations)
 		{
 			var assemblyName = "tmp_" + Guid.NewGuid().ToString("N");
 			var assemblyPath = resultFileName ?? assemblyName + ".dll";
 			var syntaxTree = CSharpSyntaxTree.ParseText(source, path: assemblyName);
 
-			var metadataReferences = references
-				.Select(r => MetadataReference.CreateFromFile(r.Location))
-				.Concat(defaultAssemblies.Select(r => MetadataReference.CreateFromFile(r.Location)));
+			var metadataReferences = referencesLocations
+				.Concat(defaultAssemblies.Select(r => r.Location))
+				.Select(r => MetadataReference.CreateFromFile(r));
 			var defaultNamespaces = new[] { "System" };
 			var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
 				.WithUsings(defaultNamespaces);
-			
+
 			var compilation = CSharpCompilation.Create(
 				assemblyName,
 				new[] { syntaxTree },
 				metadataReferences,
 				compilationOptions);
-			
+
 			using (var dllStream = File.OpenWrite(assemblyPath))
 			{
 				var emitResult = compilation.Emit(dllStream);
@@ -60,10 +72,11 @@ namespace SimpleContainer.Tests.Helpers
 					Assert.Fail(message);
 				}
 			}
-			return Assembly.LoadFrom(assemblyPath);
+			return assemblyPath;
 		}
 
-		private static void CleanupTestAssemblies()
+
+		public static void CleanupTestAssemblies()
 		{
 			var testAssemblyFileNames = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory)
 				.Where(x => Path.GetFileName(x).StartsWith("tmp"));

@@ -62,7 +62,7 @@ namespace SimpleContainer.Tests.Contracts
 				Assert.That(a.cx.context, Is.EqualTo("x"));
 				Assert.That(a.cy.context, Is.EqualTo("y"));
 				Assert.That(a.c.context, Is.EqualTo("empty"));
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain(FormatMessage(@"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Does.Contain(TestHelpers.FormatMessage(@"
 A
 	B[x]
 		C[x->y]
@@ -277,7 +277,7 @@ A
 			{
 				var container = Container(b => b.Contract("c1").Contract("c2").BindDependency<B>("parameter", 42));
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 contract [c2] already declared, stack
 	A[c1]
 	B[c2->c2]

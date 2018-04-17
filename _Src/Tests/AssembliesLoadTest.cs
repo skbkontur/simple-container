@@ -32,9 +32,9 @@ namespace SimpleContainer.Tests
 		private AppDomain appDomain;
 		private string testDirectory;
 
-		private void CopyAssemblyToTestDirectory(Assembly assembly)
+		private void CopyAssemblyToTestDirectory(string assembly)
 		{
-			File.Copy(assembly.Location, Path.Combine(testDirectory, Path.GetFileName(assembly.Location)));
+			File.Copy(assembly, Path.Combine(testDirectory, Path.GetFileName(assembly)));
 		}
 
 		private FactoryInvoker GetInvoker()
@@ -91,12 +91,12 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode);
-				var assemblyName = primaryAssembly.GetName().Name;
+				var assemblyName = Path.GetFileNameWithoutExtension(primaryAssembly);
 
 				CopyAssemblyToTestDirectory(primaryAssembly);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
-				CopyAssemblyToTestDirectory(typeof (Assert).Assembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly.Location);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly().Location);
+				CopyAssemblyToTestDirectory(typeof (Assert).Assembly.Location);
 
 				GetInvoker().DoCallBack(assemblyName, delegate(string s)
 				{
@@ -112,7 +112,7 @@ namespace SimpleContainer.Tests
 							.OrderBy(x => x)
 							.Select(x => "\t" + x)
 							.JoinStrings("\r\n");
-						var expectedMessage = FormatMessage(@"
+						var expectedMessage = TestHelpers.FormatMessage(@"
 no instances for [ISomeInterface]
 !ISomeInterface - has no implementations
 scanned assemblies
@@ -166,20 +166,20 @@ namespace A2
 			public void Test()
 			{
 				var referencedAssemblyV2 = AssemblyCompiler.Compile(referencedAssemblyCodeV2);
-				AssemblyCompiler.Compile(referencedAssemblyCodeV1,
-					Path.Combine(testDirectory, Path.GetFileName(referencedAssemblyV2.Location)));
 				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode, referencedAssemblyV2);
+				AssemblyCompiler.CompileTo(referencedAssemblyCodeV1, referencedAssemblyV2);
 
+				CopyAssemblyToTestDirectory(referencedAssemblyV2);
 				CopyAssemblyToTestDirectory(primaryAssembly);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly.Location);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly().Location);
 
 				var exceptionText = GetInvoker().CreateCointainerWithCrash();
 
 				const string englishText = "Unable to load one or more of the requested types";
 				const string russianText = "Не удается загрузить один или более запрошенных типов";
 				Assert.That(exceptionText, Does.Contain(englishText).Or.StringContaining(russianText));
-				Assert.That(exceptionText, Does.Contain(primaryAssembly.GetName().Name));
+				Assert.That(exceptionText, Does.Contain(Path.GetFileNameWithoutExtension(primaryAssembly)));
 			}
 		}
 	}

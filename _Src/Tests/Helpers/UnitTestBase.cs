@@ -6,6 +6,11 @@ namespace SimpleContainer.Tests.Helpers
 	[TestFixture]
 	public abstract class UnitTestBase
 	{
+		static UnitTestBase()
+		{
+			AssemblyCompiler.CleanupTestAssemblies();
+		}
+
 		[SetUp]
 		protected virtual void SetUp()
 		{
@@ -25,13 +30,5 @@ namespace SimpleContainer.Tests.Helpers
 		public virtual void TestFixtureTearDown()
 		{
 		}
-		
-		protected static string FormatMessage(string s)
-		{
-			return s.Replace("\r\n", "\n")
-				.Replace("\n", Environment.NewLine)
-				.Trim();
-		}
-
 	}
 }

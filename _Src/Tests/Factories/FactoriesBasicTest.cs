@@ -155,7 +155,7 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<B>
 	() => B
@@ -199,7 +199,7 @@ A
 				var a = container.Resolve<A>();
 				a.Single().createB();
 				var constructionLog = a.GetConstructionLog();
-				Assert.That(constructionLog, Is.EqualTo(FormatMessage(@"
+				Assert.That(constructionLog, Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<B>")));
 			}
@@ -296,7 +296,7 @@ A
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.InnerException, Is.Null);
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 cyclic dependency for service [B], stack
 	A
 	B[x]
@@ -326,7 +326,7 @@ cyclic dependency for service [B], stack
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
 				Assert.That(exception.InnerException, Is.Null);
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 cyclic dependency for service [A], stack
 	A
 	A
@@ -364,7 +364,7 @@ cyclic dependency for service [A], stack
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo(FormatMessage(@"
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 cyclic dependency for service [A], stack
 	A
 	B
@@ -407,7 +407,7 @@ cyclic dependency for service [A], stack
 			{
 				var container = Container();
 				container.Resolve<A>();
-				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 B
 	Func<C>
 	() => C")));
@@ -450,7 +450,7 @@ B
 			{
 				var container = Container(b => b.Contract("x").BindDependency<C>("parameter", 42));
 				container.Resolve<A>("x");
-				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 B
 	() => C[x]
 		parameter -> 42
@@ -473,11 +473,11 @@ B
 			public interface IB
 			{
 			}
-			
+
 			public class B1: IB
 			{
 			}
-			
+
 			public class B2: IB
 			{
 			}
@@ -490,7 +490,7 @@ B
 				Assert.That(a.Single().allB.Length, Is.EqualTo(2));
 				Assert.That(a.Single().allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
 				Assert.That(a.Single().allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<IEnumerable<IB>>
 	() => IB++
@@ -532,7 +532,7 @@ A
 				Assert.That(allB.Length, Is.EqualTo(2));
 				Assert.That(allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
 				Assert.That(allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatMessage(@"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	Func<IEnumerable<IB>>")));
 			}
