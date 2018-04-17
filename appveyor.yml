@@ -14,13 +14,10 @@ configuration:
   - Release
 init:
   - git config --global core.autocrlf true
-before_build:
-  - nuget restore _Src\SimpleContainer.sln
-build:
-  verbosity: minimal
-  project: _Src\SimpleContainer.sln
-test:
-  assemblies:
-    - '**\*.tests.dll'
+build_script:
+  - dotnet build _Src\SimpleContainer.sln
+test_script:
+  - nunit3-console.exe "_Src\Tests\bin\%configuration%\net46\SimpleContainer.Tests.dll"
+  - dotnet test "_Src\Tests\Tests.csproj" --no-restore --no-build -f netcoreapp2.0 -o "bin\%configuration%\netcoreapp2.0"
 artifacts:
   - path: bin\$(configuration)\*.*

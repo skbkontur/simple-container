@@ -35,7 +35,11 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("no instances for [A] because [IB] has no instances\r\n\r\n!A\r\n\t!IB\r\n\t\t!B - IgnoredImplementation" + defaultScannedAssemblies));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+no instances for [A] because [IB] has no instances
+!A
+	!IB
+		!B - IgnoredImplementation" + defaultScannedAssemblies)));
 			}
 		}
 
@@ -59,7 +63,7 @@ namespace SimpleContainer.Tests
 
 	        private static void CheckException(SimpleContainerException e)
 	        {
-                Assert.That(e.Message, Is.EqualTo(FormatExpectedMessage(@"
+                Assert.That(e.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
 service [IA] construction exception
 
 !IA <---------------")));

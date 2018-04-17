@@ -66,7 +66,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 				var container = Container();
 				var resolvedA = container.Resolve<A>();
 				Assert.That(resolvedA.Single().constantSwitch.Value, Is.EqualTo(42));
-				Assert.That(resolvedA.GetConstructionLog(), Is.EqualTo("A\r\n\tSomeConstantSwitch const\r\n\t\tValue -> 42"));
+				Assert.That(resolvedA.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	SomeConstantSwitch const
+		Value -> 42")));
 			}
 		}
 
@@ -101,7 +104,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 				using (var c = f.Build())
 				{
 					var s = c.Resolve<A>();
-					Assert.That(s.GetConstructionLog(), Is.EqualTo("A\r\n\tsomeValue const -> !42!"));
+					Assert.That(s.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	someValue const -> !42!")));
 				}
 			}
 		}
@@ -130,8 +135,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("dto", new Dto()));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\tDto const"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Dto const")));
 			}
 		}
 
@@ -158,8 +164,11 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithConfigurator(b => b.BindDependency<A>("dto", new Dto()))
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
-					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tdto const -> dumpted Dto"));
+				{
+					Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	dto const -> dumpted Dto")));
+				}
 			}
 		}
 
@@ -180,8 +189,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var ts = TimeSpan.FromSeconds(54).Add(TimeSpan.FromMilliseconds(17));
 				var container = Container(b => b.BindDependency<A>("parameter", ts));
-				const string expectedConstructionLog = "A\r\n\tparameter -> 00:00:54.0170000";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	parameter -> 00:00:54.0170000")));
 			}
 		}
 
@@ -201,8 +211,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("token", CancellationToken.None));
-				const string expectedConstructionLog = "A\r\n\tCancellationToken const";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	CancellationToken const")));
 			}
 		}
 
@@ -222,8 +233,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("someBool", true));
-				const string expectedConstructionLog = "A\r\n\tsomeBool -> true";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	someBool -> true")));
 			}
 		}
 
@@ -243,8 +255,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("parameter", 78));
-				const string expectedConstructionLog = "A\r\n\tparameter -> 78";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	parameter -> 78")));
 			}
 		}
 
@@ -264,8 +277,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("value", 21));
-				const string expectedConstructionLog = "A\r\n\tvalue -> 21";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	value -> 21")));
 			}
 		}
 
@@ -291,8 +305,9 @@ namespace SimpleContainer.Tests.ConstructionLog
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("value", MyEnum.Val2));
-				const string expectedConstructionLog = "A\r\n\tvalue -> Val2";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(expectedConstructionLog));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	value -> Val2")));
 			}
 		}
 
@@ -328,8 +343,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 					StrVal = "test-string",
 					ComplexType = new B()
 				}));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\tDto const\r\n\t\tStrVal -> test-string\r\n\t\tComplexType\r\n\t\tIntVal -> 5"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Dto const
+		StrVal -> test-string
+		ComplexType
+		IntVal -> 5")));
 			}
 		}
 
@@ -361,8 +380,12 @@ namespace SimpleContainer.Tests.ConstructionLog
 					.WithConfigurator(b => b.BindDependency<A>("b", new B {Val = new Dto()}))
 					.WithValueFormatter<Dto>(x => "dumpted Dto");
 				using (var container = f.Build())
-					Assert.That(container.Resolve<A>().GetConstructionLog(),
-						Is.EqualTo("A\r\n\tB const\r\n\t\tVal -> dumpted Dto"));
+				{
+					Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	B const
+		Val -> dumpted Dto")));
+				}
 			}
 		}
 
@@ -388,11 +411,10 @@ namespace SimpleContainer.Tests.ConstructionLog
 			{
 				var container = Container(b => b.BindDependencyValue(typeof (A), typeof (ASettings), new ASettings {port = 671}));
 				var actualConstructionLog = container.Resolve<A>().GetConstructionLog();
-				const string expectedConstructionLog = @"
+				Assert.That(actualConstructionLog, Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	ASettings const
-		port -> 671";
-				Assert.That(actualConstructionLog, Is.EqualTo(FormatExpectedMessage(expectedConstructionLog)));
+		port -> 671")));
 			}
 		}
 
@@ -432,13 +454,12 @@ A
 				};
 				var container = Container(b => b.BindDependencyValue(typeof (A), typeof (ASettings), s));
 				var a = container.Resolve<A>();
-				const string expectedConstructionLog = @"
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	ASettings const
 		Nested
 			Value -> 42
-		StrValue -> test-str-value";
-				Assert.That(a.GetConstructionLog(), Is.EqualTo(FormatExpectedMessage(expectedConstructionLog)));
+		StrValue -> test-str-value")));
 			}
 		}
 
@@ -458,11 +479,15 @@ A
 			public void Test()
 			{
 				var container = Container(b => b.BindDependency<A>("urls", new[] {"a", "b", "c"}));
-				Assert.That(container.Resolve<A>().GetConstructionLog(),
-					Is.EqualTo("A\r\n\turls const\r\n\t\ta\r\n\t\tb\r\n\t\tc"));
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	urls const
+		a
+		b
+		c")));
 			}
 		}
-		
+
 		public class CanDumpComplextArrays : ConstructionLogValueFormattingTest
 		{
 			public class A
@@ -489,7 +514,7 @@ A
 					new SomeItem {x = 1, y = "t1"},
 					new SomeItem {x = 2, y = "t2"}
 				}));
-				const string expectedLog = @"
+				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
 A
 	items const
 		item
@@ -497,8 +522,7 @@ A
 			y -> t1
 		item
 			x -> 2
-			y -> t2";
-				Assert.That(container.Resolve<A>().GetConstructionLog(), Is.EqualTo(FormatExpectedMessage(expectedLog)));
+			y -> t2")));
 			}
 		}
 	}

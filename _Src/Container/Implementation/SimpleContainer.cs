@@ -218,16 +218,21 @@ namespace SimpleContainer.Implementation
 			var declaredName = new ServiceName(name.Type, context.Contracts.Snapshot());
 			if (context.HasCycle(declaredName))
 			{
-				var message = string.Format("cyclic dependency for service [{0}], stack\r\n{1}",
-					declaredName.Type.FormatName(), context.FormatStack() + "\r\n\t" + declaredName);
+				var message = string.Format("cyclic dependency for service [{0}], stack{1}{2}{1}\t{3}",
+					declaredName.Type.FormatName(),
+					Environment.NewLine,
+					context.FormatStack(),
+					declaredName);
                 context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
                 return ContainerService.Error(declaredName, message);
 			}
 			if (!pushedContracts.isOk)
 			{
-				const string messageFormat = "contract [{0}] already declared, stack\r\n{1}";
-				var message = string.Format(messageFormat, pushedContracts.duplicatedContractName,
-					context.FormatStack() + "\r\n\t" + name);
+				var message = string.Format("contract [{0}] already declared, stack{1}{2}{1}\t{3}",
+					pushedContracts.duplicatedContractName,
+					Environment.NewLine,
+					context.FormatStack(),
+					name);
 				context.Contracts.RemoveLast(pushedContracts.pushedContractsCount);
 				return ContainerService.Error(name, message);
 			}

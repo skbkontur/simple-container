@@ -76,12 +76,7 @@ namespace SimpleContainer.Helpers
 		{
 			yield return item;
 		}
-
-		public static IEnumerable<T> Prepend<T>(this IEnumerable<T> source, T value)
-		{
-			return new[] {value}.Concat(source);
-		}
-
+		
 		public static IEnumerable<T> NotNull<T>(this IEnumerable<T> source)
 		{
 			return source.Where(x => !ReferenceEquals(x, default(T)));

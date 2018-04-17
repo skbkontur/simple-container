@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using NUnit.Framework;
 using SimpleContainer.Infection;
@@ -156,7 +155,12 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var a = container.Resolve<A>();
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<B>\r\n\t() => B\r\n\t\tC\r\n\t() => B"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Func<B>
+	() => B
+		C
+	() => B")));
 				Assert.That(container.Get<B>(), Is.Not.SameAs(a.Single().b1));
 				Assert.That(a.Single().b1, Is.Not.SameAs(a.Single().b2));
 			}
@@ -195,7 +199,9 @@ namespace SimpleContainer.Tests.Factories
 				var a = container.Resolve<A>();
 				a.Single().createB();
 				var constructionLog = a.GetConstructionLog();
-				Assert.That(constructionLog, Is.EqualTo("A\r\n\tFunc<B>"));
+				Assert.That(constructionLog, Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Func<B>")));
 			}
 		}
 
@@ -289,9 +295,18 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				var exprectedMessage = "cyclic dependency for service [B], stack\r\n\tA\r\n\tB[x]\r\n\tA[x]\r\n\tB[x]\r\n\r\n!A\r\n\t!B\r\n\t\tIContainer\r\n\t\t!() => A";
-				Assert.That(exception.Message, Is.EqualTo(exprectedMessage));
 				Assert.That(exception.InnerException, Is.Null);
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+cyclic dependency for service [B], stack
+	A
+	B[x]
+	A[x]
+	B[x]
+
+!A
+	!B
+		IContainer
+		!() => A")));
 			}
 		}
 
@@ -310,8 +325,15 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tA\r\n\r\n!A\r\n\tIContainer\r\n\t!() => A"));
 				Assert.That(exception.InnerException, Is.Null);
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+cyclic dependency for service [A], stack
+	A
+	A
+
+!A
+	IContainer
+	!() => A")));
 			}
 		}
 
@@ -342,8 +364,17 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message,
-					Is.EqualTo("cyclic dependency for service [A], stack\r\n\tA\r\n\tB\r\n\tA\r\n\r\n!A\r\n\tFunc<B>\r\n\t!() => B\r\n\t\tFunc<A>\r\n\t\t!() => A"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+cyclic dependency for service [A], stack
+	A
+	B
+	A
+
+!A
+	Func<B>
+	!() => B
+		Func<A>
+		!() => A")));
 			}
 		}
 
@@ -376,7 +407,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				container.Resolve<A>();
-				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo("B\r\n\tFunc<C>\r\n\t() => C"));
+				Assert.That(container.Resolve<B>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+B
+	Func<C>
+	() => C")));
 			}
 		}
 
@@ -416,8 +450,11 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container(b => b.Contract("x").BindDependency<C>("parameter", 42));
 				container.Resolve<A>("x");
-				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(),
-					Is.EqualTo("B\r\n\t() => C[x]\r\n\t\tparameter -> 42\r\n\t() => C[x]"));
+				Assert.That(container.Resolve<B>("x", "y").GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+B
+	() => C[x]
+		parameter -> 42
+	() => C[x]")));
 			}
 		}
 
@@ -436,11 +473,11 @@ namespace SimpleContainer.Tests.Factories
 			public interface IB
 			{
 			}
-			
+
 			public class B1: IB
 			{
 			}
-			
+
 			public class B2: IB
 			{
 			}
@@ -453,7 +490,12 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(a.Single().allB.Length, Is.EqualTo(2));
 				Assert.That(a.Single().allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
 				Assert.That(a.Single().allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<IEnumerable<IB>>\r\n\t() => IB++\r\n\t\tB1\r\n\t\tB2"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Func<IEnumerable<IB>>
+	() => IB++
+		B1
+		B2")));
 			}
 		}
 
@@ -490,7 +532,9 @@ namespace SimpleContainer.Tests.Factories
 				Assert.That(allB.Length, Is.EqualTo(2));
 				Assert.That(allB.OfType<B1>().Single(), Is.Not.SameAs(container.Get<B1>()));
 				Assert.That(allB.OfType<B2>().Single(), Is.Not.SameAs(container.Get<B2>()));
-				Assert.That(a.GetConstructionLog(), Is.EqualTo("A\r\n\tFunc<IEnumerable<IB>>"));
+				Assert.That(a.GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+A
+	Func<IEnumerable<IB>>")));
 			}
 		}
 

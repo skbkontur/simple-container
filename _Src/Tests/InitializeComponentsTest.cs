@@ -545,7 +545,11 @@ namespace SimpleContainer.Tests
 				var container = Container(b => b.Contract("c1").BindDependency<A>("parameter", 42));
 				var resolvedA = container.Resolve<A>();
 				var exception = Assert.Throws<SimpleContainerException>(resolvedA.EnsureInitialized);
-				Assert.That(exception.Message, Is.EqualTo("exception initializing A[c1]\r\n\r\nA[c1], initializing ...\r\n\tparameter -> 42"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+exception initializing A[c1]
+
+A[c1], initializing ...
+	parameter -> 42")));
 				Assert.That(exception.InnerException.Message, Is.EqualTo("test crash"));
 			}
 		}
@@ -592,7 +596,7 @@ namespace SimpleContainer.Tests
 
 				public void Initialize()
 				{
-					log.Append(" ComponentA.Initialize\r\n");
+					log.AppendLine(" ComponentA.Initialize");
 				}
 			}
 
@@ -607,7 +611,7 @@ namespace SimpleContainer.Tests
 
 				public void Initialize()
 				{
-					log.Append(" ComponentB.Initialize\r\n");
+					log.AppendLine(" ComponentB.Initialize");
 				}
 			}
 
@@ -626,10 +630,12 @@ namespace SimpleContainer.Tests
 				using (var container = Factory().WithInfoLogger(logInfo).WithConfigurator(configure).Build())
 				{
 					container.Get<ComponentA>("my-contract");
-					const string componentALog =
-						"ComponentA[my-contract] - initialize started ComponentA.Initialize\r\nComponentA[my-contract] - initialize finished";
-					const string componentBLog =
-						"ComponentB[my-contract] - initialize started ComponentB.Initialize\r\nComponentB[my-contract] - initialize finished";
+					var componentALog = TestHelpers.FormatMessage(@"
+ComponentA[my-contract] - initialize started ComponentA.Initialize
+ComponentA[my-contract] - initialize finished");
+					var componentBLog = TestHelpers.FormatMessage(@"
+ComponentB[my-contract] - initialize started ComponentB.Initialize
+ComponentB[my-contract] - initialize finished");
 					Assert.That(log.ToString(), Is.EqualTo(componentBLog + componentALog));
 				}
 			}
@@ -661,7 +667,11 @@ namespace SimpleContainer.Tests
 				var container = Container();
 
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				Assert.That(exception.Message, Is.EqualTo("exception initializing B\r\n\r\nA, initializing ...\r\n\tB, initializing ..."));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+exception initializing B
+
+A, initializing ...
+	B, initializing ...")));
 				Assert.That(exception.InnerException.Message, Is.EqualTo("test-crash"));
 			}
 		}
@@ -697,7 +707,7 @@ namespace SimpleContainer.Tests
 				Assert.That(B.initializeCalled, Is.True);
 			}
 		}
-		
+
 		public class InvokeInitializeOnGetAllOnlyIfItIsTopmost : InitializeComponentsTest
 		{
 			public class A
@@ -795,17 +805,17 @@ namespace SimpleContainer.Tests
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A>());
-				const string expectedTopMessage = @"
+				var expectedTopMessage = TestHelpers.FormatMessage(@"
 exception initializing A
 
 A, initializing ...
-	Lazy<B>";
-				const string expectedNestedMessage = @"
+	Lazy<B>");
+				var expectedNestedMessage = TestHelpers.FormatMessage(@"
 attempt to resolve [B] is prohibited to prevent possible deadlocks
 
-!B <---------------";
-				Assert.That(exception.Message, Is.EqualTo(FormatExpectedMessage(expectedTopMessage)));
-				Assert.That(exception.InnerException.Message, Is.EqualTo(FormatExpectedMessage(expectedNestedMessage)));
+!B <---------------");
+				Assert.That(exception.Message, Is.EqualTo(expectedTopMessage));
+				Assert.That(exception.InnerException.Message, Is.EqualTo(expectedNestedMessage));
 			}
 		}
 	}

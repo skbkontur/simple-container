@@ -14,7 +14,8 @@ namespace SimpleContainer
 	public class ContainerFactory
 	{
 		private Type profile;
-		private Func<AssemblyName, bool> assembliesFilter = n => true;
+		private static readonly Func<AssemblyName, bool> defaultAssembliesFilter = n => n.Name != "NUnit3.TestAdapter";
+		private Func<AssemblyName, bool> assembliesFilter = defaultAssembliesFilter;
 		private Func<Type, string, object> settingsLoader;
 		private string configFileName;
 		private LogError errorLogger;
@@ -63,7 +64,7 @@ namespace SimpleContainer
 
 		public ContainerFactory WithAssembliesFilter(Func<AssemblyName, bool> newAssembliesFilter)
 		{
-			assembliesFilter = n => newAssembliesFilter(n) || n.Name == "SimpleContainer";
+			assembliesFilter = n => defaultAssembliesFilter(n) && (newAssembliesFilter(n) || n.Name == "SimpleContainer");
 			typesContextCache = null;
 			configurationByProfileCache.Clear();
 			return this;
@@ -236,9 +237,9 @@ namespace SimpleContainer
 					}
 					catch (ReflectionTypeLoadException e)
 					{
-						const string messageFormat = "can't load types from assembly [{0}], loaderExceptions:\r\n{1}";
-						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings("\r\n");
-						throw new SimpleContainerException(string.Format(messageFormat, a.GetName(), loaderExceptionsText), e);
+						var loaderExceptionsText = e.LoaderExceptions.Select(ex => ex.ToString()).JoinStrings(Environment.NewLine);
+						var message = $"can't load types from assembly [{a.GetName()}], loaderExceptions:{Environment.NewLine}{loaderExceptionsText}";
+						throw new SimpleContainerException(message, e);
 					}
 				});
 			types = newTypes.ToArray;

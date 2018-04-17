@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 
@@ -46,10 +47,15 @@ namespace SimpleContainer.Tests.LongRunning
 				Thread.Sleep(20);
 				container.Get<A>();
 			});
-			var isValidException = Is.EqualTo("parameter [parameter] of service [A] is not configured\r\n\r\n!A\r\n\tServiceWithDelay\r\n\t!parameter <---------------");
-			Assert.That(error.Message, isValidException);
+			var expected = TestHelpers.FormatMessage(@"
+parameter [parameter] of service [A] is not configured
+
+!A
+	ServiceWithDelay
+	!parameter <---------------");
+			Assert.That(error.Message, Is.EqualTo(expected));
 			var otherTaskException = Assert.Throws<AggregateException>(otherThreadTask.Wait);
-			Assert.That(otherTaskException.InnerExceptions.Single().Message, isValidException);
+			Assert.That(otherTaskException.InnerExceptions.Single().Message, Is.EqualTo(expected));
 		}
 	}
 }

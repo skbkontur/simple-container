@@ -14,8 +14,7 @@ namespace SimpleContainer.Tests
 		protected override void SetUp()
 		{
 			base.SetUp();
-			if (Directory.Exists(testDirectory))
-				Directory.Delete(testDirectory, true);
+			testDirectory = Path.GetFullPath($"{testDirectory}{Guid.NewGuid():N}");
 			Directory.CreateDirectory(testDirectory);
 
 			appDomain = AppDomain.CreateDomain("test", null, new AppDomainSetup {ApplicationBase = testDirectory});
@@ -30,12 +29,12 @@ namespace SimpleContainer.Tests
 			base.TearDown();
 		}
 
-		protected AppDomain appDomain;
-		private static readonly string testDirectory = Path.GetFullPath("testDirectory");
+		private AppDomain appDomain;
+		private string testDirectory;
 
-		private void CopyAssemblyToTestDirectory(Assembly assembly)
+		private void CopyAssemblyToTestDirectory(string assembly)
 		{
-			File.Copy(assembly.Location, Path.Combine(testDirectory, Path.GetFileName(assembly.Location)));
+			File.Copy(assembly, Path.Combine(testDirectory, Path.GetFileName(assembly)));
 		}
 
 		private FactoryInvoker GetInvoker()
@@ -92,12 +91,12 @@ namespace SimpleContainer.Tests
 			public void Test()
 			{
 				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode);
-				var assemblyName = primaryAssembly.GetName().Name;
+				var assemblyName = Path.GetFileNameWithoutExtension(primaryAssembly);
 
 				CopyAssemblyToTestDirectory(primaryAssembly);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
-				CopyAssemblyToTestDirectory(typeof (Assert).Assembly);
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly.Location);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly().Location);
+				CopyAssemblyToTestDirectory(typeof (Assert).Assembly.Location);
 
 				GetInvoker().DoCallBack(assemblyName, delegate(string s)
 				{
@@ -109,11 +108,16 @@ namespace SimpleContainer.Tests
 					using (var c = f.Build())
 					{
 						var exception = Assert.Throws<SimpleContainerException>(() => c.Get(type));
-						var assemblies = new[] {"SimpleContainer", s}.OrderBy(x => x).Select(x => "\t" + x).JoinStrings("\r\n");
-						const string expectedMessage = "no instances for [ISomeInterface]\r\n\r\n!" +
-						                               "ISomeInterface - has no implementations\r\n" +
-						                               "scanned assemblies\r\n";
-						Assert.That(exception.Message, Is.EqualTo(expectedMessage + assemblies));
+						var assemblies = new[] {"SimpleContainer", s}
+							.OrderBy(x => x)
+							.Select(x => "\t" + x)
+							.JoinStrings("\r\n");
+						var expectedMessage = TestHelpers.FormatMessage(@"
+no instances for [ISomeInterface]
+!ISomeInterface - has no implementations
+scanned assemblies
+" + assemblies);
+						Assert.That(exception.Message, Is.EqualTo(expectedMessage));
 					}
 				});
 			}
@@ -121,68 +125,61 @@ namespace SimpleContainer.Tests
 
 		public class CorrectExceptionHandling : AssembliesLoadTest
 		{
-			private const string referencedAssemblyCodeV1 = @"
-					using SimpleContainer.Configuration;
-					using SimpleContainer;
-					using System;
+			private string referencedAssemblyCodeV1 = @"
+using SimpleContainer.Configuration;
+using SimpleContainer;
+using System;
+namespace A1
+{
+	public interface ISomeInterface
+	{
+	}
+}";
 
-					namespace A1
-					{
-						public interface ISomeInterface
-						{
-						}
-					}
-				";
+			private string referencedAssemblyCodeV2 = @"
+using SimpleContainer.Configuration;
+using SimpleContainer;
+using System;
+namespace A1
+{
+	public interface ISomeInterface
+	{
+		void Do();
+	}
+}";
 
-			private const string referencedAssemblyCodeV2 = @"
-					using SimpleContainer.Configuration;
-					using SimpleContainer;
-					using System;
-
-					namespace A1
-					{
-						public interface ISomeInterface
-						{
-							void Do();
-						}
-					}
-				";
-
-			private const string primaryAssemblyCode = @"
-					using System;
-					using A1;
-
-					namespace A2
-					{
-						public class TestClass: ISomeInterface
-						{
-							void ISomeInterface.Do()
-							{
-							}
-						}
-					}
-				";
+			private string primaryAssemblyCode = @"
+using System;
+using A1;
+namespace A2
+{
+	public class TestClass: ISomeInterface
+	{
+		void ISomeInterface.Do()
+		{
+		}
+	}
+}";
 
 
 			[Test]
 			public void Test()
 			{
 				var referencedAssemblyV2 = AssemblyCompiler.Compile(referencedAssemblyCodeV2);
-				AssemblyCompiler.Compile(referencedAssemblyCodeV1,
-					Path.Combine(testDirectory, Path.GetFileName(referencedAssemblyV2.Location)));
 				var primaryAssembly = AssemblyCompiler.Compile(primaryAssemblyCode, referencedAssemblyV2);
+				AssemblyCompiler.CompileTo(referencedAssemblyCodeV1, referencedAssemblyV2);
 
+				CopyAssemblyToTestDirectory(referencedAssemblyV2);
 				CopyAssemblyToTestDirectory(primaryAssembly);
-				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly);
-				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly());
+				CopyAssemblyToTestDirectory(typeof (IContainer).Assembly.Location);
+				CopyAssemblyToTestDirectory(Assembly.GetExecutingAssembly().Location);
 
 				var exceptionText = GetInvoker().CreateCointainerWithCrash();
-				Assert.That(exceptionText, Does.Contain("A1.ISomeInterface.Do"));
 
 				const string englishText = "Unable to load one or more of the requested types";
 				const string russianText = "Не удается загрузить один или более запрошенных типов";
 				Assert.That(exceptionText, Does.Contain(englishText).Or.StringContaining(russianText));
-				Assert.That(exceptionText, Does.Contain(primaryAssembly.GetName().Name));
+				Assert.That(exceptionText, Does.Contain(Path.GetFileNameWithoutExtension(primaryAssembly)));
 			}
 		}
 	}

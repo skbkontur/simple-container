@@ -38,7 +38,13 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var a = container.Get<A>();
 				var error = Assert.Throws<SimpleContainerException>(() => a.createB());
-				Assert.That(error.Message, Is.EqualTo("many instances for [IB]\r\n\tB1\r\n\tB2\r\n\r\nIB++\r\n\tB1\r\n\tB2" + defaultScannedAssemblies));
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+many instances for [IB]
+	B1
+	B2
+IB++
+	B1
+	B2" + defaultScannedAssemblies)));
 			}
 		}
 
@@ -49,9 +55,13 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var error = Assert.Throws<SimpleContainerException>(() => container.GetAll<B>());
-				Assert.That(error.Message,
-					Is.EqualTo(
-						"parameter [parameter] of service [A] is not configured\r\n\r\n!B\r\n\tFunc<A>\r\n\t!() => A\r\n\t\t!parameter <---------------"));
+				Assert.That(error.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+parameter [parameter] of service [A] is not configured
+
+!B
+	Func<A>
+	!() => A
+		!parameter <---------------")));
 			}
 
 			public class B
@@ -98,8 +108,9 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var creator = container.Get<Func<object, IA>>();
 				var exception = Assert.Throws<SimpleContainerException>(() => creator(new { parameter = 56 }));
-				Assert.That(exception.Message,
-					Is.EqualTo("no instances for [IA]\r\n\r\n!IA - has no implementations" + defaultScannedAssemblies));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+no instances for [IA]
+!IA - has no implementations" + defaultScannedAssemblies)));
 			}
 		}
 	}

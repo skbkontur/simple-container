@@ -37,19 +37,19 @@ namespace SimpleContainer.Implementation
 					if (!initialized)
 					{
 						var name = new ServiceName(Instance.GetType(), service.UsedContracts);
-						if (containerContext.infoLogger != null)
-							containerContext.infoLogger(name, "initialize started");
+						containerContext.infoLogger?.Invoke(name, "initialize started");
 						try
 						{
 							componentInstance.Initialize();
 						}
 						catch (Exception e)
 						{
-							throw new SimpleContainerException(
-								string.Format("exception initializing {0}\r\n\r\n{1}", name, root.GetConstructionLog(containerContext)), e);
+							var message = string.Format("exception initializing {0}{1}{1}{2}",
+								name, Environment.NewLine, root.GetConstructionLog(containerContext));
+							throw new SimpleContainerException(message, e);
 						}
-						if (containerContext.infoLogger != null)
-							containerContext.infoLogger(name, "initialize finished");
+
+						containerContext.infoLogger?.Invoke(name, "initialize finished");
 						initialized = true;
 					}
 		}

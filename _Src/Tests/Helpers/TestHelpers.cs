@@ -31,8 +31,15 @@ namespace SimpleContainer.Tests.Helpers
 		public static Type[] GetNestedTypesRecursive(this Type type, BindingFlags bindingFlags)
 		{
 			return type.GetNestedTypes(bindingFlags)
-				.SelectMany(t => t.GetNestedTypesRecursive(bindingFlags).Prepend(t))
+				.SelectMany(t => new [] {t}.Concat(t.GetNestedTypesRecursive(bindingFlags)))
 				.ToArray();
+		}
+
+		public static string FormatMessage(string s)
+		{
+			return s.Replace("\r\n", "\n")
+				.Replace("\n", Environment.NewLine)
+				.Trim();
 		}
 	}
 }

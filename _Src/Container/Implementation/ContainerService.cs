@@ -41,18 +41,20 @@ namespace SimpleContainer.Implementation
 			if (Instances.Length == 0)
 			{
 				var targetType = Type.IsDelegate() ? Type.DeclaringType : Type;
-				message = string.Format("no instances for [{0}]", targetType.FormatName());
+				message = $"no instances for [{targetType.FormatName()}]";
 				var notResolvedRoot = SearchForNotResolvedRoot();
 				if (notResolvedRoot != this)
-					message += string.Format(" because [{0}] has no instances", notResolvedRoot.Type.FormatName());
+					message += $" because [{notResolvedRoot.Type.FormatName()}] has no instances";
 			}
 			else
 				message = FormatManyImplementationsMessage();
 			var assemblies = containerContext.typesList.GetAssemblies()
 				.OrderBy(x => x.GetName().Name)
-				.Select(x => "\t" + x.GetName().Name).JoinStrings("\r\n");
-			throw new SimpleContainerException(string.Format("{0}\r\n\r\n{1}\r\nscanned assemblies\r\n{2}",
-				message, GetConstructionLog(containerContext), assemblies));
+				.Select(x => "\t" + x.GetName().Name).JoinStrings(Environment.NewLine);
+			throw new SimpleContainerException(message
+				+ Environment.NewLine + GetConstructionLog(containerContext)
+				+ Environment.NewLine + "scanned assemblies"
+				+ Environment.NewLine + assemblies);
 		}
 
 		public ServiceDependency AsDependency(ContainerContext containerContext, string dependencyName, bool isEnumerable)
@@ -209,11 +211,12 @@ namespace SimpleContainer.Implementation
 			if (errorTarget == null)
 				throw new InvalidOperationException("assertion failure: can't find error target");
 			var constructionLog = GetConstructionLog(containerContext);
-			var currentConstructionException = errorTarget.service != null ? errorTarget.service.constructionException : null;
+			var currentConstructionException = errorTarget.service?.constructionException;
 			var message = currentConstructionException != null
-				? string.Format("service [{0}] construction exception", errorTarget.service.Type.FormatName())
+				? $"service [{errorTarget.service.Type.FormatName()}] construction exception"
 				: (errorTarget.service != null ? errorTarget.service.comment : errorTarget.dependency.Comment);
-			throw new SimpleContainerException(message + "\r\n\r\n" + constructionLog, currentConstructionException);
+			var exceptionMessage = message + Environment.NewLine + Environment.NewLine + constructionLog;
+			throw new SimpleContainerException(exceptionMessage, currentConstructionException);
 		}
 
 		private ErrorTarget SearchForError()
@@ -253,8 +256,10 @@ namespace SimpleContainer.Implementation
 
 		private string FormatManyImplementationsMessage()
 		{
-			return string.Format("many instances for [{0}]\r\n{1}", Type.FormatName(),
-				Instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings("\r\n"));
+			return string.Format("many instances for [{0}]{1}{2}",
+				Type.FormatName(),
+				Environment.NewLine,
+				Instances.Select(x => "\t" + x.Instance.GetType().FormatName()).JoinStrings(Environment.NewLine));
 		}
 
 		private class ErrorTarget

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -63,22 +64,28 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				var instance = container.Get<Wrap>();
 				Assert.That(instance.fileAccessors.Select(x => x.fileAccessor.fileName).ToArray(), Is.EqualTo(new[] { "ww1", "ww2" }));
-				Assert.That(container.Resolve<Wrap>().GetConstructionLog(), Is.EqualTo(
-					"Wrap\r\n" +
-					"\tFileAccessorWrap[all]++\r\n" +
-					"\t\t!FileAccessorWrap[c1] - instance filter\r\n" +
-					"\t\t\tFileAccessor[c1]\r\n" +
-					"\t\t\t\tfileName -> qq\r\n" +
-					"\t\tFileAccessorWrap[c2]\r\n" +
-					"\t\t\tFileAccessor[c2]\r\n" +
-					"\t\t\t\tfileName -> ww1\r\n" +
-					"\t\tFileAccessorWrap[c3]\r\n" +
-					"\t\t\tFileAccessor[c3]\r\n" +
-					"\t\t\t\tfileName -> ww2"));
-				Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(),
-					Is.EqualTo("!FileAccessorWrap[c1] - instance filter\r\n\tFileAccessor[c1]\r\n\t\tfileName -> qq"));
-				Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(),
-					Is.EqualTo("FileAccessorWrap[c2]\r\n\tFileAccessor[c2]\r\n\t\tfileName -> ww1"));
+				Assert.That(container.Resolve<Wrap>().GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+Wrap
+	FileAccessorWrap[all]++
+		!FileAccessorWrap[c1] - instance filter
+			FileAccessor[c1]
+				fileName -> qq
+		FileAccessorWrap[c2]
+			FileAccessor[c2]
+				fileName -> ww1
+		FileAccessorWrap[c3]
+			FileAccessor[c3]
+				fileName -> ww2")));
+
+				Assert.That(container.Resolve<FileAccessorWrap>("c1").GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+!FileAccessorWrap[c1] - instance filter
+	FileAccessor[c1]
+		fileName -> qq")));
+
+				Assert.That(container.Resolve<FileAccessorWrap>("c2").GetConstructionLog(), Is.EqualTo(TestHelpers.FormatMessage(@"
+FileAccessorWrap[c2]
+	FileAccessor[c2]
+		fileName -> ww1")));
 			}
 		}
 

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using SimpleContainer.Annotations;
@@ -235,9 +236,12 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<B.Ctor>());
+				var expected = TestHelpers.FormatMessage(@"
+no instances for [B] because [IA] has no instances
+!B.Ctor
+	!IA - has no implementations" + defaultScannedAssemblies);
 				Assert.That(exception.Message,
-					Is.EqualTo("no instances for [B] because [IA] has no instances\r\n\r\n!B.Ctor\r\n\t!IA - has no implementations" +
-					           defaultScannedAssemblies));
+					Is.EqualTo(expected));
 			}
 		}
 
@@ -288,7 +292,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("can't find matching ctor\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+can't find matching ctor
+
+!A.Ctor <---------------")));
 			}
 		}
 
@@ -304,8 +311,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message,
-					Is.EqualTo("delegate has not used parameters [p1,p2]\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+delegate has not used parameters [p1,p2]
+
+!A.Ctor <---------------")));
 			}
 		}
 
@@ -328,7 +337,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("can't find matching ctor\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+can't find matching ctor
+
+!A.Ctor <---------------")));
 			}
 		}
 
@@ -349,7 +361,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<A.Ctor>());
-				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]. return type must match declaring\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+can't create delegate [A.Ctor]. return type must match declaring
+
+!A.Ctor <---------------")));
 			}
 		}
 
@@ -366,7 +381,10 @@ namespace SimpleContainer.Tests.Factories
 				var container = Container();
 				var ctorType = typeof (A).GetNestedTypes(BindingFlags.NonPublic).Single(x => x.Name == "Ctor");
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get(ctorType));
-				Assert.That(exception.Message, Is.EqualTo("can't create delegate [A.Ctor]. must be nested public\r\n\r\n!A.Ctor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+can't create delegate [A.Ctor]. must be nested public
+
+!A.Ctor <---------------")));
 			}
 		}
 
@@ -417,7 +435,10 @@ namespace SimpleContainer.Tests.Factories
 			{
 				var container = Container();
 				var exception = Assert.Throws<SimpleContainerException>(() => container.Get<ServiceCtor>());
-				Assert.That(exception.Message, Is.EqualTo("can't create delegate [ServiceCtor]. must be nested public\r\n\r\n!ServiceCtor <---------------"));
+				Assert.That(exception.Message, Is.EqualTo(TestHelpers.FormatMessage(@"
+can't create delegate [ServiceCtor]. must be nested public
+
+!ServiceCtor <---------------")));
 			}
 		}
 	}

@@ -269,7 +269,7 @@ namespace SimpleContainer.Tests
 				var container = Container();
 				container.Get<Component1>();
 				var error = Assert.Throws<AggregateException>(container.Dispose);
-				Assert.That(error.Message, Is.EqualTo("SimpleContainer dispose error"));
+				Assert.That(error.Message, Does.StartWith("SimpleContainer dispose error"));
 				Assert.That(error.InnerExceptions[0].Message, Is.EqualTo("error disposing [Component1]"));
 				Assert.That(error.InnerExceptions[0].InnerException.Message, Is.EqualTo("test component1 crash"));
 				Assert.That(error.InnerExceptions[1].Message, Is.EqualTo("error disposing [Component2]"));
@@ -386,7 +386,7 @@ namespace SimpleContainer.Tests
 				};
 				using (var container = Factory().WithErrorLogger(logger).Build())
 					container.Get<A>();
-				Assert.That(disposeErrorMessage, Is.EqualTo("SimpleContainer dispose error"));
+				Assert.That(disposeErrorMessage, Does.StartWith("SimpleContainer dispose error"));
 				var aggregateException = (AggregateException) disposeError;
 				var disposeException = aggregateException.InnerExceptions.Single();
 				Assert.That(disposeException.Message, Is.EqualTo("error disposing [A]"));
