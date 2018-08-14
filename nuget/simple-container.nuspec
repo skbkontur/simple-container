@@ -1,18 +1,27 @@
 <?xml version="1.0"?>
 <package >
-  <metadata>
+  <metadata minClientVersion="2.0">
     <id>simple-container</id>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
     <authors>gusev_p</authors>
     <owners>gusev_p</owners>
     <licenseUrl>https://github.com/gusev-p/simple-container/blob/master/LICENSE.txt</licenseUrl>
     <projectUrl>https://github.com/gusev-p/simple-container</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Just another DI container</description>
-    <copyright>Copyright 2016</copyright>
+    <tags>di ioc dependencyinjection</tags>
+    <copyright>Copyright 2018</copyright>
+    <dependencies>
+      <group targetFramework="netstandard2.0">
+        <dependency id="System.Reflection.Emit.ILGeneration" version="4.3.0" />
+        <dependency id="System.Reflection.Emit.Lightweight" version="4.3.0" />
+      </group>
+    </dependencies>
   </metadata>
   <files>
-    <file src="..\bin\Release\SimpleContainer.dll" target="lib/net45" />
-    <file src="..\bin\Release\SimpleContainer.pdb" target="lib/net45" />
+    <file src="..\_Src\Container\bin\Release\net45\SimpleContainer.dll" target="lib/net45" />
+    <file src="..\_Src\Container\bin\Release\net45\SimpleContainer.pdb" target="lib/net45" />
+    <file src="..\_Src\Container\bin\Release\netstandard2.0\SimpleContainer.dll" target="lib/netstandard2.0" />
+    <file src="..\_Src\Container\bin\Release\netstandard2.0\SimpleContainer.pdb" target="lib/netstandard2.0" />
   </files>
 </package>
