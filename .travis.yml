@@ -13,8 +13,8 @@ script:
   - wget --retry-connrefused --waitretry=1 https://dot.net/v1/dotnet-install.sh
   - chmod +x dotnet-install.sh
   - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get install apt-transport-https libunwind8; fi
-  - ./dotnet-install.sh --channel 2.0
+  - ./dotnet-install.sh --channel 3.1
   - export PATH="$PATH:$HOME/.dotnet"
 
-  # run tests under .NET Core 2.0
-  - dotnet test _Src/Tests/Tests.csproj -f netcoreapp2.0
+  # run tests under .NET Core 3.1
+  - dotnet test _Src/Tests/Tests.csproj -f netcoreapp3.1
