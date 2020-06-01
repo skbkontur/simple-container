@@ -1,20 +1,31 @@
-matrix:
+language: csharp
+env:
+  - DOTNET_CLI_TELEMETRY_OPTOUT=1
+jobs:
   include:
-    - os: linux
-      dist: trusty
-      env: CURRENTOS=UNDER_LINUX
-      mono: latest
-    - os: osx
-      osx_image: xcode7.1
-      env: CURRENTOS=UNDER_MACOSX
+    - name: '[ubuntu xenial] .NET Core 2.1 and 3.1'
+      os: linux
+      dist: xenial
       mono: none
-script:
-  # installing .NET Core SDK
-  - wget --retry-connrefused --waitretry=1 https://dot.net/v1/dotnet-install.sh
-  - chmod +x dotnet-install.sh
-  - if [[ $CURRENTOS == "UNDER_LINUX" ]]; then sudo apt-get install apt-transport-https libunwind8; fi
-  - ./dotnet-install.sh --channel 2.0
-  - export PATH="$PATH:$HOME/.dotnet"
+      script:
+        - wget -q https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb
+        - sudo dpkg -i packages-microsoft-prod.deb
+        - sudo apt-get update
+        - sudo apt-get install apt-transport-https dotnet-sdk-2.1 dotnet-sdk-3.1
+        - dotnet --info
+        - dotnet test _Src -f netcoreapp2.1
+        - dotnet test _Src -f netcoreapp3.1
 
-  # run tests under .NET Core 2.0
-  - dotnet test _Src/Tests/Tests.csproj -f netcoreapp2.0
+    - name: '[osx] .NET Core 2.1 and 3.1'
+      os: osx
+      osx_image: xcode11.2
+      mono: none
+      script:
+        - wget --retry-connrefused --waitretry=1 -O /tmp/dotnet-sdk-2.1.505-osx-x64.pkg https://download.visualstudio.microsoft.com/download/pr/7908138c-c0cf-4e5a-b28a-66cf7a781808/a36fe63192ee49593890d84b23729292/dotnet-sdk-2.1.505-osx-x64.pkg
+        - wget --retry-connrefused --waitretry=1 -O /tmp/dotnet-sdk-3.1.201-osx-x64.pkg https://download.visualstudio.microsoft.com/download/pr/905598d0-17a3-4b42-bf13-c5a69d7aac87/853aff73920dcb013c09a74f05da7f6a/dotnet-sdk-3.1.201-osx-x64.pkg
+        - sudo installer -pkg /tmp/dotnet-sdk-2.1.505-osx-x64.pkg -target /
+        - sudo installer -pkg /tmp/dotnet-sdk-3.1.201-osx-x64.pkg -target /
+        - ln -s /usr/local/share/dotnet/dotnet /usr/local/bin/
+        - dotnet --info
+        - dotnet test _Src -f netcoreapp2.1
+        - dotnet test _Src -f netcoreapp3.1

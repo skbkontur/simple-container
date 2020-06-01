@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RootNamespace>SimpleContainer.Tests</RootNamespace>
     <AssemblyName>SimpleContainer.Tests</AssemblyName>
-    <TargetFrameworks>net46;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net461;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
     <DebugType>full</DebugType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
@@ -11,14 +11,14 @@
     <EmbeddedResource Include="testResource.txt" />
     <EmbeddedResource Include="ConstructionLog\test-resource-for-construction-log-test.txt" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' or '$(TargetFramework)' == 'netcoreapp3.1'">
     <Compile Remove="AssembliesLoadTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="3.10.1" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.7.0" />
+    <PackageReference Include="NUnit" Version="3.12.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.6.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.10.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Container\Container.csproj" />

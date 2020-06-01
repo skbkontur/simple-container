@@ -17,7 +17,7 @@ namespace SimpleContainer
 		private static readonly Func<AssemblyName, bool> defaultAssembliesFilter = n => n.Name != "NUnit3.TestAdapter";
 		private Func<AssemblyName, bool> assembliesFilter = defaultAssembliesFilter;
 		private Func<Type, string, object> settingsLoader;
-		private string configFileName;
+		private Func<string> configTextProvider;
 		private LogError errorLogger;
 		private LogInfo infoLogger;
 		private Type[] priorities;
@@ -79,7 +79,25 @@ namespace SimpleContainer
 
 		public ContainerFactory WithConfigFile(string fileName)
 		{
-			configFileName = fileName;
+			configTextProvider = () => fileName != null && File.Exists(fileName)
+				? File.ReadAllText(fileName)
+				: null;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithConfigText(Func<string> getConfigText)
+		{
+			configTextProvider = getConfigText;
+			typesContextCache = null;
+			configurationByProfileCache.Clear();
+			return this;
+		}
+
+		public ContainerFactory WithConfigText(string configText)
+		{
+			configTextProvider = () => configText;
 			typesContextCache = null;
 			configurationByProfileCache.Clear();
 			return this;
@@ -176,8 +194,9 @@ namespace SimpleContainer
 					.ToArray();
 				typesContext = new TypesContext {typesList = TypesList.Create(targetTypes)};
 				typesContext.genericsAutoCloser = new GenericsAutoCloser(typesContext.typesList, assembliesFilter);
-				if (configFileName != null && File.Exists(configFileName))
-					typesContext.fileConfigurator = FileConfigurationParser.Parse(typesContext.typesList.Types, configFileName);
+				var configText = configTextProvider?.Invoke();
+				if (!string.IsNullOrEmpty(configText))
+					typesContext.textConfigurator = ConfigurationTextParser.Parse(typesContext.typesList.Types, configText);
 				ConfigurationRegistry staticConfiguration;
 				if (staticConfigure == null)
 					staticConfiguration = ConfigurationRegistry.Empty;
@@ -191,14 +210,13 @@ namespace SimpleContainer
 				typesContext.configuratorRunner = configurationContainer.Get<ConfiguratorRunner>();
 				typesContextCache = typesContext;
 			}
-			ConfigurationRegistry configurationRegistry;
-			if (!configurationByProfileCache.TryGetValue(profile ?? typeof (ContainerFactory), out configurationRegistry))
+
+			if (!configurationByProfileCache.TryGetValue(profile ?? typeof (ContainerFactory), out var configurationRegistry))
 			{
 				var builder = new ContainerConfigurationBuilder();
 				var configurationContext = new ConfigurationContext(profile, settingsLoader, parameters);
 				typesContext.configuratorRunner.Run(builder, configurationContext, priorities);
-				if (typesContext.fileConfigurator != null)
-					typesContext.fileConfigurator(builder);
+				typesContext.textConfigurator?.Invoke(builder);
 				configurationRegistry = builder.RegistryBuilder.Build(typesContext.typesList, null);
 				configurationByProfileCache.Add(profile ?? typeof (ContainerFactory), configurationRegistry);
 			}
@@ -251,7 +269,7 @@ namespace SimpleContainer
 		{
 			public TypesList typesList;
 			public GenericsAutoCloser genericsAutoCloser;
-			public Action<ContainerConfigurationBuilder> fileConfigurator;
+			public Action<ContainerConfigurationBuilder> textConfigurator;
 			public ConfiguratorRunner configuratorRunner;
 		}
 	}

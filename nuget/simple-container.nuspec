@@ -2,7 +2,7 @@
 <package >
   <metadata minClientVersion="2.0">
     <id>simple-container</id>
-    <version>1.0.5</version>
+    <version>$Version$</version>
     <authors>gusev_p</authors>
     <owners>gusev_p</owners>
     <licenseUrl>https://github.com/gusev-p/simple-container/blob/master/LICENSE.txt</licenseUrl>
@@ -12,16 +12,22 @@
     <tags>di ioc dependencyinjection</tags>
     <copyright>Copyright 2018</copyright>
     <dependencies>
+      <group targetFramework="net45">
+      </group>
+      <group targetFramework="net461">
+      </group>
       <group targetFramework="netstandard2.0">
-        <dependency id="System.Reflection.Emit.ILGeneration" version="4.3.0" />
-        <dependency id="System.Reflection.Emit.Lightweight" version="4.3.0" />
+        <dependency id="System.Reflection.Emit.ILGeneration" version="4.7.0" />
+        <dependency id="System.Reflection.Emit.Lightweight" version="4.7.0" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="..\_Src\Container\bin\Release\net45\SimpleContainer.dll" target="lib/net45" />
-    <file src="..\_Src\Container\bin\Release\net45\SimpleContainer.pdb" target="lib/net45" />
-    <file src="..\_Src\Container\bin\Release\netstandard2.0\SimpleContainer.dll" target="lib/netstandard2.0" />
-    <file src="..\_Src\Container\bin\Release\netstandard2.0\SimpleContainer.pdb" target="lib/netstandard2.0" />
+    <file src="..\_Src\Container\bin\$Configuration$\net45\SimpleContainer.dll" target="lib/net45" />
+    <file src="..\_Src\Container\bin\$Configuration$\net45\SimpleContainer.pdb" target="lib/net45" />
+    <file src="..\_Src\Container\bin\$Configuration$\net461\SimpleContainer.dll" target="lib/net461" />
+    <file src="..\_Src\Container\bin\$Configuration$\net461\SimpleContainer.pdb" target="lib/net461" />
+    <file src="..\_Src\Container\bin\$Configuration$\netstandard2.0\SimpleContainer.dll" target="lib/netstandard2.0" />
+    <file src="..\_Src\Container\bin\$Configuration$\netstandard2.0\SimpleContainer.pdb" target="lib/netstandard2.0" />
   </files>
 </package>
