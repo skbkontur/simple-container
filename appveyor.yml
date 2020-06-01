@@ -1,3 +1,4 @@
+image: Visual Studio 2019
 version: 1.0.{build}
 assembly_info:
   patch: true
@@ -15,9 +16,12 @@ configuration:
 init:
   - git config --global core.autocrlf true
 build_script:
-  - dotnet build _Src\SimpleContainer.sln
+  - dotnet build _Src
+  - cmd: nuget pack nuget\simple-container.nuspec -OutputDirectory nupkg -Properties Configuration=%CONFIGURATION%;Version=%APPVEYOR_BUILD_VERSION%
 test_script:
-  - nunit3-console.exe "_Src\Tests\bin\%configuration%\net46\SimpleContainer.Tests.dll"
-  - dotnet test "_Src\Tests\Tests.csproj" --no-restore --no-build -f netcoreapp2.0 -o "bin\%configuration%\netcoreapp2.0"
+  - dotnet test _Src --no-restore --no-build
 artifacts:
-  - path: bin\$(configuration)\*.*
+  - path: _Src\Container\bin\$(configuration)\net45
+  - path: _Src\Container\bin\$(configuration)\net461
+  - path: _Src\Container\bin\$(configuration)\netstandard2.0
+  - path: nupkg\*.*

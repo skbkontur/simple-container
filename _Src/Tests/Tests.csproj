@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RootNamespace>SimpleContainer.Tests</RootNamespace>
     <AssemblyName>SimpleContainer.Tests</AssemblyName>
-    <TargetFrameworks>net46;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net461;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
     <DebugType>full</DebugType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
@@ -11,7 +11,7 @@
     <EmbeddedResource Include="testResource.txt" />
     <EmbeddedResource Include="ConstructionLog\test-resource-for-construction-log-test.txt" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' or '$(TargetFramework)' == 'netcoreapp3.1'">
     <Compile Remove="AssembliesLoadTest.cs" />
   </ItemGroup>
   <ItemGroup>
