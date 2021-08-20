@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Reflection;
-using SimpleContainer.Annotations;
+using JetBrains.Annotations;
 using SimpleContainer.Helpers;
 using SimpleContainer.Interface;
 
