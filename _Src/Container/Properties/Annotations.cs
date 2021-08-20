@@ -8,8 +8,9 @@
 // ReSharper disable IntroduceOptionalParameters.Global
 // ReSharper disable MemberCanBeProtected.Global
 // ReSharper disable InconsistentNaming
+// ReSharper disable CheckNamespace
 
-namespace SimpleContainer.Annotations
+namespace JetBrains.Annotations
 {
   /// <summary>
   /// Indicates that the value of the marked element could be <c>null</c> sometimes,

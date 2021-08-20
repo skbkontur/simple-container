@@ -1,8 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using NUnit.Framework;
-using SimpleContainer.Annotations;
 using SimpleContainer.Interface;
 using SimpleContainer.Tests.Helpers;
 

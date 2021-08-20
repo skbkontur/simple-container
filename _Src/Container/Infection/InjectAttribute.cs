@@ -1,5 +1,5 @@
 ﻿using System;
-using SimpleContainer.Annotations;
+using JetBrains.Annotations;
 
 namespace SimpleContainer.Infection
 {
